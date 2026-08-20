@@ -1,6 +1,6 @@
 # Thread 3 — Store Logistics Gates
 
-**Date:** 2026-08-19 · **Status:** exploration deep-dive · **Parent:** [harf-exploration.md](harf-exploration.md)
+**Date:** 2026-08-19 · **Updated:** 2026-08-20 (Gate A confirmed, Apple decision, name/domain findings) · **Status:** exploration deep-dive · **Parent:** [harf-exploration.md](harf-exploration.md)
 
 The Shipaton rule is unforgiving: **live in both stores by Sept 30, 11:45 PM PDT — "in review" does not count.** Store logistics are therefore not an end-of-project chore; several have long clocks that start ticking only when *we* act, and two of them could already be fatal if left until September. This doc is the checklist, ordered by how irreversible the deadline math is.
 
@@ -10,9 +10,9 @@ The Shipaton rule is unforgiving: **live in both stores by Sept 30, 11:45 PM PDT
 
 ## 1. The two clocks that can kill the entry
 
-### Gate A — Google Play closed-testing requirement (check TODAY)
+### Gate A — Google Play closed-testing requirement (CONFIRMED — applies)
 
-Personal developer accounts created after **Nov 13, 2023** must run a closed test with **12 testers opted in for 14 continuous days**, then *apply* for production access (itself a review step with its own turnaround) before anything can go live.
+The account was purchased **Aug 20, 2026, as a personal account** — squarely inside the rule: personal accounts created after **Nov 13, 2023** must run a closed test with **12 testers opted in for 14 continuous days**, then *apply* for production access (itself a review step with its own turnaround) before anything can go live. The organization-account exemption requires a legal entity + D-U-N-S number — not realistic in this window.
 
 ```
 worst-case backward math from Sept 30:
@@ -25,16 +25,17 @@ worst-case backward math from Sept 30:
 ```
 
 **Action now:**
-1. Check the Play Console account: creation date, personal vs organization. **If organization account, or personal pre-Nov 2023 — this whole gate vanishes.** ⚠ verify
-2. If the gate applies: upload a stub AAB (empty Compose app with the real applicationId) within days, create the closed track, recruit 12+ testers from personal networks/Telegram — recruit 15–18 for dropout margin, since "12 opted-in continuously" is the requirement, not "12 invited."
+1. Complete the new-account **identity verification** first — it can take days by itself and blocks everything downstream.
+2. Then immediately: upload a stub AAB (empty Compose app with the real applicationId), create the closed track, recruit testers from personal networks/Telegram — recruit 15–18 for dropout margin, since "12 opted-in continuously" is the requirement, not "12 invited." Target: testers running by **Aug 26–28**.
 3. The 14-day clock and feature development run in parallel — the stub gets replaced by real builds as they come; the clock doesn't reset on new uploads. ⚠ verify current policy details.
+4. Put the testers in one Telegram group from day 1 — they are the seed community, the first league, and the launch-day amplifiers. Compliance burden and growth plan are the same work.
 
 ### Gate B — Apple account + first green CI build (this week)
 
 No Mac on the team; iOS exists only through cloud CI. Every day without a green iOS build is schedule risk compounding silently.
 
 **Action now:**
-1. Apple Developer Program enrollment ($99/yr) — individual enrollment typically clears in ~24–48h but can drag for days with identity verification. Start immediately if not done. ⚠ verify
+1. **Decision (Aug 20): enroll immediately — this week, not "a month before deploy."** Waiting until ~Sept 1 would leave iOS entirely untested through the whole build phase (TestFlight is the team's only iOS device), land any enrollment hiccup in freeze week, and delay the banking/IAP clearance clock. Enrollment ($99/yr) typically clears in ~24–48h but can drag for days with identity verification. ⚠ verify
 2. Pick the CI lane and get **any** Compose Multiplatform iOS build signed and on TestFlight in week 0:
    - **GitHub Actions macOS runners** — no new vendor, pay-per-minute, most manual signing setup
    - **Codemagic** — KMP-aware presets, free tier, fastest to first green build (likely winner for a 2-person team)
@@ -55,7 +56,7 @@ No Mac on the team; iOS exists only through cloud CI. Every day without a green 
 
 The Asia economics of the concept depend on $0.49–$1.99 *local equivalents* being genuinely local:
 
-- **Play Console:** per-country price templates for UZS, KZT, AZN, TJS (+ RUB for diaspora, INR for later). Set deliberately — auto-converted defaults land at unpsychological price points.
+- **Play Console:** per-country price templates for UZS, KZT, RUB (diaspora; INR for later expansion). Set deliberately — auto-converted defaults land at unpsychological price points.
 - **Carrier billing** (Play): available through local operators in Uzbekistan/Kazakhstan — critical where card ownership is low. Mostly automatic when enabled per country, but **⚠ verify** current operator coverage; don't promise it in marketing until seen working.
 - **App Store:** territory-specific pricing on the same SKUs; Apple's alternate price points allow the ~$0.49-equivalent tiers.
 - Sanity-check the headline promise: streak save should feel like "a bus fare, not a coffee" in Tashkent — roughly the 5,000–6,000 UZS zone. Price by feel per market, not by FX conversion.
@@ -64,7 +65,7 @@ The Asia economics of the concept depend on $0.49–$1.99 *local equivalents* be
 
 Loop 2 (share → tap → play) requires **verified** links, and verification is server-side:
 
-1. Buy the domain (e.g. `harf.uz`? `harf.app`? — also the brand decision) — week 0
+1. Name locked: **Harf** (Aug 20). Store collision check found only compound-named Turkish games (Harf Lütfen, Harfle, Harf Oyunu, Harf Kutusu…) — bare "Harf" is unclaimed and nothing exists in our markets. Domain: `harf.app` is already registered; **`harf.uz` is the preferred brand fit** (DNS check inconclusive — verify at a .uz registrar), `harf.game` appears free as the international fallback. Buy this week.
 2. Host `/.well-known/assetlinks.json` (Android App Links) and `/.well-known/apple-app-site-association` (iOS Universal Links) — trivially served by the same Ktor deployment
 3. Link format like `harf.app/p/uz/2026-09-30?ref=...` → installed: open puzzle; not installed: store page. Deferred-deep-link attribution (which share drove which install) is what makes the Noise K-factor **measurable** — worth the extra plumbing.
 4. Test Telegram's link-preview rendering of share cards early — the card as seen *inside a Telegram group* is the real product surface.
@@ -88,7 +89,7 @@ Likely rejection reasons to pre-empt:
 
 ## 6. Store listing as a growth asset (second teammate's lane)
 
-- Listings localized in **uz (Latin), ru, kk, az, tg** + en — the "in OUR language" positioning starts on the store page itself
+- Listings localized in **uz (Latin), ru, kk, en** — the "in OUR language" positioning starts on the store page itself; per-locale subtitles ("Harf — soʻz oʻyini", "Harf — сөз ойыны") also put daylight between us and the Turkish "Harf" titles
 - Screenshots show: the board in each language, the Telegram share card, a league table, the streak-gift moment. The store page should *look like* the viral loop
 - App name/subtitle carry the local-language keywords ("so'z o'yini", "сөз ойыны"…) — ASO in small national markets is nearly uncontested
 - Prepare the Shipaton submission assets (demo video, RevenueCat integration proof) in the same pass — same screenshots, same story
@@ -96,14 +97,14 @@ Likely rejection reasons to pre-empt:
 ## 7. The week-0 checklist, consolidated
 
 ```
-□ Play account age/type checked            → Gate A verdict TODAY
-□ Stub AAB + closed track + 15 testers     → if Gate A applies, by Aug 24
-□ Apple Developer enrollment confirmed      → today
+☑ Play account purchased Aug 20 (personal) → Gate A CONFIRMED, clock live
+□ Identity verify → stub AAB + 15–18 testers → running by Aug 26–28
+□ Apple Developer enrollment (decided: now) → this week
 □ CI lane picked; green iOS TestFlight     → by Aug 26
 □ Green Android AAB from same CI            → by Aug 26
 □ Paid-apps agreements, banking, tax ×2     → started this week
 □ RevenueCat project + store apps linked    → this week
-□ Domain bought; well-known files planned   → this week (brand decision!)
+□ Domain bought (harf.uz pref, harf.game alt) → this week
 □ Current Play target-API floor verified    → before project scaffold
 □ Privacy policy drafted                    → this week (10 min with a template)
 ```

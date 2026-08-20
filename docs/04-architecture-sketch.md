@@ -1,6 +1,6 @@
 # Thread 4 — Architecture Sketch
 
-**Date:** 2026-08-19 · **Status:** exploration deep-dive · **Parent:** [harf-exploration.md](harf-exploration.md)
+**Date:** 2026-08-19 · **Updated:** 2026-08-20 (targets, navigation, language set) · **Status:** exploration deep-dive · **Parent:** [harf-exploration.md](harf-exploration.md)
 
 Design goals, in priority order: **(1)** the daily loop works offline and instantly, **(2)** ~95% commonMain is measured and true (the JetBrains story), **(3)** the backend stays small enough for one person to operate during launch week, **(4)** iosMain stays thin because iOS is debugged only through cloud CI.
 
@@ -38,6 +38,13 @@ Design goals, in priority order: **(1)** the daily loop works offline and instan
 
 One Ktor deployable + one Postgres on a managed host (Fly.io / Railway / Hetzner VPS — pick whichever the team already knows; boring beats optimal). The server also serves the deep-link verification files and share landing pages, so **one domain, one deployment** covers [03-store-logistics.md](03-store-logistics.md) §4.
 
+### Targets (decided 2026-08-20)
+
+All four KMP targets — **Android, iOS, desktop, wasmJs** — are scaffolded at project creation (cheap on day 0, painful to retrofit). Feature investment is mobile-only until after the Sept 12 freeze: Android + iOS are the Shipaton deliverables; desktop/wasm get zero feature time before then. Two consequences to bake in from the first commit:
+
+- **purchases-kmp and push are Android/iOS-only.** Monetization and push live behind commonMain interfaces whose real implementations link only into the mobile targets (no-op elsewhere) — otherwise desktop/wasm don't compile. SQLDelight needs its web-worker driver on wasm; same interface discipline.
+- **The post-Shipaton wasm play:** the share-link landing page (`/p/...`) can become a wasm mini-player — tap a Telegram link on desktop, play today's word in the browser, install CTA below. It's the strongest possible "Ship Kotlin Everywhere" demo for the JetBrains track, and this architecture keeps that door open at zero current cost.
+
 ## 2. The load-bearing decision: word packs, not word requests
 
 The daily puzzle must never depend on a live request — target users ride metros with dead zones, and a cold server on launch morning would kill the streak habit at birth.
@@ -57,7 +64,7 @@ answer schedule                       lightly obfuscated          → SQLDelight
 - **Guess dictionaries** (thousands of words/language) ship **in the app binary** — they change rarely; a store update is fine.
 - **Answer packs** come from the server — curation stays live (a bad word can be swapped for *future* days without an app update, honoring the "reputationally critical" risk).
 - Obfuscation is a deterrent against casual datamining only. Anti-cheat posture overall: **don't fight it.** Stakes are streaks and banter; server does plausibility checks (result timing, guess count) and nothing more. This is a deliberate non-goal to record.
-- Daily rollover: **per-language fixed timezone** (Asia/Tashkent for uz, Asia/Almaty for kk, Asia/Baku for az, Asia/Dushanbe for tg) — "everyone in the group gets the word at midnight *our* time" is the culturally correct behavior and makes league days unambiguous.
+- Daily rollover: **per-language fixed timezone** (Asia/Tashkent for uz and en — the exam-prep audience is at home; Asia/Almaty for kk; Europe/Moscow for ru — where the diaspora lives). "Everyone in the group gets the word at midnight *our* time" is the culturally correct behavior and makes league days unambiguous. Anchors are tweakable before launch; the principle isn't.
 
 ## 3. State ownership — one table to prevent a class of bugs
 
@@ -102,7 +109,7 @@ Covered in [02-mvp-scope.md](02-mvp-scope.md) §3 with the protected schedule sl
 | Concern | Pick | Note |
 |---------|------|------|
 | UI | Compose Multiplatform | Given |
-| Navigation | A single-activity/-controller Compose nav (Voyager or Decompose — whichever the team knows) | Don't research this; either works for ~8 screens |
+| Navigation | **Compose Multiplatform navigation** (navigation-compose MPP) | Decided Aug 20 — the official artifact, sufficient for ~8 screens |
 | Persistence | SQLDelight | commonMain, event-log friendly |
 | Networking | Ktor client + kotlinx.serialization | Symmetric with server |
 | DI | Koin | KMP-native, low ceremony |
@@ -125,6 +132,6 @@ Covered in [02-mvp-scope.md](02-mvp-scope.md) §3 with the protected schedule sl
 
 1. Event-sourced streak log — exact event vocabulary and replay rules (§3)
 2. Offscreen Compose → bitmap capture on iOS — spike result decides whether share cards are Compose-rendered or server-rendered (server-side rendering is the fallback: same Ktor app, skia-based, one implementation for previews *and* cards)
-3. Voyager vs Decompose (10-minute decision, team familiarity wins)
+3. ~~Navigation library~~ — decided Aug 20: Compose Multiplatform navigation
 4. Anonymous identity format + future Telegram-login migration path
 5. Postgres schema for leagues (roughly 5 tables — sketch when the change is scaffolded)

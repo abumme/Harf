@@ -1,6 +1,6 @@
 # Thread 2 — MVP Scope & the Sept 12 Freeze Line
 
-**Date:** 2026-08-19 · **Status:** exploration deep-dive · **Parent:** [harf-exploration.md](harf-exploration.md)
+**Date:** 2026-08-19 · **Updated:** 2026-08-20 (language set, store-gate status) · **Status:** exploration deep-dive · **Parent:** [harf-exploration.md](harf-exploration.md)
 
 The concept doc describes the *destination* (five monetization streams, community submissions, national leaderboards, seasonal packs). This doc decides what ships by the **feature freeze (~Sept 12)** — 3.5 weeks from today — and what is deliberately deferred. The scoping principle: **everything inside the freeze must serve either the daily loop, the share loop, or one judge-legible metric.** Anything else waits.
 
@@ -30,7 +30,7 @@ If any of these three is broken at launch, the Shipaton story collapses: Loop 1 
 
 | Feature | Serves | Notes |
 |---------|--------|-------|
-| Daily puzzle, 4 languages (uz-Latn, uz-Cyrl as one lexeme, kk, az, tg) | Loop 1 | Per [01-tile-grapheme-design.md](01-tile-grapheme-design.md) |
+| Daily puzzle, 4 languages (uz-Latn + uz-Cyrl as one lexeme, ru, en, kk) | Loop 1 | Per [01-tile-grapheme-design.md](01-tile-grapheme-design.md); ru/en wordlists are near-free content — uz and kk are the curated ones |
 | Grapheme tile engine + custom keyboards | Loop 1 | The moat; settled in doc 01 |
 | Streaks, personal stats | Loop 1 | Synced to server (gifting needs server-known streaks) |
 | Share card: emoji grid + deep link, Telegram-optimized | Loop 2 | THE growth mechanic; over-invest here |
@@ -58,7 +58,7 @@ If any of these three is broken at launch, the Shipaton story collapses: Loop 1 
 
 1. Third cosmetic theme → ship 2
 2. League weekly recap card → table view only, recap post-launch
-3. Tajik at launch → 3 languages, Tajik week 1 post-launch (it's the smallest market of the four)
+3. English puzzle track at launch → en stays as a UI language; the English daily word ships week 1 post-launch (least story-critical track — the moat is uz + kk)
 4. **Never cut:** share card quality, streak gifting, Uzbek content review
 
 ## 3. The streak-gifting decision (the boundary feature)
@@ -86,8 +86,9 @@ in league view
 
 ```
 WEEK 0  Aug 19–24   GATES + SKELETON
-├─ Store gates (see 03-store-logistics.md): Play account check, stub AAB,
-│  closed testing recruitment, Apple enrollment, banking/tax forms
+├─ Store gates (see 03-store-logistics.md): Play bought Aug 20 — Gate A
+│  CONFIRMED: identity verify → stub AAB → 15+ testers by Aug 26–28;
+│  Apple enrollment THIS week; banking/tax forms
 ├─ KMP project scaffold; green CI: Android AAB + iOS TestFlight build
 ├─ Tile-engine spike: tokenizer + scoring for uz-Latn (the hard case)
 └─ CONTENT TRACK STARTS: corpus sourcing, Claude candidate generation uz
@@ -103,13 +104,14 @@ WEEK 2  Sept 1–7    LOOPS 2 & 3
 ├─ Leagues: create/join/table; results submission
 ├─ RevenueCat: lifetime unlock + themes purchasable
 ├─ ⚠ PROTECTED SLOT: streak gifting webhook chain (see §3)
-└─ CONTENT: kk, az lists v1 → reviewers; uz-Cyrl pairing pass
+└─ CONTENT: kk list v1 → native reviewer; ru/en dictionaries integrated;
+   uz-Cyrl pairing pass
 
 WEEK 3  Sept 8–12   FREEZE WEEK
 ├─ Push notifications wired to all four triggers
 ├─ Remaining languages integrated; onboarding; polish
 ├─ Sept 12: FEATURE FREEZE — bugfix only beyond this line
-└─ CONTENT: tg list v1; 90 days of daily words scheduled per language
+└─ CONTENT: 90 days of daily words scheduled per language
 
 Sept 13–16          SUBMIT
 ├─ Store listings ×5 locales, screenshots, privacy forms, review notes
@@ -128,7 +130,7 @@ Sept 17–30          REVIEW BUFFER (do not plan features here)
 | Prize | What must demonstrably exist by judging |
 |-------|------------------------------------------|
 | **Noise (Most Viral)** | Share cards in real Telegram groups; measurable installs-per-share via deep-link attribution |
-| **Grand Prize (traction)** | Chart position in UZ/KZ/AZ app stores; DAU curve from daily loop; Day-0 revenue from consumables |
+| **Grand Prize (traction)** | Chart position in UZ/KZ app stores; DAU curve from daily loop; Day-0 revenue from consumables |
 | **HAMM** | Streak gifting live with real gift events to cite; lifetime + themes as stream #2 and #3; deferred-streams roadmap told honestly |
 | **JetBrains** | ~95% commonMain measured and stated; Compose MPP board + Ktor backend as the Kotlin-everywhere story |
 

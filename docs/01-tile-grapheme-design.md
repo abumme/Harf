@@ -1,6 +1,6 @@
 # Thread 1 — The Tile/Grapheme Problem
 
-**Date:** 2026-08-19 · **Status:** exploration deep-dive · **Parent:** [harf-exploration.md](harf-exploration.md)
+**Date:** 2026-08-19 · **Updated:** 2026-08-20 (launch set now uz/ru/en/kk) · **Status:** exploration deep-dive · **Parent:** [harf-exploration.md](harf-exploration.md)
 
 This is the highest-leverage design decision in Harf. Wordle's entire mechanic silently assumes **one letter = one key = one tile = one emoji**. None of our launch languages fully agree, and the decision we make here cascades into the game engine, the keyboard, the share grid, the content pipeline, and the Uzbek script duality. It is nearly impossible to change after launch without invalidating streaks, stats, and word lists.
 
@@ -13,8 +13,8 @@ This is the highest-leverage design decision in Harf. Wordle's entire mechanic s
 | Uzbek | Latin (official 1995) | 29 + tutuq (ʼ) | `oʻ gʻ sh ch ng` are single letters written as 2 chars | **The hard case** |
 | Uzbek | Cyrillic (still widely used) | 35 | none — 1 char = 1 letter | Clean alone; pairing with Latin is the issue |
 | Kazakh | Cyrillic | **42** (33 Russian + ә ғ қ ң ө ұ ү һ і) | none | Keyboard layout problem, not tile problem |
-| Azerbaijani | Latin | 32 (incl. ə ğ ş ç ö ü ı x q) | none | Clean. `ə` is the most frequent letter in the language |
-| Tajik | Cyrillic | 35 (Russian − ц щ ы ь + ғ ӣ қ ӯ ҳ ҷ) | none | Clean |
+| Russian | Cyrillic | 33 | none — `ё` plays as `е` (the convention every RU clone uses) | Clean |
+| English | Latin | 26 | none | Clean; the crowded market is a positioning problem, not a tile problem |
 
 **Key observation: the digraph problem is exclusively an Uzbek Latin problem.** Every other launch alphabet is one-character-per-letter. That means we don't need a general digraph theory — we need a general **grapheme** abstraction that happens to be trivial (grapheme = char) for 4 of the 5 script/language pairs.
 
@@ -98,8 +98,9 @@ Custom Compose on-screen keyboard, layout defined as data per language:
 
 - **Uzbek Latin** — QWERTY base minus unused letters (`c` and `w` don't exist standalone in Uzbek!), plus dedicated `oʻ gʻ sh ch ng` keys. ~29 keys, comfortably 3 rows + action row.
 - **Uzbek Cyrillic** — ЙЦУКЕН base (35 keys incl. ў қ ғ ҳ); standard Uzbek phone layout exists to copy.
-- **Kazakh** — the 42-letter monster. Mitigation: **restrict answers and guesses to native-word alphabet** — в, ё, ф, ц, ч, щ, ъ, ь, э, ю, я occur almost exclusively in Russian loanwords. Cutting them yields ~31 keys and a sane 3-row layout, and native-words-only is the *right* content policy for a national-pride game anyway. (Same trick available for Tajik if needed.)
-- **Azerbaijani** — 32 letters, standard Azerbaijani QWERTY variant, `ə` in a prominent position (it's the most common letter).
+- **Kazakh** — the 42-letter monster. Mitigation: **restrict answers and guesses to native-word alphabet** — в, ё, ф, ц, ч, щ, ъ, ь, э, ю, я occur almost exclusively in Russian loanwords. Cutting them yields ~31 keys and a sane 3-row layout, and native-words-only is the *right* content policy for a national-pride game anyway.
+- **Russian** — ЙЦУКЕН, 33 letters with `ё` merged into `е` on board and keyboard (standard RU-clone convention), so 32 keys.
+- **English** — plain QWERTY, 26 keys. The trivial case.
 
 Keyboard = data (rows of key definitions), not per-language code. Key feedback colors (the "used letters" state) keyed by grapheme.
 
@@ -111,7 +112,7 @@ Wordle's 5 is not sacred. Uzbek/Kazakh are agglutinative — *root* words skew s
 
 ```
 LanguageConfig (shipped as data, not code)
-├─ id: "uz-latn" | "uz-cyrl" | "kk" | "az" | "tg"
+├─ id: "uz-latn" | "uz-cyrl" | "kk" | "ru" | "en"
 ├─ graphemeInventory: ["a","b",…,"oʻ","gʻ","sh","ch","ng"]
 ├─ tokenizer: longest-match rules + exception list
 ├─ keyboardLayout: rows of keys
@@ -127,15 +128,17 @@ DailyPuzzle
 ├─ language, date, lexemeId, tileCount(perScript)
 ```
 
-**The strategic payoff:** because alphabet, tokenizer, and keyboard are all data, **adding language #5 (Bahasa? Filipino? Hindi?) post-launch is a content drop + config file, not an engineering project.** That's the platform moat from the concept doc, made concrete. (Hindi/Devanagari would be the first to break assumptions — abugida, matras — so it stays explicitly out of the v1 engine contract; the Latin/Cyrillic alphabetic world is the v1 contract.)
+**The strategic payoff:** because alphabet, tokenizer, and keyboard are all data, **adding a language post-launch is a content drop + config file, not an engineering project.** Azerbaijani and Tajik — dropped from launch on 2026-08-20, both clean one-char alphabets already analyzed here — are the ready-made first expansions; Bahasa/Filipino follow the same contract. That's the platform moat from the concept doc, made concrete. (Hindi/Devanagari would be the first to break assumptions — abugida, matras — so it stays explicitly out of the v1 engine contract; the Latin/Cyrillic alphabetic world is the v1 contract.)
 
 ## 8. Decisions to carry into a design.md when we scaffold the change
 
 1. Tile = grapheme; digraphs are first-class keys ✅ (high confidence)
 2. Tutuq words excluded at launch ✅ (high confidence)
 3. Uzbek = one lexeme, two script renderings; scoring by guess count ✅ (medium-high — the recommendation of §4)
-4. Kazakh/Tajik restricted to native-word alphabets ✅ (medium — needs a native speaker's sanity check)
+4. Kazakh restricted to native-word alphabet ✅ (medium — needs a native speaker's sanity check)
 5. Board length 4–7 configurable, default 5 (high confidence)
 6. 1995 Uzbek orthography, U+02BB canonical apostrophe (high confidence)
+7. Launch languages: uz (both scripts), ru, en, kk — decided 2026-08-20; az/tg deferred to expansion ✅
+8. Russian `ё` = `е` on board and keyboard ✅ (high confidence — universal RU convention)
 
 Open items needing a native reviewer, not more analysis: Kazakh alphabet restriction, the `ng`-boundary exception list, per-language answer-list depth at 5 tiles.

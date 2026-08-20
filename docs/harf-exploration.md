@@ -1,11 +1,11 @@
 # Harf — Exploration Notes
 
-**Date:** 2026-08-19 · **Status:** exploration (no OpenSpec change created yet)
+**Date:** 2026-08-19 · **Updated:** 2026-08-20 (decision log added) · **Status:** exploration (no OpenSpec change created yet)
 **Source:** RevenueCat Shipaton 2026 "Top 10 Market Breakers" analysis — Harf ranked #1 (Feasibility #1, Viral #2)
 
 ## The concept in one line
 
-A daily word duel for languages Wordle forgot — Uzbek (Latin + Cyrillic), Kazakh, Azerbaijani, Tajik at launch — with the emoji share grid rebuilt for Telegram, group leagues, and streaks friends can rescue for $0.49.
+A daily word duel for languages Wordle forgot — Uzbek (Latin + Cyrillic), Russian, English, Kazakh at launch — with the emoji share grid rebuilt for Telegram, group leagues, and streaks friends can rescue for $0.49. Uzbek + Kazakh carry the "languages Wordle forgot" story; Russian and English widen the audience inside the app.
 
 **Hard constraints:**
 - Live in both stores by **September 30, 2026, 11:45 PM PDT**; feature freeze ~Sept 12
@@ -54,8 +54,8 @@ Wordle's entire mechanic assumes one letter = one key = one tile. None of the la
 | Uzbek | Latin **and** Cyrillic | `o'`, `g'`, `sh`, `ch`, `ng` — digraphs. Is *shahar* 6 chars or 5 tiles? |
 | Uzbek | (again) | 2019/2021 spelling-reform instability — `o'` vs `oʻ` vs `ō` in the wild |
 | Kazakh | Cyrillic (Latin transition looming) | 42-letter alphabet — the on-screen keyboard is a real layout problem |
-| Azerbaijani | Latin | `ə` is the most frequent letter in the language; `ğ ş ç ö ü ı` |
-| Tajik | Cyrillic | `ӣ ӯ ҷ ҳ қ ғ` beyond Russian Cyrillic |
+| Russian | Cyrillic | clean 33 letters — convention: `ё` plays as `е` (standard in every RU clone) |
+| English | Latin | no tile wrinkle; the wrinkle is market crowding — positioned for the home exam-prep audience |
 
 **Working hypothesis:** tile = **grapheme**, not character. Digraph tiles like `sh` occupy one square and get their own key on a custom on-screen keyboard (precedent: Welsh and Irish Wordle clones). The custom on-screen keyboard — which Wordle needs anyway — is what makes this tractable.
 
@@ -122,6 +122,16 @@ Each language needs two lists:
 Claude can generate candidates from open corpora, but the source doc's own risk line stands: *"word-list quality in market #1 is reputationally critical."* Native review (~$100/language) is not a checkbox — a bad word on day 3 in the flagship language is a Telegram-channel roast, not a bug ticket. Content authoring runs as a parallel track from day 1, owned by the second team member.
 
 ---
+
+## Decision log (2026-08-20)
+
+Settled in conversation and folded into the thread docs below:
+
+1. **Name: Harf — locked.** Store collision check found only compound-named Turkish games (Harf Lütfen, Harfle, Harf Oyunu…); bare "Harf" is unclaimed and nothing exists in our markets. Domain: `harf.app` is taken; `harf.uz` is the preferred brand fit (verify at a .uz registrar), `harf.game` the fallback.
+2. **Launch languages: Uzbek (both scripts), Russian, English, Kazakh.** Azerbaijani + Tajik deferred to post-launch expansion (their analysis in doc 01 becomes the expansion plan). ru = diaspora + lingua franca; en positioned for the home exam-prep audience, not global competition. Kazakh still needs a native reviewer — open recruiting item.
+3. **Play Console: purchased Aug 20, personal account** → the 12-testers × 14-days closed-testing gate applies with certainty; the clock is now critical path.
+4. **Apple Developer: enroll immediately** (this week), not one month before deploy — TestFlight is the team's only iOS device, and banking/IAP clearance runs on its own clock.
+5. **Stack: KMP targeting Android, iOS, desktop, wasmJs; Compose Multiplatform navigation.** All four targets scaffolded day 0; feature investment mobile-only until after the Sept 12 freeze.
 
 ## Where this could go next
 
