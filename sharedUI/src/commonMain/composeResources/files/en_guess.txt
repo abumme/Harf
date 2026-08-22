@@ -1,0 +1,14 @@
+# first-pass guess dictionary — needs review
+apple
+bread
+chair
+dance
+eagle
+crane
+slate
+house
+plant
+water
+light
+money
+night

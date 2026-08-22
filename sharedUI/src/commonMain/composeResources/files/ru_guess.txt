@@ -1,0 +1,11 @@
+# first-pass guess dictionary — needs native review
+книга
+город
+слово
+масло
+школа
+добро
+рынок
+центр
+буква
+навык
