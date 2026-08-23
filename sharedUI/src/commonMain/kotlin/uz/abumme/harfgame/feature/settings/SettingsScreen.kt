@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -24,16 +25,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import uz.abumme.harfgame.billing.EntitlementRepository
 import uz.abumme.harfgame.feature.cellstyles.StyleExperimentController
 import uz.abumme.harfgame.feature.cellstyles.StylePreview
 import uz.abumme.harfgame.theme.LocalHarfColors
 import uz.abumme.harfgame.theme.marks.HarfMarkStyleId
 
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(onPaywall: () -> Unit = {}) {
     val controller = koinInject<StyleExperimentController>()
+    val entitlements = koinInject<EntitlementRepository>()
     val scope = rememberCoroutineScope()
     val active by controller.activeStyle.collectAsState()
+    val ents by entitlements.entitlements.collectAsState()
     val colors = LocalHarfColors.current
 
     Column(
@@ -69,6 +73,13 @@ fun SettingsScreen() {
                     fontSize = 15.sp,
                 )
             }
+        }
+
+        if (ents.lifetime) {
+            Text("★ Founder", color = colors.accent, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+        }
+        OutlinedButton(onClick = onPaywall, modifier = Modifier.fillMaxWidth()) {
+            Text(if (ents.lifetime) "Support Harf / themes" else "Support Harf")
         }
     }
 }

@@ -8,6 +8,7 @@ import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
 import uz.abumme.harfgame.feature.game.GameScreen
 import uz.abumme.harfgame.feature.home.HomeScreen
+import uz.abumme.harfgame.feature.paywall.PaywallScreen
 import uz.abumme.harfgame.feature.settings.SettingsScreen
 import uz.abumme.harfgame.feature.stats.StatsScreen
 
@@ -24,6 +25,9 @@ object Stats
 @Serializable
 object Settings
 
+@Serializable
+object Paywall
+
 @Composable
 fun AppNavHost() {
     val navController = rememberNavController()
@@ -36,13 +40,19 @@ fun AppNavHost() {
             )
         }
         composable<Game> { entry ->
-            GameScreen(entry.toRoute<Game>().languageId)
+            GameScreen(
+                languageId = entry.toRoute<Game>().languageId,
+                onPaywall = { navController.navigate(Paywall) },
+            )
         }
         composable<Stats> {
             StatsScreen()
         }
         composable<Settings> {
-            SettingsScreen()
+            SettingsScreen(onPaywall = { navController.navigate(Paywall) })
+        }
+        composable<Paywall> {
+            PaywallScreen(onBack = { navController.popBackStack() })
         }
     }
 }

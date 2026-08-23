@@ -23,6 +23,9 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import org.koin.compose.koinInject
+import uz.abumme.harfgame.billing.EntitlementGate
+import uz.abumme.harfgame.billing.EntitlementRepository
+import uz.abumme.harfgame.billing.PurchaseController
 import uz.abumme.harfgame.lang.LanguageRegistry
 import uz.abumme.harfgame.settings.AppSettings
 import uz.abumme.harfgame.theme.HarfPalettes
@@ -39,7 +42,10 @@ private val LANGUAGES = listOf(
 @Composable
 fun HomeScreen(onPlay: (String) -> Unit = {}, onStats: () -> Unit = {}, onSettings: () -> Unit = {}) {
     val settings = koinInject<AppSettings>()
+    val entitlements = koinInject<EntitlementRepository>()
+    val controller = koinInject<PurchaseController>()
     val paletteId by settings.paletteId.collectAsState()
+    val ents by entitlements.entitlements.collectAsState()
     val colors = LocalHarfColors.current
 
     Column(
@@ -71,9 +77,12 @@ fun HomeScreen(onPlay: (String) -> Unit = {}, onStats: () -> Unit = {}, onSettin
 
         OutlinedButton(
             onClick = {
-                val list = HarfPalettes.all
-                val i = list.indexOfFirst { it.id == paletteId }
-                settings.setPaletteId(list[(i + 1) % list.size].id)
+                // cycle only through applicable palettes; unowned themes are bought on the paywall
+                val ids = HarfPalettes.all
+                    .filter { EntitlementGate.canApplyTheme(it.id, ents, controller.isAvailable) }
+                    .map { it.id }
+                val i = ids.indexOf(paletteId).coerceAtLeast(0)
+                settings.setPaletteId(ids[(i + 1) % ids.size])
             },
             modifier = Modifier.width(220.dp),
         ) { Text("Theme — ${HarfPalettes.byId(paletteId).displayName}") }

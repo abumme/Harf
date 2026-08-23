@@ -76,7 +76,7 @@ private data class Loaded(
 )
 
 @Composable
-fun GameScreen(languageId: String) {
+fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
     val provider = koinInject<DailyPuzzleProvider>()
     val packs = koinInject<WordPackRepository>()
     val registry = koinInject<LanguageRegistry>()
@@ -180,7 +180,7 @@ fun GameScreen(languageId: String) {
                 onEnter = { vm.onAction(GameAction.Submit) },
             )
         } else {
-            ResultView(state, config.displayName, puzzle.epochDay)
+            ResultView(state, config.displayName, puzzle.epochDay, onPaywall)
         }
     }
 }
@@ -285,7 +285,7 @@ private fun ActionCap(label: String, c: HarfColors, onClick: () -> Unit) {
 }
 
 @Composable
-private fun ResultView(state: GameState, languageDisplay: String, puzzleNumber: Long) {
+private fun ResultView(state: GameState, languageDisplay: String, puzzleNumber: Long, onPaywall: () -> Unit = {}) {
     val c = LocalHarfColors.current
     val settings = koinInject<AppSettings>()
     val sharer = koinInject<Sharer>()
@@ -310,5 +310,6 @@ private fun ResultView(state: GameState, languageDisplay: String, puzzleNumber: 
         )
         Button(onClick = { scope.launch { sharer.share(shareText) } }) { Text("Share") }
         OutlinedButton(onClick = { sharer.copy(shareText) }) { Text("Copy") }
+        TextButton(onClick = onPaywall) { Text("Support Harf", color = c.muted) }
     }
 }
