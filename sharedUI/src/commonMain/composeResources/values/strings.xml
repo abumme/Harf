@@ -1,0 +1,12 @@
+<resources>
+    <string name="onboarding_tagline">One word a day. Guess it in 6 tries.</string>
+    <string name="legend_correct">on the spot</string>
+    <string name="legend_present">in the word</string>
+    <string name="legend_absent">not in the word</string>
+    <string name="action_start">Start</string>
+    <string name="action_skip">Skip</string>
+    <string name="action_got_it">Got it</string>
+    <string name="howto_title">How to play</string>
+    <string name="howto_body">Type a word and submit. The marks show which letters are right, which are in the word but misplaced, and which are not in the word.</string>
+    <string name="help">Help</string>
+</resources>

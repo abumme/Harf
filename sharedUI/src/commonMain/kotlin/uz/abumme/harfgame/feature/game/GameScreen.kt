@@ -18,9 +18,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.fillMaxWidth
+import harf_game.sharedui.generated.resources.Res
+import harf_game.sharedui.generated.resources.action_got_it
+import harf_game.sharedui.generated.resources.help
+import harf_game.sharedui.generated.resources.howto_body
+import harf_game.sharedui.generated.resources.howto_title
+import org.jetbrains.compose.resources.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import uz.abumme.harfgame.feature.onboarding.MarkLegend
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -95,6 +107,21 @@ fun GameScreen(languageId: String) {
     }
     val state by vm.state.collectAsState()
     val colors = LocalHarfColors.current
+    var showHelp by remember { mutableStateOf(false) }
+
+    if (showHelp) {
+        AlertDialog(
+            onDismissRequest = { showHelp = false },
+            confirmButton = { TextButton(onClick = { showHelp = false }) { Text(stringResource(Res.string.action_got_it)) } },
+            title = { Text(stringResource(Res.string.howto_title)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(stringResource(Res.string.howto_body), color = colors.ink)
+                    MarkLegend()
+                }
+            },
+        )
+    }
 
     // persist in-progress round as it changes
     LaunchedEffect(script, state.submitted.size, state.current.size, state.status) {
@@ -109,6 +136,12 @@ fun GameScreen(languageId: String) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            val helpLabel = stringResource(Res.string.help)
+            TextButton(onClick = { showHelp = true }, modifier = Modifier.semantics { contentDescription = helpLabel }) {
+                Text("?", color = colors.muted)
+            }
+        }
         if (languageId.startsWith("uz")) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ScriptChip("Lotin", script == "uz-latn") { script = "uz-latn" }
@@ -116,6 +149,7 @@ fun GameScreen(languageId: String) {
             }
         }
         BoardView(state)
+        MarkLegend(Modifier.padding(vertical = 2.dp), compact = true)
         Spacer(Modifier.height(4.dp))
         if (state.status == GameStatus.Playing) {
             KeyboardView(
