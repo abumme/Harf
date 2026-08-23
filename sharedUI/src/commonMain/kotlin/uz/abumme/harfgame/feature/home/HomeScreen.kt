@@ -37,7 +37,7 @@ private val LANGUAGES = listOf(
 )
 
 @Composable
-fun HomeScreen(onPlay: (String) -> Unit = {}) {
+fun HomeScreen(onPlay: (String) -> Unit = {}, onStats: () -> Unit = {}) {
     val settings = koinInject<AppSettings>()
     val paletteId by settings.paletteId.collectAsState()
     val colors = LocalHarfColors.current
@@ -65,6 +65,8 @@ fun HomeScreen(onPlay: (String) -> Unit = {}) {
         for ((id, label) in LANGUAGES) {
             Button(onClick = { onPlay(id) }, modifier = Modifier.width(220.dp)) { Text(label) }
         }
+
+        OutlinedButton(onClick = onStats, modifier = Modifier.width(220.dp)) { Text("Statistics") }
 
         OutlinedButton(
             onClick = {

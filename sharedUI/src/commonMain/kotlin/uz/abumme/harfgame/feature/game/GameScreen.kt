@@ -39,7 +39,11 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import uz.abumme.harfgame.data.stats.InProgressRound
+import uz.abumme.harfgame.data.stats.ResultLog
+import uz.abumme.harfgame.data.stats.RoundStore
 import uz.abumme.harfgame.engine.Mark
+import uz.abumme.harfgame.engine.WordPack
 import uz.abumme.harfgame.engine.WordPackRepository
 import uz.abumme.harfgame.feature.daily.DailyPuzzle
 import uz.abumme.harfgame.feature.daily.DailyPuzzleProvider
@@ -53,30 +57,51 @@ import uz.abumme.harfgame.theme.LocalHarfColors
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 
+private data class Loaded(
+    val puzzle: DailyPuzzle,
+    val config: LanguageConfig,
+    val pack: WordPack,
+    val restore: InProgressRound?,
+)
+
 @Composable
 fun GameScreen(languageId: String) {
     val provider = koinInject<DailyPuzzleProvider>()
     val packs = koinInject<WordPackRepository>()
     val registry = koinInject<LanguageRegistry>()
+    val resultLog = koinInject<ResultLog>()
+    val roundStore = koinInject<RoundStore>()
+    val scope = rememberCoroutineScope()
 
     // active script (Uzbek can switch latn <-> cyrl for the same daily lexeme)
     var script by remember { mutableStateOf(languageId) }
-    var loaded by remember { mutableStateOf<Triple<DailyPuzzle, LanguageConfig, uz.abumme.harfgame.engine.WordPack>?>(null) }
+    var loaded by remember { mutableStateOf<Loaded?>(null) }
 
     LaunchedEffect(script) {
+        loaded = null
         val puzzle = provider.daily(script)
         val pack = packs.load(script)
         val config = registry.config(script)!!
-        loaded = Triple(puzzle, config, pack)
+        val restore = roundStore.load(script, puzzle.epochDay)
+        loaded = Loaded(puzzle, config, pack, restore)
     }
 
     val data = loaded
     if (data == null) return
-    val (puzzle, config, pack) = data
+    val (puzzle, config, pack, restore) = data
 
-    val vm = viewModel(key = script) { GameViewModel(puzzle, pack) }
+    val vm = viewModel(key = script) {
+        GameViewModel(puzzle, pack, restore) { record ->
+            scope.launch { resultLog.record(record); roundStore.clear() }
+        }
+    }
     val state by vm.state.collectAsState()
     val colors = LocalHarfColors.current
+
+    // persist in-progress round as it changes
+    LaunchedEffect(script, state.submitted.size, state.current.size, state.status) {
+        if (state.status == GameStatus.Playing) roundStore.save(vm.snapshot())
+    }
 
     Column(
         modifier = Modifier
