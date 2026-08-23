@@ -30,8 +30,11 @@ import uz.abumme.harfgame.data.stats.PlayerStats
 import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.data.stats.StreakStats
 import uz.abumme.harfgame.data.stats.Streaks
+import uz.abumme.harfgame.feature.daily.DailyPuzzleProvider
 import uz.abumme.harfgame.lang.LanguageRegistry
 import uz.abumme.harfgame.theme.LocalHarfColors
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
 
 data class StatsEntry(
     val languageId: String,
@@ -44,20 +47,23 @@ data class StatsState(val entries: List<StatsEntry> = emptyList()) : UiState
 object StatsNoAction : UiAction
 object StatsNoEvent : UiEvent
 
+@OptIn(ExperimentalTime::class)
 class StatsViewModel(
     resultLog: ResultLog,
     registry: LanguageRegistry,
+    private val puzzles: DailyPuzzleProvider,
 ) : BaseViewModel<StatsState, StatsNoAction, StatsNoEvent>(StatsState()) {
     init {
         viewModelScope.launch {
             val records = resultLog.all()
+            val now = Clock.System.now()
             setState {
                 copy(entries = registry.ids.sorted().map { id ->
                     StatsEntry(
                         languageId = id,
                         display = registry.config(id)!!.displayName,
                         stats = Streaks.stats(records, id),
-                        streak = Streaks.streak(records, id),
+                        streak = Streaks.streak(records, id, puzzles.epochDay(id, now)),
                     )
                 })
             }
@@ -71,7 +77,8 @@ class StatsViewModel(
 fun StatsScreen() {
     val resultLog = koinInject<ResultLog>()
     val registry = koinInject<LanguageRegistry>()
-    val vm = viewModel { StatsViewModel(resultLog, registry) }
+    val puzzles = koinInject<DailyPuzzleProvider>()
+    val vm = viewModel { StatsViewModel(resultLog, registry, puzzles) }
     val state by vm.state.collectAsState()
     StatsContent(state)
 }

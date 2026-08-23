@@ -19,8 +19,8 @@ class StatsIntegrationTest {
         log.record(ResultRecord(lang, 4L, won = false, attempts = 6))
 
         val records = log.all()
-        val streak = Streaks.streak(records, lang)
-        assertEquals(3, streak.current, "trailing run of solved days 1-3")
+        val streak = Streaks.streak(records, lang, today = 4L)
+        assertEquals(3, streak.current, "trailing run of solved days 1-3, still live on day 4")
         assertEquals(3, streak.best)
 
         val stats = Streaks.stats(records, lang)

@@ -13,14 +13,14 @@ class StreaksTest {
     @Test
     fun consecutive_solves_increase_streak() {
         val r = listOf(won("en", 1), won("en", 2), won("en", 3))
-        assertEquals(3, Streaks.streak(r, "en").current)
-        assertEquals(3, Streaks.streak(r, "en").best)
+        assertEquals(3, Streaks.streak(r, "en", today = 3).current)
+        assertEquals(3, Streaks.streak(r, "en", today = 3).best)
     }
 
     @Test
     fun gap_or_loss_breaks_current_but_best_retained() {
         val r = listOf(won("en", 1), won("en", 2), lost("en", 3), won("en", 4))
-        val s = Streaks.streak(r, "en")
+        val s = Streaks.streak(r, "en", today = 4)
         assertEquals(1, s.current, "run ending at day 4 is length 1")
         assertEquals(2, s.best, "days 1-2 were the best run")
     }
@@ -28,8 +28,18 @@ class StreaksTest {
     @Test
     fun streaks_are_independent_per_language() {
         val r = listOf(won("en", 1), won("en", 2), won("ru", 10))
-        assertEquals(2, Streaks.streak(r, "en").current)
-        assertEquals(1, Streaks.streak(r, "ru").current)
+        assertEquals(2, Streaks.streak(r, "en", today = 2).current)
+        assertEquals(1, Streaks.streak(r, "ru", today = 10).current)
+    }
+
+    @Test
+    fun current_lapses_when_last_win_is_stale() {
+        val r = listOf(won("en", 1), won("en", 2), won("en", 3))
+        // today is far past the last won day -> the daily streak has lapsed
+        assertEquals(0, Streaks.streak(r, "en", today = 10).current)
+        assertEquals(3, Streaks.streak(r, "en", today = 10).best, "best still remembers the run")
+        // still live the day after the last win
+        assertEquals(3, Streaks.streak(r, "en", today = 4).current)
     }
 
     @Test
