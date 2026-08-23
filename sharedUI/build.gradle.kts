@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -107,10 +108,17 @@ dependencies {
     androidRuntimeClasspath(libs.compose.ui.tooling)
 }
 
+// RevenueCat public SDK keys come from local.properties (gitignored) or a -P gradle property,
+// never from committed source. Blank => purchases report Unavailable, no crash.
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+fun rcKey(name: String): String =
+    localProps.getProperty(name) ?: providers.gradleProperty(name).orNull ?: ""
+
 buildConfig {
     packageName("uz.abumme.harfgame")
-    // RevenueCat public SDK keys — blank by default; real keys are supplied store-side
-    // (tracked in harf-play-release). Blank key => purchases report Unavailable, no crash.
-    buildConfigField("String", "REVENUECAT_ANDROID_KEY", "\"\"")
-    buildConfigField("String", "REVENUECAT_IOS_KEY", "\"\"")
+    buildConfigField("String", "REVENUECAT_ANDROID_KEY", "\"${rcKey("revenuecat.androidKey")}\"")
+    buildConfigField("String", "REVENUECAT_IOS_KEY", "\"${rcKey("revenuecat.iosKey")}\"")
 }

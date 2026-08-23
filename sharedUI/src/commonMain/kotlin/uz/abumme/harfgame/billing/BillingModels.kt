@@ -20,8 +20,8 @@ data class Entitlements(
     fun ownsTheme(id: String): Boolean = id in ownedThemes
 }
 
-/** The RevenueCat entitlement identifier for the lifetime bundle. */
-const val ENTITLEMENT_LIFETIME = "lifetime"
+/** The RevenueCat entitlement identifier for the lifetime (Founder) bundle. */
+const val ENTITLEMENT_LIFETIME = "harf_founder"
 
 /** Cosmetic theme entitlements are identified by this prefix (e.g. "theme_dusk"). */
 const val ENTITLEMENT_THEME_PREFIX = "theme_"
