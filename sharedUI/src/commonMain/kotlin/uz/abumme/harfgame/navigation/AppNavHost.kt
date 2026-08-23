@@ -8,6 +8,7 @@ import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
 import uz.abumme.harfgame.feature.game.GameScreen
 import uz.abumme.harfgame.feature.home.HomeScreen
+import uz.abumme.harfgame.feature.settings.SettingsScreen
 import uz.abumme.harfgame.feature.stats.StatsScreen
 
 /** Type-safe routes. Feature graphs add destinations here as they land. */
@@ -20,6 +21,9 @@ data class Game(val languageId: String)
 @Serializable
 object Stats
 
+@Serializable
+object Settings
+
 @Composable
 fun AppNavHost() {
     val navController = rememberNavController()
@@ -28,6 +32,7 @@ fun AppNavHost() {
             HomeScreen(
                 onPlay = { languageId -> navController.navigate(Game(languageId)) },
                 onStats = { navController.navigate(Stats) },
+                onSettings = { navController.navigate(Settings) },
             )
         }
         composable<Game> { entry ->
@@ -35,6 +40,9 @@ fun AppNavHost() {
         }
         composable<Stats> {
             StatsScreen()
+        }
+        composable<Settings> {
+            SettingsScreen()
         }
     }
 }

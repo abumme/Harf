@@ -7,6 +7,8 @@ import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
 import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.data.stats.RoundStore
+import uz.abumme.harfgame.feature.cellstyles.StyleChoiceLog
+import uz.abumme.harfgame.feature.cellstyles.StyleExperimentController
 import uz.abumme.harfgame.settings.AppSettings
 
 /** Platform-provided bindings (KSafe needs a Context on Android, nothing elsewhere). */
@@ -17,6 +19,8 @@ val appModule: Module = module {
     single { AppSettings(get()) }
     single { ResultLog(get()) }
     single { RoundStore(get()) }
+    single { StyleChoiceLog(get()) }
+    single { StyleExperimentController(get(), get()) }
 }
 
 /**
