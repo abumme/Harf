@@ -1,6 +1,8 @@
 package uz.abumme.harfgame.engine
 
 import harf_game.sharedui.generated.resources.Res
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import uz.abumme.harfgame.lang.LanguageRegistry
 
@@ -21,16 +23,20 @@ data class WordPack(
 class WordPackRepository(private val registry: LanguageRegistry) {
 
     private val cache = HashMap<String, WordPack>()
+    private val mutex = Mutex()
 
     suspend fun load(id: String): WordPack {
         cache[id]?.let { return it }
-        val tokenizer = registry.tokenizer(id) ?: error("Unknown language: $id")
+        return mutex.withLock {
+            cache[id]?.let { return@withLock it } // re-check inside the lock
+            val tokenizer = registry.tokenizer(id) ?: error("Unknown language: $id")
 
-        val answers = readLines("files/${id}_answers.txt").mapNotNull { tokenizer.tokenize(it) }
-        val guessesRaw = readLines("files/${id}_guess.txt").mapNotNull { tokenizer.tokenize(it) }
-        val guesses = (guessesRaw + answers).toSet()
+            val answers = readLines("files/${id}_answers.txt").mapNotNull { tokenizer.tokenize(it) }
+            val guessesRaw = readLines("files/${id}_guess.txt").mapNotNull { tokenizer.tokenize(it) }
+            val guesses = (guessesRaw + answers).toSet()
 
-        return WordPack(id, answers, guesses).also { cache[id] = it }
+            WordPack(id, answers, guesses).also { cache[id] = it }
+        }
     }
 
     /**
