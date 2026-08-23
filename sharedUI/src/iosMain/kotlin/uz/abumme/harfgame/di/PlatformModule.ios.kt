@@ -6,11 +6,15 @@ import org.koin.dsl.module
 import platform.UIKit.UIActivityViewController
 import platform.UIKit.UIApplication
 import platform.UIKit.UIPasteboard
+import uz.abumme.harfgame.BuildConfig
+import uz.abumme.harfgame.billing.PurchaseController
+import uz.abumme.harfgame.billing.RevenueCatPurchaseController
 import uz.abumme.harfgame.feature.share.Sharer
 
 actual val platformModule: Module = module {
     single { KSafe() }
     single<Sharer> { IosSharer() }
+    single<PurchaseController> { RevenueCatPurchaseController(BuildConfig.REVENUECAT_IOS_KEY) }
 }
 
 private class IosSharer : Sharer {

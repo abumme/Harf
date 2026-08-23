@@ -28,9 +28,26 @@ class AppSettings(private val ksafe: KSafe) {
 
     fun setOnboarded(value: Boolean) = ksafe.putDirect(KEY_ONBOARDED, value)
 
+    /**
+     * Last known entitlements, cached for offline display only. This is a mirror of RevenueCat,
+     * never a grant: [uz.abumme.harfgame.billing.EntitlementRepository] writes it solely from
+     * controller-derived state.
+     */
+    fun cachedEntitlements(): uz.abumme.harfgame.billing.Entitlements = uz.abumme.harfgame.billing.Entitlements(
+        lifetime = ksafe.getDirect(KEY_ENT_LIFETIME, false),
+        ownedThemes = ksafe.getDirect(KEY_ENT_THEMES, "").split(',').filter { it.isNotBlank() }.toSet(),
+    )
+
+    fun cacheEntitlements(e: uz.abumme.harfgame.billing.Entitlements) {
+        ksafe.putDirect(KEY_ENT_LIFETIME, e.lifetime)
+        ksafe.putDirect(KEY_ENT_THEMES, e.ownedThemes.joinToString(","))
+    }
+
     companion object {
         const val DEFAULT_PALETTE = "newsprint"
         private const val KEY_PALETTE = "app.paletteId"
         private const val KEY_ONBOARDED = "app.onboarded"
+        private const val KEY_ENT_LIFETIME = "ent.lifetime"
+        private const val KEY_ENT_THEMES = "ent.themes"
     }
 }

@@ -5,6 +5,7 @@ import org.koin.core.context.startKoin
 import org.koin.core.module.Module
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
+import uz.abumme.harfgame.billing.EntitlementRepository
 import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.data.stats.RoundStore
 import uz.abumme.harfgame.feature.cellstyles.StyleChoiceLog
@@ -21,6 +22,7 @@ val appModule: Module = module {
     single { RoundStore(get()) }
     single { StyleChoiceLog(get()) }
     single { StyleExperimentController(get(), get()) }
+    single { EntitlementRepository(get(), get()) } // PurchaseController from platformModule
 }
 
 /**

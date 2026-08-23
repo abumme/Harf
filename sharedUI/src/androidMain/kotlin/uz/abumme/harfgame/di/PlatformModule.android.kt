@@ -8,11 +8,15 @@ import eu.anifantakis.lib.ksafe.KSafe
 import org.koin.android.ext.koin.androidApplication
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import uz.abumme.harfgame.BuildConfig
+import uz.abumme.harfgame.billing.PurchaseController
+import uz.abumme.harfgame.billing.RevenueCatPurchaseController
 import uz.abumme.harfgame.feature.share.Sharer
 
 actual val platformModule: Module = module {
     single { KSafe(androidApplication()) }
     single<Sharer> { AndroidSharer(androidApplication()) }
+    single<PurchaseController> { RevenueCatPurchaseController(BuildConfig.REVENUECAT_ANDROID_KEY) }
 }
 
 private class AndroidSharer(private val context: Context) : Sharer {

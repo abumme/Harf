@@ -3,11 +3,14 @@ package uz.abumme.harfgame.di
 import eu.anifantakis.lib.ksafe.KSafe
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import uz.abumme.harfgame.billing.NoOpPurchaseController
+import uz.abumme.harfgame.billing.PurchaseController
 import uz.abumme.harfgame.feature.share.Sharer
 
 actual val platformModule: Module = module {
     single { KSafe() }
     single<Sharer> { WebSharer() }
+    single<PurchaseController> { NoOpPurchaseController }
 }
 
 // Web feature investment is post-launch; copy/share are no-ops for now.
