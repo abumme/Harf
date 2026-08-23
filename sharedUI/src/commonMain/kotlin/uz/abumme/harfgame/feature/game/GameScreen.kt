@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,6 +28,8 @@ import harf_game.sharedui.generated.resources.action_got_it
 import harf_game.sharedui.generated.resources.help
 import harf_game.sharedui.generated.resources.howto_body
 import harf_game.sharedui.generated.resources.howto_title
+import harf_game.sharedui.generated.resources.not_enough_letters
+import harf_game.sharedui.generated.resources.not_in_word_list
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -109,6 +110,23 @@ fun GameScreen(languageId: String) {
     val colors = LocalHarfColors.current
     var showHelp by remember { mutableStateOf(false) }
 
+    // transient feedback for rejected submissions (too short / not in dictionary)
+    var message by remember { mutableStateOf<String?>(null) }
+    val incompleteMsg = stringResource(Res.string.not_enough_letters)
+    val invalidMsg = stringResource(Res.string.not_in_word_list)
+    LaunchedEffect(vm) {
+        vm.events.collect { ev ->
+            when (ev) {
+                GameEvent.Incomplete -> message = incompleteMsg
+                GameEvent.InvalidGuess -> message = invalidMsg
+                is GameEvent.RoundEnded -> {}
+            }
+        }
+    }
+    LaunchedEffect(message) {
+        if (message != null) { kotlinx.coroutines.delay(1500); message = null }
+    }
+
     if (showHelp) {
         AlertDialog(
             onDismissRequest = { showHelp = false },
@@ -150,7 +168,9 @@ fun GameScreen(languageId: String) {
         }
         BoardView(state)
         MarkLegend(Modifier.padding(vertical = 2.dp), compact = true)
-        Spacer(Modifier.height(4.dp))
+        Box(Modifier.height(20.dp), contentAlignment = Alignment.Center) {
+            message?.let { Text(it, color = colors.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
+        }
         if (state.status == GameStatus.Playing) {
             KeyboardView(
                 config = config,
