@@ -35,7 +35,10 @@ class RevenueCatPurchaseController(apiKey: String) : PurchaseController {
                 StoreItem(id = p.id, title = p.title, priceLabel = p.price.formatted)
             }
             val lifetime = items.firstOrNull { it.id.contains("lifetime", ignoreCase = true) }
-            val themes = items.filter { it.id.startsWith(ENTITLEMENT_THEME_PREFIX) || it.id.contains("theme", ignoreCase = true) }
+            // classify each package once: the lifetime pick is never also listed as a theme
+            val themes = items.filter {
+                it != lifetime && (it.id.startsWith(ENTITLEMENT_THEME_PREFIX) || it.id.contains("theme", ignoreCase = true))
+            }
             OfferingsResult.Available(Offerings(lifetime = lifetime, themes = themes))
         } catch (e: PurchasesException) {
             OfferingsResult.Unavailable
