@@ -45,8 +45,11 @@ class TokenizerTest {
 
     @Test
     fun russian_yo_folds_to_ye() {
-        // ё normalized to е
-        assertEquals(ru.tokenize("елка"), ru.tokenize("ёлка"))
+        // ё normalized to е, in both lowercase and uppercase input
+        val expected = listOf("е", "л", "к", "а")
+        assertEquals(expected, ru.tokenize("елка"))
+        assertEquals(expected, ru.tokenize("ёлка"))
+        assertEquals(expected, ru.tokenize("Ёлка"))
     }
 
     @Test

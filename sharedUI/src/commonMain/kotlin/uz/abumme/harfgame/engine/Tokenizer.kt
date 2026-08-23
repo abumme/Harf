@@ -16,8 +16,9 @@ class Tokenizer(private val config: LanguageConfig) {
     fun normalize(raw: String): String {
         var s = raw
         if (config.normalizeApostrophe) s = Normalizer.normalizeApostrophes(s)
+        s = s.lowercase() // lowercase before replacements so uppercase sources (e.g. "Ё") fold too
         s = Normalizer.applyReplacements(s, config.replacements)
-        return s.lowercase()
+        return s
     }
 
     /**
