@@ -6,7 +6,7 @@
 ._*
 
 # Custom folder icons
-Icon
+Icon
 
 # Volume root files
 .DocumentRevisions-V100
@@ -73,6 +73,12 @@ output.json
 *.keystore
 
 ### Kotlin
+# KMP/IDE build metadata
+.kotlin/
+
+# Gradle daemon JVM criteria (machine-generated)
+gradle/gradle-daemon-jvm.properties
+
 # Compiled class file
 *.class
 
@@ -94,3 +100,7 @@ build/
 
 # Maven
 target/
+
+### Xcode (user-specific)
+xcuserdata/
+*.xcuserstate
