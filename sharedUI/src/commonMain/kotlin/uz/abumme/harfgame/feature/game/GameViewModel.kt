@@ -111,7 +111,17 @@ class GameViewModel(
             val rows = restore.rows.map { row -> GameRow(row.graphemes, row.marks.map { Mark.entries[it] }) }
             var keys = emptyMap<String, Mark>()
             for (row in rows) keys = mergeKeyStates(keys, row.graphemes, row.marks)
-            return base.copy(submitted = rows, current = restore.current, keyStates = keys)
+            // recompute terminal status from the restored rows so a finished round doesn't reopen
+            val won = rows.lastOrNull()?.marks?.all { it == Mark.CORRECT } == true
+            val lost = !won && rows.size >= base.maxAttempts
+            val status = if (won) GameStatus.Won else if (lost) GameStatus.Lost else GameStatus.Playing
+            return base.copy(
+                submitted = rows,
+                current = if (status == GameStatus.Playing) restore.current else emptyList(),
+                keyStates = keys,
+                status = status,
+                revealed = if (lost) puzzle.answer else null,
+            )
         }
 
         /** Best-known state per grapheme; never downgrades (correct > present > absent). */

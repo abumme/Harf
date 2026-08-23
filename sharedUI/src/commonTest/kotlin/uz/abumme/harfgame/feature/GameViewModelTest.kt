@@ -5,6 +5,8 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import uz.abumme.harfgame.data.stats.InProgressRound
+import uz.abumme.harfgame.data.stats.InProgressRow
 import uz.abumme.harfgame.engine.Mark
 import uz.abumme.harfgame.engine.WordPack
 import uz.abumme.harfgame.feature.daily.DailyPuzzle
@@ -45,6 +47,16 @@ class GameViewModelTest {
 
     @BeforeTest fun setup() = Dispatchers.setMain(UnconfinedTestDispatcher())
     @AfterTest fun teardown() = Dispatchers.resetMain()
+
+    @Test
+    fun restored_finished_round_stays_finished() = runTest {
+        val winRow = InProgressRow(answer, List(answer.size) { Mark.CORRECT.ordinal })
+        val restore = InProgressRound(languageId = "en", puzzleDay = 100L, rows = listOf(winRow), current = emptyList())
+        val vm = GameViewModel(DailyPuzzle("en", 100L, answer), pack, restore)
+        assertEquals(GameStatus.Won, vm.state.value.status, "restored winning round reopens as Won")
+        vm.onAction(GameAction.Input("x")) // input ignored once the round is over
+        assertEquals(0, vm.state.value.current.size)
+    }
 
     @Test
     fun full_win() = runTest {
