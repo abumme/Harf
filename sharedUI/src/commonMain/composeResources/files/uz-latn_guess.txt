@@ -1,11 +1,16 @@
-# first-pass guess dictionary — needs native review
+# first-pass guess dictionary — 5-belgili soʻzlar, needs native review
 kitob
 bahor
 shahar
-singil
-daryo
-olmos
-sabab
 qalam
 bulut
-dunyo
+daryo
+osmon
+bolta
+gilos
+paxta
+salom
+sabab
+temir
+dengiz
+qorin

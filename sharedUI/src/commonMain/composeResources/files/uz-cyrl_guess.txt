@@ -1,10 +1,14 @@
-# first-pass guess dictionary — needs native review
+# first-pass guess dictionary — 5 белгили сўзлар, needs native review
 китоб
 баҳор
 шаҳар
-олмос
 қалам
-сабаб
 булут
-севги
-савол
+осмон
+болта
+гилос
+пахта
+салом
+сабаб
+темир
+қорин
