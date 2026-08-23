@@ -20,7 +20,8 @@ fun MainViewController(): UIViewController {
 private fun ThemeChanged(isDark: Boolean) {
     LaunchedEffect(isDark) {
         UIApplication.sharedApplication.setStatusBarStyle(
-            if (isDark) UIStatusBarStyleDarkContent else UIStatusBarStyleLightContent
+            // dark content = dark icons; a light (paper) background needs dark content
+            if (isDark) UIStatusBarStyleLightContent else UIStatusBarStyleDarkContent
         )
     }
 }
