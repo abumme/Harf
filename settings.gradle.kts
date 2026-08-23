@@ -15,6 +15,11 @@ pluginManagement {
     }
 }
 
+// Auto-provision JDKs/JBR (needed by Compose Hot Reload's JBR runtime)
+plugins {
+    id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
 dependencyResolutionManagement {
     repositories {
         google {
