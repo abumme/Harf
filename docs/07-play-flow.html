@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Harf — Play Flow</title>
+<style>
+  :root{
+    --paper:#fbfcfe; --card:#ffffff; --ink:#12161b; --muted:#59626d; --rule:#d8dee6;
+    --accent:#1c3f63; --correct:#1c3f63; --present:#b3282d; --absent:#c9ced6;
+    --key:#e7ecf1; --serif:"PT Serif",Georgia,serif; --sans:"Golos Text",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:15px}
+  header{padding:32px 20px 8px;text-align:center;border-bottom:4px double var(--ink);margin:0 20px}
+  header h1{font-family:var(--serif);font-weight:700;font-size:44px;margin:0}
+  header h1 .d{color:var(--accent)}
+  header p{color:var(--muted);margin:6px 0 0}
+  .note{max-width:760px;margin:14px auto 0;color:var(--muted);font-size:13px;background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:10px 14px}
+  .flow{display:flex;flex-wrap:wrap;gap:20px;justify-content:center;padding:28px 18px 70px;align-items:flex-start}
+  .step{width:260px}
+  .num{font-family:var(--serif);font-weight:700;color:var(--accent);font-size:13px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+  .cap{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.45}
+  .cap b{color:var(--ink)}
+  .arrow{align-self:center;color:var(--muted);font-size:22px;padding:0 2px}
+
+  .phone{background:#20242b;border-radius:30px;padding:8px;box-shadow:0 18px 40px -22px rgba(20,22,27,.5)}
+  .screen{background:var(--paper);border-radius:24px;height:460px;overflow:hidden;display:flex;flex-direction:column}
+  .bar{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--rule);font-size:12px}
+  .bar .b{font-family:var(--serif);font-weight:700}.bar .b span{color:var(--accent)}
+  .body{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px}
+
+  .word{font-family:var(--serif);font-weight:700;font-size:34px}.word span{color:var(--accent)}
+  .sub{color:var(--muted);font-size:11px}
+  .btn{width:180px;text-align:center;border:1px solid var(--rule);border-radius:22px;padding:8px;font-size:13px;background:var(--card)}
+  .btn.solid{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .btn.wide{width:200px}
+
+  .chips{display:flex;gap:6px}
+  .chip{border:1px solid var(--rule);border-radius:18px;padding:4px 12px;font-size:12px;color:var(--muted);background:var(--card)}
+  .chip.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+
+  .board{display:flex;flex-direction:column;gap:4px}
+  .row{display:flex;gap:4px}
+  .tile{width:34px;height:34px;border:1px solid var(--rule);border-radius:3px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;text-transform:uppercase;position:relative;color:var(--ink)}
+  .tile.c::after{content:"";position:absolute;inset:3px;border:2px solid var(--correct);border-radius:50%}
+  .tile.p::after{content:"";position:absolute;left:6px;right:6px;bottom:5px;height:2px;background:var(--present)}
+  .tile.a::after{content:"";position:absolute;left:5px;right:5px;top:50%;height:2px;background:var(--absent);transform:rotate(-45deg)}
+  .tile.a{color:var(--muted)}
+
+  .kb{display:flex;flex-direction:column;gap:3px;width:100%;padding:0 2px}
+  .krow{display:flex;gap:3px;justify-content:center}
+  .key{background:var(--key);border-radius:4px;min-width:18px;height:26px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex:1;text-transform:uppercase}
+  .key.dg{background:#e2ebf3;color:var(--accent)}
+  .key.wide{flex:1.6;font-size:9px}
+
+  .emoji{font-size:20px;letter-spacing:2px;line-height:1.3;text-align:center}
+  .statrow{display:flex;justify-content:space-between;width:100%;border-bottom:1px solid var(--rule);padding:8px 2px}
+  .statrow .lang{font-family:var(--serif);font-weight:700;font-size:13px}
+  .statnums{display:flex;gap:12px;font-size:11px;color:var(--muted)}
+  .statnums b{color:var(--ink);font-size:14px;display:block;text-align:center}
+  .pick{width:100%;border:1px solid var(--rule);border-radius:8px;padding:8px;display:flex;align-items:center;gap:8px;font-size:12px}
+  .pick.on{border:2px solid var(--accent)}
+  .mk{width:26px;height:26px;border:1px solid var(--rule);border-radius:3px;position:relative;flex:0 0 auto}
+  .mk.ring::after{content:"";position:absolute;inset:5px;border:2px solid var(--accent);border-radius:50%}
+  .mk.fill{background:var(--accent)}
+  .mk.out::after{content:"";position:absolute;inset:5px;border:2px solid var(--accent)}
+  .dlg{position:absolute;inset:0;background:rgba(18,22,27,.35);display:flex;align-items:center;justify-content:center}
+  .dlgbox{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:14px;width:200px}
+  footer{text-align:center;color:var(--muted);font-size:12px;padding:20px;border-top:4px double var(--ink);margin:0 20px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Harf<span class="d">.</span> — play flow</h1>
+  <p>Expected screen order · compare against the real app</p>
+  <div class="note">Каждый экран нарисован как в реализации (те же кнопки/элементы). Стрелки = что триггерит переход. Метки: <b>○</b> на месте · <b>_</b> есть, не там · <b>╱</b> нет в слове. Сверяем с семантическим деревом / живым app.</div>
+</header>
+
+<div class="flow">
+
+  <!-- 1 HOME -->
+  <div class="step">
+    <div class="num">01 · Home</div>
+    <div class="phone"><div class="screen">
+      <div class="bar"><div class="b">Har<span>f</span></div><div>▾</div></div>
+      <div class="body" style="justify-content:center;gap:6px">
+        <div class="word">Harf<span>.</span></div>
+        <div class="sub">A daily word duel</div>
+        <div class="btn solid">Oʻzbekcha</div>
+        <div class="btn">Русский</div>
+        <div class="btn">English</div>
+        <div class="btn">Қазақша</div>
+        <div class="btn">Statistics</div>
+        <div class="btn">Settings</div>
+        <div class="btn">Theme — Newsprint</div>
+      </div>
+    </div></div>
+    <div class="cap"><b>Старт.</b> Тап языка → Game. Также: Statistics, Settings, Theme (циклит палитру).</div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- 2 GAME fresh -->
+  <div class="step">
+    <div class="num">02 · Game — старт</div>
+    <div class="phone"><div class="screen">
+      <div class="bar"><div class="b">Har<span>f</span></div><div class="chips"><span class="chip on">Lotin</span><span class="chip">Кирилл</span></div></div>
+      <div class="body">
+        <div class="board">
+          <div class="row"><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div></div>
+          <div class="row"><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div></div>
+          <div class="row"><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div></div>
+          <div class="row"><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div></div>
+        </div>
+        <div class="kb">
+          <div class="krow"><div class="key">q</div><div class="key">e</div><div class="key">r</div><div class="key">t</div><div class="key">y</div><div class="key">u</div><div class="key">i</div><div class="key">o</div><div class="key">p</div></div>
+          <div class="krow"><div class="key">a</div><div class="key">s</div><div class="key">d</div><div class="key">f</div><div class="key">g</div><div class="key">h</div><div class="key">j</div><div class="key">k</div><div class="key">l</div></div>
+          <div class="krow"><div class="key dg">sh</div><div class="key dg">ch</div><div class="key dg">ng</div><div class="key">z</div><div class="key">x</div><div class="key">v</div><div class="key">b</div><div class="key">n</div><div class="key">m</div></div>
+          <div class="krow"><div class="key dg">oʻ</div><div class="key dg">gʻ</div><div class="key wide">enter</div><div class="key wide">⌫</div></div>
+        </div>
+      </div>
+    </div></div>
+    <div class="cap"><b>Пустая доска 5×6</b> + клавиатура языка. У узбекского — переключатель <b>Lotin/Кирилл</b> + диграф-клавиши sh/ch/ng/oʻ/gʻ. Печатаешь → Enter.</div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- 3 GAME mid -->
+  <div class="step">
+    <div class="num">03 · Game — догадки</div>
+    <div class="phone"><div class="screen">
+      <div class="bar"><div class="b">Har<span>f</span></div><div class="chips"><span class="chip on">Lotin</span><span class="chip">Кирилл</span></div></div>
+      <div class="body">
+        <div class="board">
+          <div class="row"><div class="tile a">k</div><div class="tile p">i</div><div class="tile a">t</div><div class="tile c">o</div><div class="tile a">b</div></div>
+          <div class="row"><div class="tile c">sh</div><div class="tile c">a</div><div class="tile c">h</div><div class="tile c">a</div><div class="tile c">r</div></div>
+          <div class="row"><div class="tile">ch</div><div class="tile">a</div><div class="tile"></div><div class="tile"></div><div class="tile"></div></div>
+          <div class="row"><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div><div class="tile"></div></div>
+        </div>
+        <div class="kb">
+          <div class="krow"><div class="key">q</div><div class="key">e</div><div class="key">r</div><div class="key">t</div><div class="key">y</div><div class="key">u</div><div class="key">i</div><div class="key">o</div><div class="key">p</div></div>
+          <div class="krow"><div class="key">a</div><div class="key">s</div><div class="key">d</div><div class="key">f</div><div class="key">g</div><div class="key">h</div><div class="key">j</div><div class="key">k</div><div class="key">l</div></div>
+          <div class="krow"><div class="key dg">sh</div><div class="key dg">ch</div><div class="key dg">ng</div><div class="key">z</div><div class="key">x</div><div class="key">v</div><div class="key">b</div><div class="key">n</div><div class="key">m</div></div>
+          <div class="krow"><div class="key dg">oʻ</div><div class="key dg">gʻ</div><div class="key wide">enter</div><div class="key wide">⌫</div></div>
+        </div>
+      </div>
+    </div></div>
+    <div class="cap"><b>Скоринг карандашом</b> per-tile: ○ correct, _ present, ╱ absent. Диграф (sh) = одна клетка. Клавиши помечаются. 6 попыток.</div>
+  </div>
+
+  <div class="arrow">→</div>
+
+  <!-- 4 RESULT -->
+  <div class="step">
+    <div class="num">04 · Result</div>
+    <div class="phone"><div class="screen">
+      <div class="bar"><div class="b">Har<span>f</span></div><div>✕</div></div>
+      <div class="body" style="justify-content:center;gap:10px">
+        <div class="word" style="font-size:20px">Solved in 3/6</div>
+        <div class="board" style="gap:3px">
+          <div class="row"><div class="tile a" style="width:20px;height:20px"></div><div class="tile p" style="width:20px;height:20px"></div><div class="tile a" style="width:20px;height:20px"></div><div class="tile c" style="width:20px;height:20px"></div><div class="tile a" style="width:20px;height:20px"></div></div>
+        </div>
+        <div class="emoji">⬜🟥⬜🟦⬜<br>🟥🟦🟦⬜🟦<br>🟦🟦🟦🟦🟦</div>
+        <div class="btn solid">Share</div>
+        <div class="btn">Copy</div>
+      </div>
+    </div></div>
+    <div class="cap"><b>Итог.</b> «Solved N/6» (или «Out of tries» + слово). Эмодзи-грид (палитра, не Wordle) + <b>Share</b>/<b>Copy</b>. Результат пишется в лог.</div>
+  </div>
+
+  <div class="arrow">↘</div>
+
+  <!-- 5 STATS -->
+  <div class="step">
+    <div class="num">05 · Statistics</div>
+    <div class="phone"><div class="screen">
+      <div class="bar"><div class="b">Har<span>f</span></div><div>←</div></div>
+      <div class="body" style="align-items:stretch">
+        <div class="word" style="font-size:20px">Statistics</div>
+        <div class="statrow"><div class="lang">Oʻzbekcha</div><div class="statnums"><span><b>12</b>played</span><span><b>92</b>win%</span><span><b>🔥5</b>streak</span><span><b>9</b>best</span></div></div>
+        <div class="statrow"><div class="lang">Русский</div><div class="statnums"><span><b>8</b>played</span><span><b>75</b>win%</span><span><b>🔥2</b>streak</span><span><b>4</b>best</span></div></div>
+        <div class="statrow"><div class="lang">English</div><div class="statnums"><span><b>20</b>played</span><span><b>85</b>win%</span><span><b>🔥11</b>streak</span><span><b>11</b>best</span></div></div>
+      </div>
+    </div></div>
+    <div class="cap"><b>Статы</b> per-language: played / win% / стрик🔥 / best. Из Home → Statistics.</div>
+  </div>
+
+  <div class="arrow">↘</div>
+
+  <!-- 6 SETTINGS -->
+  <div class="step">
+    <div class="num">06 · Settings</div>
+    <div class="phone"><div class="screen">
+      <div class="bar"><div class="b">Har<span>f</span></div><div>←</div></div>
+      <div class="body" style="align-items:stretch;gap:10px">
+        <div class="word" style="font-size:20px">Settings</div>
+        <div class="sub">Mark style</div>
+        <div class="pick on"><span class="mk ring"></span>Scribble</div>
+        <div class="pick"><span class="mk fill"></span>Fill</div>
+        <div class="pick"><span class="mk out"></span>Outline</div>
+      </div>
+    </div></div>
+    <div class="cap"><b>Настройки.</b> Пикер стиля меток (Scribble/Fill/Outline) с превью — выбор sticky, завершает A/B-эксперимент.</div>
+  </div>
+
+  <div class="arrow">↘</div>
+
+  <!-- 7 STYLE PROMPT -->
+  <div class="step">
+    <div class="num">07 · Style prompt (день 4)</div>
+    <div class="phone"><div class="screen" style="position:relative">
+      <div class="bar"><div class="b">Har<span>f</span></div><div>▾</div></div>
+      <div class="body" style="justify-content:center;opacity:.4"><div class="word">Harf<span>.</span></div></div>
+      <div class="dlg"><div class="dlgbox">
+        <div style="font-weight:700;margin-bottom:8px">Pick your mark style</div>
+        <div class="pick"><span class="mk ring"></span>Scribble</div>
+        <div class="pick" style="margin-top:6px"><span class="mk fill"></span>Fill</div>
+        <div class="pick" style="margin-top:6px"><span class="mk out"></span>Outline</div>
+        <div class="btn" style="width:auto;margin-top:10px">Skip</div>
+      </div></div>
+    </div></div>
+    <div class="cap"><b>A/B.</b> Дни 1–3 стиль ротируется (Scribble→Fill→Outline). На 4-й день — разовый промпт, фиксирует выбор. Можно Skip (дефолт).</div>
+  </div>
+
+</div>
+
+<footer>— expected flow — свяжем с реальным app (semantic tree / CHR MCP) —</footer>
+</body>
+</html>
