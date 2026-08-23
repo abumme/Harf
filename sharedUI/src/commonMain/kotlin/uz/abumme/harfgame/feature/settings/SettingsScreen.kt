@@ -26,13 +26,14 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.EntitlementRepository
+import uz.abumme.harfgame.billing.hostedBillingUiSupported
 import uz.abumme.harfgame.feature.cellstyles.StyleExperimentController
 import uz.abumme.harfgame.feature.cellstyles.StylePreview
 import uz.abumme.harfgame.theme.LocalHarfColors
 import uz.abumme.harfgame.theme.marks.HarfMarkStyleId
 
 @Composable
-fun SettingsScreen(onPaywall: () -> Unit = {}) {
+fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}) {
     val controller = koinInject<StyleExperimentController>()
     val entitlements = koinInject<EntitlementRepository>()
     val scope = rememberCoroutineScope()
@@ -80,6 +81,11 @@ fun SettingsScreen(onPaywall: () -> Unit = {}) {
         }
         OutlinedButton(onClick = onPaywall, modifier = Modifier.fillMaxWidth()) {
             Text(if (ents.lifetime) "Support Harf / themes" else "Support Harf")
+        }
+        if (hostedBillingUiSupported) {
+            OutlinedButton(onClick = onCustomerCenter, modifier = Modifier.fillMaxWidth()) {
+                Text("Manage purchases")
+            }
         }
     }
 }

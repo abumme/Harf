@@ -27,10 +27,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.EntitlementRepository
+import uz.abumme.harfgame.billing.HostedPaywall
 import uz.abumme.harfgame.billing.PurchaseController
 import uz.abumme.harfgame.billing.StoreItem
+import uz.abumme.harfgame.billing.hostedBillingUiSupported
 import uz.abumme.harfgame.theme.LocalHarfColors
 import uz.abumme.harfgame.theme.harfSerif
 
@@ -43,6 +47,18 @@ import uz.abumme.harfgame.theme.harfSerif
 fun PaywallScreen(onBack: () -> Unit = {}) {
     val controller = koinInject<PurchaseController>()
     val entitlements = koinInject<EntitlementRepository>()
+
+    // On mobile with a configured store, present RevenueCat's hosted (dashboard-configured) paywall;
+    // refresh entitlements on dismiss so a completed purchase reflects immediately.
+    if (hostedBillingUiSupported && controller.isAvailable) {
+        val scope = rememberCoroutineScope()
+        HostedPaywall(onDismiss = {
+            scope.launch { entitlements.applyFromController() }
+            onBack()
+        })
+        return
+    }
+
     val vm = viewModel { PaywallViewModel(controller, entitlements) }
     val state by vm.state.collectAsState()
     val colors = LocalHarfColors.current
