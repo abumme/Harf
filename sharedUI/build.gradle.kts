@@ -32,6 +32,12 @@ kotlin {
     iosSimulatorArm64()
 
     sourceSets {
+        // android + ios share the real RevenueCat integration; desktop/web get a no-op.
+        val mobileMain by creating { dependsOn(commonMain.get()) }
+        androidMain.get().dependsOn(mobileMain)
+        iosMain.get().dependsOn(mobileMain)
+        mobileMain.dependencies { implementation(libs.purchases.kmp.core) }
+
         commonMain.dependencies {
             api(libs.compose.runtime)
             api(libs.compose.ui)
@@ -102,6 +108,9 @@ dependencies {
 }
 
 buildConfig {
-    // BuildConfig configuration here.
-    // https://github.com/gmazzo/gradle-buildconfig-plugin#usage-in-kts
+    packageName("uz.abumme.harfgame")
+    // RevenueCat public SDK keys — blank by default; real keys are supplied store-side
+    // (tracked in harf-play-release). Blank key => purchases report Unavailable, no crash.
+    buildConfigField("String", "REVENUECAT_ANDROID_KEY", "\"\"")
+    buildConfigField("String", "REVENUECAT_IOS_KEY", "\"\"")
 }
