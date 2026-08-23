@@ -32,4 +32,10 @@
 
 ## 7. Cross-platform verification
 
+## 7. Cross-platform verification
+
 - [ ] 7.1 Build/launch and confirm Home renders themed on each target in order — JVM (`:desktopApp:run`), Android (`:androidApp:assembleDebug`), Wasm/JS (`:webApp:*BrowserDevelopmentRun`), iOS (compile); record any target-specific settings/storage caveat. — PARTIAL: JVM/desktop launches (verified), js + wasmJs compile (verified). Android NOT verified (no Android SDK configured — `sdk.dir` empty). iOS NOT verified (needs Xcode; slow). No visual screenshot possible here (headless display; hot-reload MCP not connected to this session).
+
+## 8. Follow-ups (from code review)
+
+- [ ] 8.1 Seed `AppSettings.paletteId` off the main thread — the constructor's synchronous `ksafe.getDirect` runs on the UI thread when the Koin singleton is first resolved during composition, adding a blocking encrypted-prefs read to the first frame on cold start. Start the StateFlow at `DEFAULT_PALETTE` and load the stored value in a coroutine off-main (or resolve `AppSettings` outside composition). Low priority: KSafe has a hot in-memory cache and it is a single small read. (code review #7)
