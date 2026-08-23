@@ -37,7 +37,10 @@ kotlin {
         val mobileMain by creating { dependsOn(commonMain.get()) }
         androidMain.get().dependsOn(mobileMain)
         iosMain.get().dependsOn(mobileMain)
-        mobileMain.dependencies { implementation(libs.purchases.kmp.core) }
+        mobileMain.dependencies {
+            implementation(libs.purchases.kmp.core)
+            implementation(libs.purchases.kmp.ui) // RC hosted Paywall + Customer Center (mobile only)
+        }
 
         commonMain.dependencies {
             api(libs.compose.runtime)
