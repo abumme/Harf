@@ -2,6 +2,7 @@ package uz.abumme.harfgame.engine
 
 import kotlinx.coroutines.test.runTest
 import uz.abumme.harfgame.lang.LanguageRegistry
+import uz.abumme.harfgame.lang.UzbekDailyWords
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -27,6 +28,19 @@ class WordPackTest {
         for (id in languages) {
             val errors = repo.validate(id)
             assertEquals(emptyList(), errors, "pack '$id' integrity")
+        }
+    }
+
+    @Test
+    fun uzbek_daily_words_are_always_valid_guesses() = runTest {
+        // Uzbek daily answers come from UzbekDailyWords, not the answers file — every one must be
+        // submittable, else that day's puzzle would be unwinnable.
+        for (id in listOf("uz-latn", "uz-cyrl")) {
+            val pack = repo.load(id)
+            for (lex in UzbekDailyWords.lexemes) {
+                val g = lex.graphemes(id) ?: error("no $id decomposition for ${lex.id}")
+                assertTrue(pack.isValidGuess(g), "$id daily '${lex.id}' must be a valid guess")
+            }
         }
     }
 

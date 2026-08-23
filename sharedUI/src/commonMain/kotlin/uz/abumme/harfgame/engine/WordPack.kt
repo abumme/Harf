@@ -5,6 +5,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import uz.abumme.harfgame.lang.LanguageRegistry
+import uz.abumme.harfgame.lang.UzbekDailyWords
 
 /** Tokenized vocabulary for a language: curated answers + the full guess set (includes answers). */
 data class WordPack(
@@ -33,7 +34,14 @@ class WordPackRepository(private val registry: LanguageRegistry) {
 
             val answers = readLines("files/${id}_answers.txt").mapNotNull { tokenizer.tokenize(it) }
             val guessesRaw = readLines("files/${id}_guess.txt").mapNotNull { tokenizer.tokenize(it) }
-            val guesses = (guessesRaw + answers).toSet()
+            // Uzbek daily answers come from UzbekDailyWords, not the answers file — fold them in
+            // so every daily word is always a submittable guess (see DailyPuzzleProvider).
+            val dailyAnswers = if (id == "uz-latn" || id == "uz-cyrl") {
+                UzbekDailyWords.lexemes.mapNotNull { it.graphemes(id) }
+            } else {
+                emptyList()
+            }
+            val guesses = (guessesRaw + answers + dailyAnswers).toSet()
 
             WordPack(id, answers, guesses).also { cache[id] = it }
         }
