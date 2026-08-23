@@ -42,7 +42,21 @@ class ResultLogTest {
         store.save(round)
         assertEquals(round, store.load("test-lang", 555L))
         assertNull(store.load("test-lang", 556L), "different day = fresh round")
-        store.clear()
+        store.clear("test-lang")
         assertNull(store.load("test-lang", 555L), "cleared")
+    }
+
+    @Test
+    fun round_store_keeps_scripts_independent() = runTest {
+        val store = RoundStore(KSafe())
+        val latn = InProgressRound(languageId = "uz-latn", puzzleDay = 700L, rows = listOf(InProgressRow(listOf("k"), listOf(0))), current = listOf())
+        val cyrl = InProgressRound(languageId = "uz-cyrl", puzzleDay = 700L, rows = listOf(), current = listOf("к"))
+        store.save(latn)
+        store.save(cyrl)
+        assertEquals(latn, store.load("uz-latn", 700L), "latn kept after saving cyrl")
+        assertEquals(cyrl, store.load("uz-cyrl", 700L), "cyrl kept")
+        store.clear("uz-latn")
+        assertNull(store.load("uz-latn", 700L), "latn cleared")
+        assertEquals(cyrl, store.load("uz-cyrl", 700L), "clearing one script keeps the other")
     }
 }

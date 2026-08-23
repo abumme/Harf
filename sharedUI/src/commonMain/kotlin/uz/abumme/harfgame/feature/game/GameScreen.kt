@@ -103,7 +103,7 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
 
     val vm = viewModel(key = script) {
         GameViewModel(puzzle, pack, restore) { record ->
-            scope.launch { resultLog.record(record); roundStore.clear() }
+            scope.launch { resultLog.record(record); roundStore.clear(record.language) }
         }
     }
     val state by vm.state.collectAsState()
