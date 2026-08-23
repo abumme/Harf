@@ -1,7 +1,7 @@
 package uz.abumme.harfgame
 
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.printToString
 import androidx.compose.ui.test.runDesktopComposeUiTest
 import eu.anifantakis.lib.ksafe.KSafe
@@ -34,7 +34,10 @@ class SemanticsDumpTest {
         setContent { App() }
         waitForIdle()
 
-        val tree = onRoot().printToString()
+        // dump all roots (the harness may present more than one traversal-group root)
+        val roots = onAllNodes(isRoot())
+        val tree = (0 until roots.fetchSemanticsNodes().size)
+            .joinToString("\n") { roots[it].printToString() }
         File("/tmp/harf_home_tree.txt").writeText(tree)
         assertTrue(tree.contains("Harf."), "wordmark present")
         assertTrue(tree.contains("Oʻzbekcha"), "language buttons present")
