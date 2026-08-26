@@ -32,6 +32,10 @@ kotlin {
     iosArm64()
     iosSimulatorArm64()
 
+    // Manual dependsOn edges below disable the implicit hierarchy template, which
+    // orphans iosMain from the ios targets — re-apply it explicitly.
+    applyDefaultHierarchyTemplate()
+
     sourceSets {
         // android + ios share the real RevenueCat integration; desktop/web get a no-op.
         val mobileMain by creating { dependsOn(commonMain.get()) }

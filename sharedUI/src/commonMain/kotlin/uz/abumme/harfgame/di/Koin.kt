@@ -1,7 +1,7 @@
 package uz.abumme.harfgame.di
 
-import org.koin.core.context.GlobalContext
 import org.koin.core.context.startKoin
+import org.koin.mp.KoinPlatformTools
 import org.koin.core.module.Module
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
@@ -31,7 +31,7 @@ val appModule: Module = module {
  * via [appDeclaration].
  */
 fun initKoin(appDeclaration: KoinAppDeclaration = {}) {
-    if (GlobalContext.getOrNull() != null) return
+    if (KoinPlatformTools.defaultContext().getOrNull() != null) return
     startKoin {
         appDeclaration()
         modules(platformModule, appModule, languageModule)
