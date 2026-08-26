@@ -1,9 +1,12 @@
 package uz.abumme.harfgame.settings
 
 import eu.anifantakis.lib.ksafe.KSafe
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 /**
  * Typed wrapper over [KSafe] for durable user preferences. Persistence is provided
@@ -11,9 +14,22 @@ import kotlinx.coroutines.flow.asStateFlow
  * in-memory [StateFlow]s seeded from the persisted value. Callers never touch KSafe
  * directly, keeping the store swappable.
  */
-class AppSettings(private val ksafe: KSafe) {
+class AppSettings(
+    private val ksafe: KSafe,
+    seedScope: CoroutineScope = CoroutineScope(Dispatchers.Default),
+) {
 
-    private val _paletteId = MutableStateFlow(ksafe.getDirect(KEY_PALETTE, DEFAULT_PALETTE))
+    private val _paletteId = MutableStateFlow(DEFAULT_PALETTE)
+
+    init {
+        // Seed off-main: the singleton is first resolved during composition, so a
+        // synchronous getDirect here would put an encrypted-prefs read on the first
+        // frame. compareAndSet keeps a user choice made before the read completes.
+        seedScope.launch {
+            val stored = ksafe.getDirect(KEY_PALETTE, DEFAULT_PALETTE)
+            _paletteId.compareAndSet(DEFAULT_PALETTE, stored)
+        }
+    }
 
     /** Active theme/palette id, observable and persisted. */
     val paletteId: StateFlow<String> = _paletteId.asStateFlow()
