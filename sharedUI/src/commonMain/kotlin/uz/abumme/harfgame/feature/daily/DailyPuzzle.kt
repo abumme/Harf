@@ -1,13 +1,13 @@
 package uz.abumme.harfgame.feature.daily
 
+import kotlin.time.Clock
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import uz.abumme.harfgame.engine.WordPackRepository
 import uz.abumme.harfgame.lang.LanguageRegistry
 import uz.abumme.harfgame.lang.UzbekDailyWords
-import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 
 /** The word to solve today for one language. */
 data class DailyPuzzle(
@@ -38,7 +38,7 @@ class DailyPuzzleProvider(
 
     fun epochDay(languageId: String, instant: Instant): Long {
         val zone = TimeZone.of(zones[languageId] ?: "Asia/Tashkent")
-        return instant.toLocalDateTime(zone).date.toEpochDays()
+        return instant.toLocalDateTime(zone).date.toEpochDays().toLong()
     }
 
     suspend fun daily(languageId: String, instant: Instant = Clock.System.now()): DailyPuzzle {

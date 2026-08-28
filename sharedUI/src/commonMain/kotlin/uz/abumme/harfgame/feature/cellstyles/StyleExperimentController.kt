@@ -4,10 +4,10 @@ import eu.anifantakis.lib.ksafe.KSafe
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import uz.abumme.harfgame.theme.marks.HarfMarkStyleId
-import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 enum class ExperimentPhase { Rotating, PromptPending, Decided }
@@ -93,6 +93,6 @@ class StyleExperimentController(
         private const val PHASE_DECIDED = 2
 
         private fun defaultToday(): Long =
-            Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toEpochDays()
+            Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toEpochDays().toLong()
     }
 }
