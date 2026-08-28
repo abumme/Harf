@@ -1,5 +1,6 @@
 package uz.abumme.harfgame.data.stats
 
+import kotlin.time.Instant
 import kotlinx.serialization.Serializable
 
 /** One finished daily round. `puzzleDay` is the epoch-day in that language's fixed timezone. */
@@ -16,6 +17,7 @@ data class ResultRecord(
 data class ResultLogData(
     val version: Int = 1,
     val records: List<ResultRecord> = emptyList(),
+    val updatedAt: Instant = Instant.fromEpochMilliseconds(0),
 )
 
 /** A submitted row inside an in-progress round; marks stored as ordinals to avoid annotating the engine enum. */

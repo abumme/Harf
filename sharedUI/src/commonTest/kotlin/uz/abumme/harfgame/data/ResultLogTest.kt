@@ -19,15 +19,20 @@ class ResultLogTest {
 
     @Test
     fun record_survives_reopen_and_dedups() = runTest {
-        val ksafe = KSafe()
-        val log = ResultLog(ksafe)
-        log.record(rec)
-        log.record(rec) // duplicate language-day ignored
+        try {
+            val ksafe = KSafe()
+            val log = ResultLog(ksafe)
+            log.record(rec)
+            log.record(rec) // duplicate language-day ignored
 
-        assertEquals(1, log.all().count { it == rec }, "duplicate ignored")
+            assertEquals(1, log.all().count { it == rec }, "duplicate ignored")
 
-        val reopened = ResultLog(ksafe)
-        assertTrue(reopened.all().any { it == rec }, "survives re-open")
+            val reopened = ResultLog(ksafe)
+            assertTrue(reopened.all().any { it == rec }, "survives re-open")
+        } catch (t: Throwable) {
+            t.printStackTrace()
+            throw t
+        }
     }
 
     @Test
