@@ -8,6 +8,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.EntitlementRepository
+import uz.abumme.harfgame.data.stats.SyncManager
 import uz.abumme.harfgame.feature.cellstyles.MarkStyleHost
 import uz.abumme.harfgame.feature.onboarding.OnboardingIntro
 import uz.abumme.harfgame.navigation.AppNavHost
@@ -24,7 +25,11 @@ fun App(onThemeChanged: @Composable (isDark: Boolean) -> Unit = {}) {
     onThemeChanged(false)
     val settings = koinInject<AppSettings>()
     val entitlements = koinInject<EntitlementRepository>()
-    LaunchedEffect(Unit) { entitlements.refresh() } // reconcile with the store on launch (no-op offline)
+    val syncManager = koinInject<SyncManager>()
+    LaunchedEffect(Unit) {
+        entitlements.refresh() // reconcile with the store on launch (no-op offline)
+        syncManager.bootstrap() // non-blocking background anonymous session and stats sync
+    }
     var onboarded by remember { mutableStateOf(settings.isOnboarded()) }
     HarfTheme(settings) {
         MarkStyleHost {

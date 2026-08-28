@@ -82,6 +82,7 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
     val registry = koinInject<LanguageRegistry>()
     val resultLog = koinInject<ResultLog>()
     val roundStore = koinInject<RoundStore>()
+    val syncManager = koinInject<uz.abumme.harfgame.data.stats.SyncManager>()
     val scope = rememberCoroutineScope()
 
     // active script (Uzbek can switch latn <-> cyrl for the same daily lexeme)
@@ -103,7 +104,11 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
 
     val vm = viewModel(key = script) {
         GameViewModel(puzzle, pack, restore) { record ->
-            scope.launch { resultLog.record(record); roundStore.clear(record.language) }
+            scope.launch {
+                resultLog.record(record)
+                roundStore.clear(record.language)
+                syncManager.pushStats()
+            }
         }
     }
     val state by vm.state.collectAsState()

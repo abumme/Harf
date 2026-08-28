@@ -12,14 +12,20 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,6 +33,10 @@ import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.EntitlementRepository
 import uz.abumme.harfgame.billing.hostedBillingUiSupported
+import uz.abumme.harfgame.data.auth.OAuthClient
+import uz.abumme.harfgame.data.auth.OAuthProvider
+import uz.abumme.harfgame.data.auth.SessionStore
+import uz.abumme.harfgame.data.stats.SyncManager
 import uz.abumme.harfgame.feature.cellstyles.StyleExperimentController
 import uz.abumme.harfgame.feature.cellstyles.StylePreview
 import uz.abumme.harfgame.theme.LocalHarfColors
@@ -36,10 +46,15 @@ import uz.abumme.harfgame.theme.marks.HarfMarkStyleId
 fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}) {
     val controller = koinInject<StyleExperimentController>()
     val entitlements = koinInject<EntitlementRepository>()
+    val sessionStore = koinInject<SessionStore>()
+    val syncManager = koinInject<SyncManager>()
+    val oauthClient = koinInject<OAuthClient>()
     val scope = rememberCoroutineScope()
     val active by controller.activeStyle.collectAsState()
     val ents by entitlements.entitlements.collectAsState()
+    val session by sessionStore.sessionFlow.collectAsState(initial = null)
     val colors = LocalHarfColors.current
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -86,6 +101,75 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
             OutlinedButton(onClick = onCustomerCenter, modifier = Modifier.fillMaxWidth()) {
                 Text("Manage purchases")
             }
+        }
+
+        Text("Account & Sync", color = colors.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+
+        if (session?.isLinked == true) {
+            Text("✓ Account linked", color = colors.accent, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+        } else {
+            if (oauthClient.isGoogleSupported) {
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            val idToken = oauthClient.signInWithGoogle()
+                            if (idToken != null) {
+                                syncManager.linkAccount(OAuthProvider.GOOGLE, idToken)
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Link Google Account")
+                }
+            }
+            if (oauthClient.isAppleSupported) {
+                OutlinedButton(
+                    onClick = {
+                        scope.launch {
+                            val idToken = oauthClient.signInWithApple()
+                            if (idToken != null) {
+                                syncManager.linkAccount(OAuthProvider.APPLE, idToken)
+                            }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Link Apple Account")
+                }
+            }
+        }
+
+        OutlinedButton(
+            onClick = { showDeleteConfirm = true },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Delete Account", color = Color(0xFFD32F2F))
+        }
+
+        if (showDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { showDeleteConfirm = false },
+                title = { Text("Delete Account") },
+                text = { Text("Are you sure you want to delete your account? All server-side data and local stats will be permanently removed.") },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            scope.launch {
+                                syncManager.deleteAccount()
+                                showDeleteConfirm = false
+                            }
+                        }
+                    ) {
+                        Text("Delete", color = Color(0xFFD32F2F))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDeleteConfirm = false }) {
+                        Text("Cancel")
+                    }
+                }
+            )
         }
     }
 }
