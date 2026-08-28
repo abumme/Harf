@@ -67,6 +67,6 @@ Tasks are grouped into review-sized batches: each group is intended to land as o
 
 ## 13. Documentation & Final Pass (docs-only review)
 
-- [ ] 13.1 Update `CLAUDE.md` to describe the `:sharedData` / `:backend` / `:sharedUI` module boundaries, replacing the current "everything in `:sharedUI`" rule
-- [ ] 13.2 Add a `README` section (or `docs/`) covering local dev setup: `docker compose up`, running `:backend`, and pointing `:sharedUI` at it
-- [ ] 13.3 Run the full backend test suite (`./gradlew :backend:test`) and confirm all scenarios from `account-auth` and `stats-sync` specs are covered and passing
+- [x] 13.1 Update `CLAUDE.md` to describe the `:sharedData` / `:backend` / `:sharedUI` module boundaries, replacing the current "everything in `:sharedUI`" rule
+- [x] 13.2 Add a `README` section (or `docs/`) covering local dev setup: `docker compose up`, running `:backend`, and pointing `:sharedUI` at it
+- [x] 13.3 Run the full backend test suite (`./gradlew :backend:test`) and confirm all scenarios from `account-auth` and `stats-sync` specs are covered and passing
