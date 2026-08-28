@@ -47,6 +47,7 @@ kotlin {
         }
 
         commonMain.dependencies {
+            api(project(":sharedData"))
             api(libs.compose.runtime)
             api(libs.compose.ui)
             api(libs.compose.foundation)
@@ -62,8 +63,8 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtime)
             implementation(libs.androidx.navigation.compose)
-            implementation(libs.kotlinx.serialization.json)
-            implementation(libs.kotlinx.datetime)
+            api(libs.kotlinx.serialization.json)
+            api(libs.kotlinx.datetime)
             implementation(libs.koin.core)
             implementation(libs.koin.compose)
             implementation(libs.ksafe)
@@ -74,10 +75,12 @@ kotlin {
             implementation(kotlin("test"))
             implementation(libs.compose.ui.test)
             implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.ktor.client.mock)
         }
 
         jvmTest.dependencies {
             implementation(libs.roborazzi.composeDesktop)
+            implementation(libs.kotlinx.datetime)
         }
 
         androidMain.dependencies {
@@ -90,6 +93,7 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
             implementation(libs.ktor.client.okhttp)
+            implementation(libs.kotlinx.datetime)
         }
 
         iosMain.dependencies {
@@ -111,8 +115,13 @@ kotlin {
         }
 }
 
-dependencies {
-    androidRuntimeClasspath(libs.compose.ui.tooling)
+tasks.withType<Test>().configureEach {
+    testLogging {
+        events("passed", "skipped", "failed", "standardOut", "standardError")
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+    }
 }
 
 // RevenueCat public SDK keys come from local.properties (gitignored) or a -P gradle property,
