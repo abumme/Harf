@@ -6,7 +6,12 @@ Harf is a Wordle-style daily word game built as a Compose Multiplatform app (And
 
 ## Where code goes
 
-**All code — business logic, UI, navigation, data, engine — lives in `:sharedUI`.** The `*App` modules (`androidApp`, `desktopApp`, `iosApp`, `webApp`) are thin wrappers holding only an entry point (`main()` / `Application` / `Activity`).
+The project is structured into three primary modules plus thin platform wrappers:
+
+- **`:sharedData`** — pure Kotlin Multiplatform library shared by client and server. Holds `@Serializable` DTOs (auth, sync), API route path constants (`ApiRoutes`), error envelopes (`ApiResult<T>`, `ApiErrorResponse`), and service interfaces (`AuthService`, `SyncService`). Contains no UI or platform-specific dependencies.
+- **`:backend`** — JVM Ktor server application. Implements server endpoints with Exposed ORM against PostgreSQL, JWT access token issuance/verification, rotating refresh tokens with grace-window reuse detection, Google & Apple OAuth token verification, and last-write-wins stats sync.
+- **`:sharedUI`** — Compose Multiplatform client codebase. Holds all client UI, game engine, navigation, local storage (KSafe), client Ktor adapters (`KtorAuthService`, `KtorSyncService`, `SyncManager`), and platform-specific OAuth glue.
+- **Platform apps (`androidApp`, `desktopApp`, `iosApp`, `webApp`)** — thin wrappers holding only platform entry points (`main()` / `Application` / `Activity`).
 
 Source sets under `sharedUI/src/`:
 - `commonMain` — everything by default.
@@ -26,14 +31,16 @@ Build/run:
 ./gradlew :webApp:jsBrowserDevelopmentRun              # JS browser
 ./gradlew :webApp:wasmJsBrowserDevelopmentRun          # Wasm browser
 ./gradlew :webApp:composeCompatibilityBrowserDistribution   # Web dist bundle
+./gradlew :backend:run                                 # Backend Ktor server
 ```
 
-Tests (all in `sharedUI`, run on JVM):
+Tests:
 ```
-./gradlew :sharedUI:jvmTest                             # all unit tests
-./gradlew :sharedUI:jvmTest --tests "*ScorerTest"       # a single test class
-./gradlew :sharedUI:verifyRoborazziJvm                  # screenshot tests (compare vs golden)
-./gradlew :sharedUI:recordRoborazziJvm                  # regenerate golden screenshots after intended UI changes
+./gradlew :backend:test                                # Backend unit & integration tests
+./gradlew :sharedUI:jvmTest                            # all sharedUI unit tests
+./gradlew :sharedUI:jvmTest --tests "*ScorerTest"      # a single test class
+./gradlew :sharedUI:verifyRoborazziJvm                 # screenshot tests (compare vs golden)
+./gradlew :sharedUI:recordRoborazziJvm                 # regenerate golden screenshots after intended UI changes
 ```
 Screenshot tests (`*ScreenshotTest`, `SemanticsDumpTest`) use Roborazzi on Compose Desktop. When a UI change is intentional, run `recordRoborazziJvm` to update goldens and commit them.
 
