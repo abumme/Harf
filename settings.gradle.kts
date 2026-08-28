@@ -33,6 +33,8 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
+include(":sharedData")
+include(":backend")
 include(":sharedUI")
 include(":androidApp")
 include(":desktopApp")
