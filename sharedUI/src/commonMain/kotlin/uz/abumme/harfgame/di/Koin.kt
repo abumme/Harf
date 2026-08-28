@@ -1,13 +1,23 @@
 package uz.abumme.harfgame.di
 
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.serialization.kotlinx.json.json
+import kotlinx.serialization.json.Json
 import org.koin.core.context.startKoin
 import org.koin.mp.KoinPlatformTools
 import org.koin.core.module.Module
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
 import uz.abumme.harfgame.billing.EntitlementRepository
+import uz.abumme.harfgame.data.auth.SessionStore
+import uz.abumme.harfgame.data.network.KtorAuthService
+import uz.abumme.harfgame.data.network.KtorSyncService
+import uz.abumme.harfgame.data.service.AuthService
+import uz.abumme.harfgame.data.service.SyncService
 import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.data.stats.RoundStore
+import uz.abumme.harfgame.data.stats.SyncManager
 import uz.abumme.harfgame.feature.cellstyles.StyleChoiceLog
 import uz.abumme.harfgame.feature.cellstyles.StyleExperimentController
 import uz.abumme.harfgame.settings.AppSettings
@@ -23,6 +33,20 @@ val appModule: Module = module {
     single { StyleChoiceLog(get()) }
     single { StyleExperimentController(get(), get()) }
     single { EntitlementRepository(get(), get()) } // PurchaseController from platformModule
+    single { SessionStore(get()) }
+    single {
+        HttpClient {
+            install(ContentNegotiation) {
+                json(Json {
+                    ignoreUnknownKeys = true
+                    isLenient = true
+                })
+            }
+        }
+    }
+    single<AuthService> { KtorAuthService(get(), sessionStore = get()) }
+    single<SyncService> { KtorSyncService(get(), sessionStore = get(), authService = get()) }
+    single { SyncManager(resultLog = get(), sessionStore = get(), authService = get(), syncService = get()) }
 }
 
 /**

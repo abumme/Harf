@@ -5,6 +5,8 @@ import org.koin.core.module.Module
 import org.koin.dsl.module
 import uz.abumme.harfgame.billing.NoOpPurchaseController
 import uz.abumme.harfgame.billing.PurchaseController
+import uz.abumme.harfgame.data.auth.NoOpOAuthClient
+import uz.abumme.harfgame.data.auth.OAuthClient
 import uz.abumme.harfgame.feature.share.Sharer
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
@@ -13,6 +15,7 @@ actual val platformModule: Module = module {
     single { KSafe() }
     single<Sharer> { DesktopSharer() }
     single<PurchaseController> { NoOpPurchaseController }
+    single<OAuthClient> { NoOpOAuthClient(isGoogleSupported = true) }
 }
 
 private class DesktopSharer : Sharer {

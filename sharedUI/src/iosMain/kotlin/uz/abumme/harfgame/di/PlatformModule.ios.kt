@@ -9,12 +9,15 @@ import platform.UIKit.UIPasteboard
 import uz.abumme.harfgame.BuildConfig
 import uz.abumme.harfgame.billing.PurchaseController
 import uz.abumme.harfgame.billing.RevenueCatPurchaseController
+import uz.abumme.harfgame.data.auth.NoOpOAuthClient
+import uz.abumme.harfgame.data.auth.OAuthClient
 import uz.abumme.harfgame.feature.share.Sharer
 
 actual val platformModule: Module = module {
     single { KSafe() }
     single<Sharer> { IosSharer() }
     single<PurchaseController> { RevenueCatPurchaseController(BuildConfig.REVENUECAT_IOS_KEY) }
+    single<OAuthClient> { NoOpOAuthClient(isGoogleSupported = true, isAppleSupported = true) }
 }
 
 private class IosSharer : Sharer {

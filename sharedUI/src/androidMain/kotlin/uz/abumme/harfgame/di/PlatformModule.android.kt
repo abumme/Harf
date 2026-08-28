@@ -11,12 +11,15 @@ import org.koin.dsl.module
 import uz.abumme.harfgame.BuildConfig
 import uz.abumme.harfgame.billing.PurchaseController
 import uz.abumme.harfgame.billing.RevenueCatPurchaseController
+import uz.abumme.harfgame.data.auth.NoOpOAuthClient
+import uz.abumme.harfgame.data.auth.OAuthClient
 import uz.abumme.harfgame.feature.share.Sharer
 
 actual val platformModule: Module = module {
     single { KSafe(androidApplication()) }
     single<Sharer> { AndroidSharer(androidApplication()) }
     single<PurchaseController> { RevenueCatPurchaseController(BuildConfig.REVENUECAT_ANDROID_KEY) }
+    single<OAuthClient> { NoOpOAuthClient(isGoogleSupported = true) }
 }
 
 private class AndroidSharer(private val context: Context) : Sharer {
