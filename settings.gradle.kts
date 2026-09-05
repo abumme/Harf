@@ -35,8 +35,13 @@ dependencyResolutionManagement {
 }
 include(":sharedData")
 include(":backend")
-include(":sharedUI")
-include(":androidApp")
-include(":desktopApp")
-include(":webApp")
+
+// Client modules pull in the Android SDK / KMP native toolchains. A backend-only build
+// (server or Docker image, JDK only) skips them with `-PbackendOnly`.
+if (!providers.gradleProperty("backendOnly").isPresent) {
+    include(":sharedUI")
+    include(":androidApp")
+    include(":desktopApp")
+    include(":webApp")
+}
 

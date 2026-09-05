@@ -54,6 +54,9 @@ build/
 # Local configuration file (sdk path, etc)
 local.properties
 
+# Deployment secrets
+.env
+
 # Log files
 *.log
 

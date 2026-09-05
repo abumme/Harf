@@ -1,0 +1,14 @@
+# Keep the Docker build context small and reproducible.
+.git
+.gradle
+**/.gradle
+**/build
+.idea
+*.iml
+local.properties
+.env
+# Client-only sources aren't compiled in a -PbackendOnly build.
+iosApp
+webApp
+androidApp
+docs/release-audit-evidence
