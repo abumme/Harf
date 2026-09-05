@@ -106,7 +106,8 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
         GameViewModel(puzzle, pack, restore) { record ->
             scope.launch {
                 resultLog.record(record)
-                roundStore.clear(record.language)
+                // B11: keep the finished round persisted so reopening today shows the result,
+                // not a blank editable board. The snapshot is saved by the effect below.
                 syncManager.pushStats()
             }
         }
@@ -146,9 +147,10 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
         )
     }
 
-    // persist in-progress round as it changes
+    // persist the round as it changes — including the finished state, so today's result is
+    // restored on relaunch (a stale prior-day round is ignored by RoundStore.load's day check).
     LaunchedEffect(script, state.submitted.size, state.current.size, state.status) {
-        if (state.status == GameStatus.Playing) roundStore.save(vm.snapshot())
+        roundStore.save(vm.snapshot())
     }
 
     Column(
