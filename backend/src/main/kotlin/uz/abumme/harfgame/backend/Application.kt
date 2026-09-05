@@ -15,6 +15,7 @@ import kotlinx.serialization.json.Json
 import uz.abumme.harfgame.backend.auth.oauth.AppleOAuthVerifier
 import uz.abumme.harfgame.backend.auth.oauth.GoogleOAuthVerifier
 import uz.abumme.harfgame.backend.auth.oauth.OAuthVerifier
+import uz.abumme.harfgame.backend.config.ServerConfig
 import uz.abumme.harfgame.backend.db.DatabaseFactory
 import uz.abumme.harfgame.backend.routes.authRoutes
 import uz.abumme.harfgame.backend.routes.syncRoutes
@@ -25,6 +26,8 @@ import uz.abumme.harfgame.data.api.ApiErrorResponse
 import uz.abumme.harfgame.data.auth.OAuthProvider
 
 fun main() {
+    // Fail fast rather than silently running production on the dev JWT secret.
+    ServerConfig.requireSecureProductionConfig()
     DatabaseFactory.init()
     embeddedServer(Netty, port = (System.getenv("PORT") ?: "8080").toInt(), host = "0.0.0.0", module = Application::module)
         .start(wait = true)
@@ -36,7 +39,9 @@ fun Application.module(
         OAuthProvider.GOOGLE to GoogleOAuthVerifier(
             audiences = (System.getenv("GOOGLE_CLIENT_IDS") ?: "").split(",").map { it.trim() }.filter { it.isNotEmpty() }
         ),
-        OAuthProvider.APPLE to AppleOAuthVerifier()
+        OAuthProvider.APPLE to AppleOAuthVerifier(
+            audiences = (System.getenv("APPLE_AUDIENCES") ?: "").split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        )
     ),
     authService: AuthServerService = AuthServerService(jwtService, verifiers),
     syncService: SyncServerService = SyncServerService(),
@@ -59,15 +64,24 @@ fun Application.module(
                     null
                 }
             }
+            // Always answer an unauthorized request with a decodable JSON body so the client can
+            // detect the 401 before attempting to parse it, and trigger a token refresh.
+            challenge { _, _ ->
+                call.respond(
+                    HttpStatusCode.Unauthorized,
+                    ApiErrorResponse("unauthorized", "Missing or invalid access token")
+                )
+            }
         }
     }
 
     install(StatusPages) {
         exception<Throwable> { call, cause ->
+            // Keep internal detail in server logs only; never return it to the client.
             cause.printStackTrace()
             call.respond(
                 HttpStatusCode.InternalServerError,
-                ApiErrorResponse("internal_error", cause.message ?: "An unexpected error occurred")
+                ApiErrorResponse("internal_error", "An unexpected error occurred")
             )
         }
     }

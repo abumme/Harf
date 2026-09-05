@@ -72,8 +72,15 @@ fun Route.authRoutes(authService: AuthServerService) {
                 call.respond(HttpStatusCode.Unauthorized, ApiErrorResponse("unauthorized", "Missing userId in token"))
                 return@delete
             }
-            authService.deleteAccount(userId)
-            call.respond(HttpStatusCode.OK, mapOf("status" to "deleted"))
+            val deleted = authService.deleteAccount(userId)
+            if (deleted) {
+                call.respond(HttpStatusCode.OK, mapOf("status" to "deleted"))
+            } else {
+                call.respond(
+                    HttpStatusCode.NotFound,
+                    ApiErrorResponse("delete_failed", "Account not found or already deleted")
+                )
+            }
         }
     }
 }
