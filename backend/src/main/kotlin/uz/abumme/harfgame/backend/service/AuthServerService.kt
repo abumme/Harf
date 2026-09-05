@@ -2,11 +2,14 @@ package uz.abumme.harfgame.backend.service
 
 import kotlinx.datetime.Instant
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.less
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.update
+import uz.abumme.harfgame.backend.auth.oauth.AppleTokenRevoker
+import uz.abumme.harfgame.backend.auth.oauth.NoOpAppleTokenRevoker
 import uz.abumme.harfgame.backend.auth.oauth.OAuthVerifier
 import uz.abumme.harfgame.backend.db.DatabaseFactory
 import uz.abumme.harfgame.backend.db.OAuthIdentitiesTable
@@ -20,6 +23,7 @@ import java.util.UUID
 class AuthServerService(
     val jwtService: JwtService,
     val verifiers: Map<OAuthProvider, OAuthVerifier> = emptyMap(),
+    val appleRevoker: AppleTokenRevoker = NoOpAppleTokenRevoker,
 ) {
 
     suspend fun createAnonymousAccount(): AnonymousAuthResponse {
@@ -62,6 +66,17 @@ class AuthServerService(
         val nowInstant = java.time.Instant.ofEpochMilli(nowMillis)
 
         return DatabaseFactory.dbQuery {
+            // Bound the plaintext lifetime of grace replacement tokens: clear any whose grace window
+            // has already elapsed, opportunistically on each refresh.
+            // ponytail: opportunistic cleanup on refresh, not a scheduler — fine for a 60s window.
+            val graceCutoff = java.time.Instant.ofEpochMilli(nowMillis - GRACE_WINDOW_MILLIS)
+            RefreshTokensTable.update({
+                RefreshTokensTable.graceReplacementToken.isNotNull() and
+                    (RefreshTokensTable.rotatedAt less graceCutoff)
+            }) {
+                it[graceReplacementToken] = null
+            }
+
             val existingRow = RefreshTokensTable
                 .selectAll()
                 .where { RefreshTokensTable.tokenHash eq hash }
@@ -77,6 +92,7 @@ class AuthServerService(
             if (expiresAt.toEpochMilli() < nowMillis || revokedAt != null) {
                 RefreshTokensTable.update({ RefreshTokensTable.userId eq userId }) {
                     it[RefreshTokensTable.revokedAt] = nowInstant
+                    it[graceReplacementToken] = null
                 }
                 return@dbQuery null
             }
@@ -84,7 +100,7 @@ class AuthServerService(
             // Check if already rotated
             if (replacedBy != null && rotatedAt != null) {
                 val elapsed = nowMillis - rotatedAt.toEpochMilli()
-                if (elapsed in 0..60_000L) {
+                if (elapsed in 0..GRACE_WINDOW_MILLIS) {
                     val graceToken = existingRow[RefreshTokensTable.graceReplacementToken]
                     if (graceToken != null) {
                         val newAccessToken = jwtService.generateAccessToken(userId)
@@ -99,6 +115,7 @@ class AuthServerService(
                 // Reuse outside grace window -> revoke all tokens for this account
                 RefreshTokensTable.update({ RefreshTokensTable.userId eq userId }) {
                     it[RefreshTokensTable.revokedAt] = nowInstant
+                    it[graceReplacementToken] = null
                 }
                 return@dbQuery null
             }
@@ -135,7 +152,7 @@ class AuthServerService(
 
     suspend fun linkAccount(currentUserId: String, request: LinkAccountRequest): LinkAccountResponse? {
         val verifier = verifiers[request.provider] ?: return null
-        val oauthResult = verifier.verify(request.idToken) ?: return null
+        val oauthResult = verifier.verify(request.idToken, request.nonce) ?: return null
         val providerName = request.provider.name
         val subject = oauthResult.subject
 
@@ -162,7 +179,14 @@ class AuthServerService(
                 if (ownerUserId == currentUserId) {
                     targetUserId = currentUserId
                 } else {
-                    // Merge: Existing account wins, delete orphaned anonymous account and its data
+                    // Identity already owned by another account. Adopt that pre-existing account,
+                    // but only discard the caller when it is still purely anonymous (has no linked
+                    // identity of its own) — never destroy an already-linked account's data.
+                    val callerIsAnonymous = OAuthIdentitiesTable
+                        .selectAll()
+                        .where { OAuthIdentitiesTable.userId eq currentUserId }
+                        .empty()
+                    if (!callerIsAnonymous) return@dbQuery null
                     UsersTable.deleteWhere { UsersTable.id eq currentUserId }
                     targetUserId = ownerUserId
                 }
@@ -204,9 +228,26 @@ class AuthServerService(
     }
 
     suspend fun deleteAccount(userId: String): Boolean {
+        // Revoke Apple tokens for any linked Apple identity before removing the account (TN3194).
+        val appleSubjects = DatabaseFactory.dbQuery {
+            OAuthIdentitiesTable
+                .selectAll()
+                .where {
+                    (OAuthIdentitiesTable.userId eq userId) and
+                        (OAuthIdentitiesTable.provider eq OAuthProvider.APPLE.name)
+                }
+                .map { it[OAuthIdentitiesTable.providerSubject] }
+        }
+        for (subject in appleSubjects) appleRevoker.revoke(subject)
+
         return DatabaseFactory.dbQuery {
             val deleted = UsersTable.deleteWhere { UsersTable.id eq userId }
             deleted > 0
         }
+    }
+
+    companion object {
+        /** Retry grace window for a rotated refresh token; also bounds grace-token plaintext lifetime. */
+        const val GRACE_WINDOW_MILLIS = 60_000L
     }
 }

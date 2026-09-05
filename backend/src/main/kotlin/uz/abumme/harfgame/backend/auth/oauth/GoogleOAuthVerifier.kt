@@ -16,10 +16,12 @@ class GoogleOAuthVerifier(
             .build()
     }
 
-    override suspend fun verify(idToken: String): OAuthIdentityResult? {
+    override suspend fun verify(idToken: String, expectedNonce: String?): OAuthIdentityResult? {
         return try {
             val googleIdToken = verifier.verify(idToken) ?: return null
             val payload = googleIdToken.payload
+            // Google embeds the raw nonce in the token; reject a mismatch when a nonce was bound.
+            if (expectedNonce != null && payload.nonce != expectedNonce) return null
             val subject = payload.subject ?: return null
             OAuthIdentityResult(
                 provider = OAuthProvider.GOOGLE,

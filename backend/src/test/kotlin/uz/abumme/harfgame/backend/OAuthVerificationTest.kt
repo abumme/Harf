@@ -37,7 +37,24 @@ class OAuthVerificationTest {
             .build()
 
         val jwkSource = ImmutableJWKSet<com.nimbusds.jose.proc.SecurityContext>(JWKSet(rsaKey))
-        val appleVerifier = AppleOAuthVerifier(customJwkSource = jwkSource)
+        val appleVerifier = AppleOAuthVerifier(
+            audiences = listOf("uz.abumme.harfgame"),
+            customJwkSource = jwkSource,
+        )
+
+        fun sign(claims: JWTClaimsSet): String {
+            val jwt = SignedJWT(
+                JWSHeader.Builder(JWSAlgorithm.RS256).keyID("apple-test-key-id").build(),
+                claims,
+            )
+            jwt.sign(RSASSASigner(rsaKey))
+            return jwt.serialize()
+        }
+
+        fun sha256Hex(value: String): String =
+            java.security.MessageDigest.getInstance("SHA-256")
+                .digest(value.toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it) }
 
         // 1. Build valid Apple token
         val now = System.currentTimeMillis()
@@ -50,18 +67,47 @@ class OAuthVerificationTest {
             .claim("email", "player@apple.test")
             .build()
 
-        val signedJWT = SignedJWT(
-            JWSHeader.Builder(JWSAlgorithm.RS256).keyID("apple-test-key-id").build(),
-            claims
-        )
-        signedJWT.sign(RSASSASigner(rsaKey))
-        val validToken = signedJWT.serialize()
+        val validToken = sign(claims)
 
         val result = appleVerifier.verify(validToken)
         assertNotNull(result)
         assertEquals(OAuthProvider.APPLE, result.provider)
         assertEquals("apple-user-subject-999", result.subject)
         assertEquals("player@apple.test", result.email)
+
+        // 1a. Token minted for another app's audience is rejected even though it is valid otherwise
+        val wrongAudienceToken = sign(
+            JWTClaimsSet.Builder()
+                .issuer("https://appleid.apple.com")
+                .subject("apple-user-subject-999")
+                .audience("com.someone.else")
+                .expirationTime(Date(now + 3600_000))
+                .build()
+        )
+        assertNull(appleVerifier.verify(wrongAudienceToken))
+
+        // 1b. Token with no audience claim is rejected
+        val noAudienceToken = sign(
+            JWTClaimsSet.Builder()
+                .issuer("https://appleid.apple.com")
+                .subject("apple-user-subject-999")
+                .expirationTime(Date(now + 3600_000))
+                .build()
+        )
+        assertNull(appleVerifier.verify(noAudienceToken))
+
+        // 1c. Nonce binding: matching nonce accepted, mismatched nonce rejected
+        val nonceToken = sign(
+            JWTClaimsSet.Builder()
+                .issuer("https://appleid.apple.com")
+                .subject("apple-user-subject-999")
+                .audience("uz.abumme.harfgame")
+                .expirationTime(Date(now + 3600_000))
+                .claim("nonce", sha256Hex("raw-nonce-abc"))
+                .build()
+        )
+        assertNotNull(appleVerifier.verify(nonceToken, expectedNonce = "raw-nonce-abc"))
+        assertNull(appleVerifier.verify(nonceToken, expectedNonce = "different-nonce"))
 
         // 2. Build expired Apple token
         val expiredClaims = JWTClaimsSet.Builder()

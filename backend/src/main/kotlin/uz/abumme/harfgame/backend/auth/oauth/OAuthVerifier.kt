@@ -9,5 +9,10 @@ data class OAuthIdentityResult(
 )
 
 interface OAuthVerifier {
-    suspend fun verify(idToken: String): OAuthIdentityResult?
+    /**
+     * Verify a provider identity token. [expectedNonce] is the raw nonce the client bound to this
+     * request; when non-null the token's nonce claim MUST match it (provider-specific hashing
+     * applied by the implementation). Returns null on any verification failure.
+     */
+    suspend fun verify(idToken: String, expectedNonce: String? = null): OAuthIdentityResult?
 }

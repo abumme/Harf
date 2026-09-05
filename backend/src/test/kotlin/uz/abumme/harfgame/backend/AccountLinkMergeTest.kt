@@ -30,7 +30,7 @@ class AccountLinkMergeTest {
     private class MockOAuthVerifier(
         val validTokens: Map<String, OAuthIdentityResult>
     ) : OAuthVerifier {
-        override suspend fun verify(idToken: String): OAuthIdentityResult? {
+        override suspend fun verify(idToken: String, expectedNonce: String?): OAuthIdentityResult? {
             return validTokens[idToken]
         }
     }
@@ -126,6 +126,59 @@ class AccountLinkMergeTest {
             assertEquals(0, userBRows.size, "Orphaned anonymous account B should be deleted")
             val userARows = UsersTable.selectAll().where { UsersTable.id eq accountA.userId }.toList()
             assertEquals(1, userARows.size, "Existing account A must remain")
+        }
+    }
+
+    @Test
+    fun testLinkingIdentityOwnedByAnotherAccountDoesNotDeleteAnAlreadyLinkedCaller() = testApplication {
+        val mockVerifier = MockOAuthVerifier(
+            mapOf(
+                "token-owner-A" to OAuthIdentityResult(OAuthProvider.GOOGLE, "sub-A"),
+                "token-owner-B" to OAuthIdentityResult(OAuthProvider.GOOGLE, "sub-B"),
+            )
+        )
+        application {
+            module(verifiers = mapOf(OAuthProvider.GOOGLE to mockVerifier))
+        }
+
+        val client = createClient {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+
+        // Account A links its own identity sub-A.
+        val accountA = client.post(ApiRoutes.AUTH_ANONYMOUS).body<AnonymousAuthResponse>()
+        client.post(ApiRoutes.AUTH_LINK) {
+            header(HttpHeaders.Authorization, "Bearer ${accountA.tokens.accessToken}")
+            contentType(ContentType.Application.Json)
+            setBody(LinkAccountRequest(provider = OAuthProvider.GOOGLE, idToken = "token-owner-A"))
+        }
+
+        // Account B links its own identity sub-B — B is now an already-linked account.
+        val accountB = client.post(ApiRoutes.AUTH_ANONYMOUS).body<AnonymousAuthResponse>()
+        val linkOwnB = client.post(ApiRoutes.AUTH_LINK) {
+            header(HttpHeaders.Authorization, "Bearer ${accountB.tokens.accessToken}")
+            contentType(ContentType.Application.Json)
+            setBody(LinkAccountRequest(provider = OAuthProvider.GOOGLE, idToken = "token-owner-B"))
+        }
+        assertEquals(HttpStatusCode.OK, linkOwnB.status)
+
+        // B (already linked) now submits A's identity: must be rejected, and B must NOT be deleted.
+        val conflict = client.post(ApiRoutes.AUTH_LINK) {
+            header(HttpHeaders.Authorization, "Bearer ${accountB.tokens.accessToken}")
+            contentType(ContentType.Application.Json)
+            setBody(LinkAccountRequest(provider = OAuthProvider.GOOGLE, idToken = "token-owner-A"))
+        }
+        assertEquals(HttpStatusCode.BadRequest, conflict.status)
+
+        val db = DatabaseFactory.init()
+        transaction(db) {
+            val userB = UsersTable.selectAll().where { UsersTable.id eq accountB.userId }.count()
+            assertEquals(1, userB, "Already-linked account B must not be deleted by a conflicting link")
+            val bIdentity = OAuthIdentitiesTable.selectAll()
+                .where { OAuthIdentitiesTable.userId eq accountB.userId }.count()
+            assertEquals(1, bIdentity, "Account B keeps its own linked identity")
         }
     }
 
