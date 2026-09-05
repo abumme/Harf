@@ -13,7 +13,7 @@ android {
         minSdk = 24
         targetSdk = 37
 
-        applicationId = "uz.abumme.harfgame.androidApp"
+        applicationId = "uz.abumme.harfgame"
         versionCode = 1
         versionName = "1.0.0"
     }
