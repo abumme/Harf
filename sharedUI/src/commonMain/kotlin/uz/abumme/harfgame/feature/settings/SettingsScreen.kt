@@ -55,6 +55,9 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
     val session by sessionStore.sessionFlow.collectAsState(initial = null)
     val colors = LocalHarfColors.current
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var authMessage by remember { mutableStateOf<String?>(null) }
+    var deleteError by remember { mutableStateOf<String?>(null) }
+    var deleting by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -107,17 +110,16 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
 
         if (session?.isLinked == true) {
             Text("✓ Account linked", color = colors.accent, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+            OutlinedButton(
+                onClick = { scope.launch { syncManager.logout() } },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Log out")
+            }
         } else {
             if (oauthClient.isGoogleSupported) {
                 OutlinedButton(
-                    onClick = {
-                        scope.launch {
-                            val idToken = oauthClient.signInWithGoogle()
-                            if (idToken != null) {
-                                syncManager.linkAccount(OAuthProvider.GOOGLE, idToken)
-                            }
-                        }
-                    },
+                    onClick = { scope.launch { authMessage = linkWith(oauthClient.signInWithGoogle(), OAuthProvider.GOOGLE, "Google", syncManager) } },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Link Google Account")
@@ -125,14 +127,7 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
             }
             if (oauthClient.isAppleSupported) {
                 OutlinedButton(
-                    onClick = {
-                        scope.launch {
-                            val idToken = oauthClient.signInWithApple()
-                            if (idToken != null) {
-                                syncManager.linkAccount(OAuthProvider.APPLE, idToken)
-                            }
-                        }
-                    },
+                    onClick = { scope.launch { authMessage = linkWith(oauthClient.signInWithApple(), OAuthProvider.APPLE, "Apple", syncManager) } },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Link Apple Account")
@@ -140,8 +135,10 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
             }
         }
 
+        authMessage?.let { Text(it, color = colors.muted, fontSize = 13.sp) }
+
         OutlinedButton(
-            onClick = { showDeleteConfirm = true },
+            onClick = { deleteError = null; showDeleteConfirm = true },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Delete Account", color = Color(0xFFD32F2F))
@@ -149,27 +146,59 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
 
         if (showDeleteConfirm) {
             AlertDialog(
-                onDismissRequest = { showDeleteConfirm = false },
+                onDismissRequest = { if (!deleting) showDeleteConfirm = false },
                 title = { Text("Delete Account") },
-                text = { Text("Are you sure you want to delete your account? All server-side data and local stats will be permanently removed.") },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text("Are you sure you want to delete your account? All server-side data and local stats will be permanently removed.")
+                        deleteError?.let { Text(it, color = Color(0xFFD32F2F), fontSize = 13.sp) }
+                    }
+                },
                 confirmButton = {
                     TextButton(
+                        enabled = !deleting,
                         onClick = {
                             scope.launch {
-                                syncManager.deleteAccount()
-                                showDeleteConfirm = false
+                                deleting = true
+                                deleteError = null
+                                // Only close on confirmed success; on failure keep the dialog open
+                                // with a retryable error and the account/data intact.
+                                when (val result = syncManager.deleteAccount()) {
+                                    is uz.abumme.harfgame.data.api.ApiResult.Success -> showDeleteConfirm = false
+                                    is uz.abumme.harfgame.data.api.ApiResult.Error ->
+                                        deleteError = "Couldn't delete your account (${result.message}). Please try again."
+                                }
+                                deleting = false
                             }
                         }
                     ) {
-                        Text("Delete", color = Color(0xFFD32F2F))
+                        Text(if (deleting) "Deleting…" else "Delete", color = Color(0xFFD32F2F))
                     }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showDeleteConfirm = false }) {
+                    TextButton(enabled = !deleting, onClick = { showDeleteConfirm = false }) {
                         Text("Cancel")
                     }
                 }
             )
         }
     }
+}
+
+/** Run a native sign-in outcome through account linking; returns a user-facing status message. */
+private suspend fun linkWith(
+    result: uz.abumme.harfgame.data.auth.OAuthResult,
+    provider: OAuthProvider,
+    label: String,
+    syncManager: SyncManager,
+): String = when (result) {
+    is uz.abumme.harfgame.data.auth.OAuthResult.Token -> {
+        when (val r = syncManager.linkAccount(provider, result.idToken, result.nonce)) {
+            is uz.abumme.harfgame.data.api.ApiResult.Success -> "$label account linked"
+            is uz.abumme.harfgame.data.api.ApiResult.Error -> "Couldn't link $label account (${r.message})"
+        }
+    }
+    uz.abumme.harfgame.data.auth.OAuthResult.Cancelled -> "$label sign-in cancelled"
+    uz.abumme.harfgame.data.auth.OAuthResult.NotConfigured -> "$label sign-in isn't available yet"
+    is uz.abumme.harfgame.data.auth.OAuthResult.Failed -> "$label sign-in failed: ${result.message}"
 }
