@@ -87,6 +87,10 @@ kotlin {
             implementation(libs.kotlinx.coroutines.android)
             implementation(libs.ktor.client.okhttp)
             implementation(libs.koin.android)
+            // Native Google sign-in (Credential Manager + Google ID token)
+            implementation(libs.androidx.credentials)
+            implementation(libs.androidx.credentials.play.services)
+            implementation(libs.googleid)
         }
 
         jvmMain.dependencies {
@@ -170,9 +174,18 @@ fun apiBaseUrl(): String {
     return value
 }
 
+// Google Web (server) OAuth client id — used as the Credential Manager serverClientId and as the
+// backend audience. This is a PUBLIC id (it ships in the app), overridable via `-Pgoogle.serverClientId`
+// or local.properties. Blank => Google sign-in reports NotConfigured (no crash).
+fun googleServerClientId(): String =
+    localProps.getProperty("google.serverClientId")
+        ?: providers.gradleProperty("google.serverClientId").orNull
+        ?: "508164918683-9rce0g2mrjqn9pcshk33kdf870rg1hua.apps.googleusercontent.com"
+
 buildConfig {
     packageName("uz.abumme.harfgame")
     buildConfigField("String", "REVENUECAT_ANDROID_KEY", "\"${rcReleaseKey("revenuecat.androidKey", "goog_")}\"")
     buildConfigField("String", "REVENUECAT_IOS_KEY", "\"${rcReleaseKey("revenuecat.iosKey", "appl_")}\"")
     buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl()}\"")
+    buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"${googleServerClientId()}\"")
 }
