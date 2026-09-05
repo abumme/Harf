@@ -1,0 +1,13 @@
+# The Gradle wrapper script runs inside the Linux build stage of backend/Dockerfile.
+# A CRLF checkout (core.autocrlf=true on Windows) turns its shebang into `#!/bin/sh\r`,
+# and the build dies with `./gradlew: not found`. Pin the line endings.
+gradlew text eol=lf
+*.sh text eol=lf
+gradlew.bat text eol=crlf
+
+# Never line-ending-mangle binaries.
+*.jar binary
+*.png binary
+*.webp binary
+*.ttf binary
+*.otf binary

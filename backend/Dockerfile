@@ -5,7 +5,9 @@
 FROM eclipse-temurin:17-jdk AS build
 WORKDIR /src
 COPY . .
-RUN chmod +x gradlew && \
+# The `sed` covers a Windows checkout made before .gitattributes pinned gradlew to LF —
+# a CRLF shebang fails here as the very unhelpful `./gradlew: not found`.
+RUN sed -i 's/\r$//' gradlew && chmod +x gradlew && \
     ./gradlew --no-daemon -PbackendOnly :backend:installDist
 
 # --- runtime: slim JRE running the self-contained distribution ---

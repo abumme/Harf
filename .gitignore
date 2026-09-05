@@ -90,6 +90,9 @@ gradle/gradle-daemon-jvm.properties
 
 # Package Files
 *.jar
+# ...but the Gradle wrapper jar must be committed: `git clone` + `./gradlew` (and the
+# Docker build in backend/Dockerfile) depend on it.
+!gradle/wrapper/gradle-wrapper.jar
 *.war
 *.ear
 
