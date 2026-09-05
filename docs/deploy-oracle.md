@@ -1,11 +1,12 @@
 # Deploy the Harf backend to Oracle Cloud (free tier, Ubuntu)
 
 Runs Postgres + the Ktor backend in Docker, both bound to `127.0.0.1`. The host's Caddy terminates
-TLS and reverse-proxies `https://<domain>` → `127.0.0.1:8080`. Works on an Ampere (aarch64) or AMD
-(x86_64) shape — the images are multi-arch.
+TLS and reverse-proxies `https://<domain>` → `127.0.0.1:8080`. The published image is built for
+**`linux/arm64`** (Oracle Ampere shapes); on an AMD (x86_64) shape, build on the box instead — the
+Dockerfile and its base images are arch-agnostic.
 
 Files: [`backend/Dockerfile`](../backend/Dockerfile), [`docker-compose.prod.yml`](../docker-compose.prod.yml),
-[`.env.example`](../.env.example).
+[`.env.example`](../.env.example), [`.github/workflows/backend-image.yml`](../.github/workflows/backend-image.yml).
 
 ## 1. Open the ports (two firewalls — this is the #1 Oracle gotcha)
 
@@ -38,18 +39,29 @@ sed -i "s|CHANGE_ME_strong_db_password|$(openssl rand -base64 24)|" .env
 nano .env   # confirm GOOGLE_CLIENT_IDS is your Web client id
 ```
 
-## 4. Build and run
+## 4. Run it
+
+CI publishes the backend image to GHCR for `linux/arm64` (see §11), so the box only pulls:
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.prod.yml logs -f backend   # watch startup
 ```
+
+The GHCR package is private until you flip it (GitHub → your profile → Packages → `harf-backend` →
+Package settings → Change visibility → Public). While it's private, log in on the box once with a
+classic PAT that has `read:packages`:
+```bash
+echo <TOKEN> | docker login ghcr.io -u <github-username> --password-stdin
+```
+
 Tables are created automatically on first start. Health check:
 ```bash
 curl http://127.0.0.1:8080/          # -> "Harf Backend is running"
 ```
 
-> Low-RAM shape (the 1 GB AMD micro)? The Gradle build in Docker can OOM. Add swap first:
+> **Compiling on the box instead** (`up -d --build`) also works — the same Dockerfile, no registry
+> involved. It needs ~2 GB of RAM, so on the 1 GB AMD micro shape add swap first:
 > `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile`
 > (Ampere shapes have plenty of RAM — no swap needed.)
 
@@ -96,10 +108,13 @@ and temporarily publish port 8080) — a release build requires trusted HTTPS.
 
 ## 9. Updates
 
+A push to `main` that touches the backend republishes `:latest`. On the box:
 ```bash
-git pull
-docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml pull backend
+docker compose -f docker-compose.prod.yml up -d
+docker image prune -f    # drop the superseded image
 ```
+Compiling locally instead: `git pull && docker compose -f docker-compose.prod.yml up -d --build`.
 
 ## 10. Backups
 
@@ -109,6 +124,20 @@ docker exec harf-postgres pg_dump -U harf harf | gzip > harf-$(date +%F).sql.gz
 # restore:
 gunzip -c harf-YYYY-MM-DD.sql.gz | docker exec -i harf-postgres psql -U harf -d harf
 ```
+
+## 11. Publishing the image
+
+`.github/workflows/backend-image.yml` builds and pushes on every backend-touching push to `main`
+(and on `v*` tags), tagging `latest`, the git tag, and `sha-<short>`. It runs on GitHub's native
+`ubuntu-24.04-arm` runner — free for this public repo, and far faster than emulating aarch64.
+
+To push by hand from a workstation:
+```bash
+docker login ghcr.io -u <github-username>      # classic PAT with write:packages
+docker buildx build --platform linux/arm64 \
+  -f backend/Dockerfile -t ghcr.io/abumme/harf-backend:latest --push .
+```
+On an x86_64 machine that runs the whole Gradle build under QEMU — budget 15–30 minutes. Prefer CI.
 
 ## Notes
 

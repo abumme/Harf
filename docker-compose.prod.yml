@@ -1,6 +1,7 @@
 # Production stack: Postgres + Harf backend, both bound to loopback only.
 # The host's Caddy terminates TLS and reverse-proxies https://<domain> -> 127.0.0.1:8080.
-# Usage: docker compose -f docker-compose.prod.yml up -d --build
+# Usage: docker compose -f docker-compose.prod.yml up -d          (pulls the published image)
+#        docker compose -f docker-compose.prod.yml up -d --build  (compiles here instead)
 services:
   db:
     image: postgres:16-alpine
@@ -21,6 +22,9 @@ services:
       retries: 5
 
   backend:
+    # Published for linux/arm64 by .github/workflows/backend-image.yml. `up -d` pulls it;
+    # `up -d --build` compiles from source on this host instead (same tag either way).
+    image: ghcr.io/abumme/harf-backend:latest
     build:
       context: .
       dockerfile: backend/Dockerfile

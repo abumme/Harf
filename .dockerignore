@@ -7,8 +7,15 @@
 *.iml
 local.properties
 .env
-# Client-only sources aren't compiled in a -PbackendOnly build.
+# Client-only sources aren't compiled in a -PbackendOnly build (settings.gradle.kts drops
+# those modules). Keeping them out also stops UI edits from invalidating the build cache.
 iosApp
 webApp
 androidApp
-docs/release-audit-evidence
+desktopApp
+sharedUI
+# Not part of any build.
+docs
+openspec
+.github
+kotlin-js-store
