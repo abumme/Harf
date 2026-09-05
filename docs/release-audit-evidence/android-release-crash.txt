@@ -1,0 +1,14 @@
+09-05 11:51:54.541 25005 25005 E AndroidRuntime: FATAL EXCEPTION: main
+09-05 11:51:54.541 25005 25005 E AndroidRuntime: Process: uz.abumme.harfgame.androidApp, PID: 25005
+09-05 11:51:54.541 25005 25005 E AndroidRuntime: Caused by: java.lang.reflect.InvocationTargetException
+09-05 11:51:54.541 25005 25005 E AndroidRuntime: Caused by: org.koin.core.error.InstanceCreationException: Could not create instance for '[Singleton: 'uz.abumme.harfgame.billing.EntitlementRepository']'
+09-05 11:51:54.541 25005 25005 E AndroidRuntime: Caused by: org.koin.core.error.InstanceCreationException: Could not create instance for '[Singleton: 'uz.abumme.harfgame.billing.PurchaseController']'
+09-05 11:51:54.541 25005 25005 E AndroidRuntime: Caused by: com.revenuecat.purchases.PurchasesException: There is an issue with your configuration. Check the underlying error for more details.
+09-05 11:51:54.541 25005 25005 E AndroidRuntime: 	at uz.abumme.harfgame.billing.RevenueCatPurchaseController.<init>(RevenueCatPurchaseController.kt:24)
+09-05 11:52:45.797 25144 25144 E AndroidRuntime: FATAL EXCEPTION: main
+09-05 11:52:45.797 25144 25144 E AndroidRuntime: Process: uz.abumme.harfgame.androidApp, PID: 25144
+09-05 11:52:45.797 25144 25144 E AndroidRuntime: Caused by: java.lang.reflect.InvocationTargetException
+09-05 11:52:45.797 25144 25144 E AndroidRuntime: Caused by: org.koin.core.error.InstanceCreationException: Could not create instance for '[Singleton: 'uz.abumme.harfgame.billing.EntitlementRepository']'
+09-05 11:52:45.798 25144 25144 E AndroidRuntime: Caused by: org.koin.core.error.InstanceCreationException: Could not create instance for '[Singleton: 'uz.abumme.harfgame.billing.PurchaseController']'
+09-05 11:52:45.798 25144 25144 E AndroidRuntime: Caused by: com.revenuecat.purchases.PurchasesException: There is an issue with your configuration. Check the underlying error for more details.
+09-05 11:52:45.798 25144 25144 E AndroidRuntime: 	at uz.abumme.harfgame.billing.RevenueCatPurchaseController.<init>(RevenueCatPurchaseController.kt:24)

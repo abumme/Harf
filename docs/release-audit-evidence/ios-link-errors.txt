@@ -1,0 +1,20 @@
+/Users/umidolimzanov/Sources/StudioProjects/Harf/iosApp/iosApp.xcodeproj: iosApp: ld: warning: Could not find or use auto-linked framework 'UIUtilities': framework 'UIUtilities' not found
+/Users/umidolimzanov/Sources/StudioProjects/Harf/iosApp/iosApp.xcodeproj: iosApp: ld: warning: Could not find or use auto-linked framework 'PurchasesHybridCommon': framework 'PurchasesHybridCommon' not found
+/Users/umidolimzanov/Sources/StudioProjects/Harf/iosApp/iosApp.xcodeproj: iosApp: ld: warning: Could not find or use auto-linked framework 'PurchasesHybridCommonUI': framework 'PurchasesHybridCommonUI' not found
+/Users/umidolimzanov/Sources/StudioProjects/Harf/iosApp/iosApp.xcodeproj: iosApp: ld: warning: Could not find or use auto-linked framework 'RevenueCat': framework 'RevenueCat' not found
+/Users/umidolimzanov/Sources/StudioProjects/Harf/iosApp/iosApp.xcodeproj: iosApp: ld: warning: Could not find or use auto-linked framework 'RevenueCatUI': framework 'RevenueCatUI' not found
+Undefined symbols for architecture arm64:
+  "_OBJC_CLASS_$_RCCommonFunctionality", referenced from:
+  "_OBJC_CLASS_$_RCCustomerInfo", referenced from:
+  "_OBJC_CLASS_$_RCDangerousSettings", referenced from:
+  "_OBJC_CLASS_$_RCEntitlementInfo", referenced from:
+  "_OBJC_CLASS_$_RCOffering", referenced from:
+  "_OBJC_CLASS_$_RCPackage", referenced from:
+  "_OBJC_CLASS_$_RCPaywallFooterViewController", referenced from:
+  "_OBJC_CLASS_$_RCPaywallViewController", referenced from:
+  "_OBJC_CLASS_$_RCPurchases", referenced from:
+  "_OBJC_CLASS_$_RCStoreProductDiscount", referenced from:
+  "_OBJC_CLASS_$_RCStoreTransaction", referenced from:
+  "_OBJC_CLASS_$__TtC23PurchasesHybridCommonUI30CustomerCenterUIViewController", referenced from:
+ld: symbol(s) not found for architecture arm64
+/Users/umidolimzanov/Sources/StudioProjects/Harf/iosApp/iosApp.xcodeproj: iosApp: clang: error: linker command failed with exit code 1 (use -v to see invocation)
