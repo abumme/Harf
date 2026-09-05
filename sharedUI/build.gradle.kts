@@ -133,8 +133,46 @@ val localProps = Properties().apply {
 fun rcKey(name: String): String =
     localProps.getProperty(name) ?: providers.gradleProperty(name).orNull ?: ""
 
+// A release build must never ship a RevenueCat Test Store / placeholder key. Real public SDK keys
+// start with a store prefix (goog_ / appl_); a blank key is allowed (purchases report Unavailable).
+val isReleaseBuild = gradle.startParameter.taskNames.any {
+    it.contains("Release", ignoreCase = true)
+}
+fun rcReleaseKey(name: String, prodPrefix: String): String {
+    val value = rcKey(name)
+    if (isReleaseBuild && value.isNotBlank() && !value.startsWith(prodPrefix)) {
+        error(
+            "Refusing release build: '$name' is not a production RevenueCat key " +
+                "(expected it to start with '$prodPrefix', e.g. a real public SDK key). " +
+                "Test Store / placeholder keys must not ship in a release. Use a real key or leave it blank."
+        )
+    }
+    return value
+}
+
+// Backend API base URL per environment. Dev defaults to localhost; a release build must supply a
+// production HTTPS URL (never a loopback) via `-Pharf.apiBaseUrl=...` or local.properties.
+fun apiBaseUrl(): String {
+    val configured = localProps.getProperty("harf.apiBaseUrl")
+        ?: providers.gradleProperty("harf.apiBaseUrl").orNull
+        ?: ""
+    val value = configured.ifBlank { if (isReleaseBuild) "" else "http://localhost:8080" }
+    if (isReleaseBuild) {
+        require(value.isNotBlank()) {
+            "Release build requires 'harf.apiBaseUrl' (production HTTPS API URL); refusing to default to localhost."
+        }
+        require(value.startsWith("https://")) { "Release API base URL must be HTTPS: '$value'." }
+        val host = value.removePrefix("https://").substringBefore('/').substringBefore(':')
+        require(host !in setOf("localhost", "127.0.0.1", "10.0.2.2")) {
+            "Release API base URL must not point at localhost/loopback: '$value'."
+        }
+    }
+    return value
+}
+
 buildConfig {
     packageName("uz.abumme.harfgame")
-    buildConfigField("String", "REVENUECAT_ANDROID_KEY", "\"${rcKey("revenuecat.androidKey")}\"")
-    buildConfigField("String", "REVENUECAT_IOS_KEY", "\"${rcKey("revenuecat.iosKey")}\"")
+    buildConfigField("String", "REVENUECAT_ANDROID_KEY", "\"${rcReleaseKey("revenuecat.androidKey", "goog_")}\"")
+    buildConfigField("String", "REVENUECAT_IOS_KEY", "\"${rcReleaseKey("revenuecat.iosKey", "appl_")}\"")
+    buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl()}\"")
 }
