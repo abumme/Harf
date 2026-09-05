@@ -24,6 +24,8 @@ data class AnonymousAuthResponse(
 data class LinkAccountRequest(
     val provider: OAuthProvider,
     val idToken: String,
+    /** Raw nonce the client bound to the native sign-in request; verified against the token's nonce claim. */
+    val nonce: String? = null,
 )
 
 @Serializable
