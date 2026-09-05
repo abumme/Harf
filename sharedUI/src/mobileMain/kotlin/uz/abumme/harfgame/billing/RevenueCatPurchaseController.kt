@@ -17,11 +17,23 @@ import com.revenuecat.purchases.kmp.models.PurchasesException
  */
 class RevenueCatPurchaseController(apiKey: String) : PurchaseController {
 
-    override val isAvailable: Boolean = apiKey.isNotBlank()
+    override val isAvailable: Boolean
 
     init {
-        if (isAvailable && !Purchases.isConfigured) {
-            Purchases.configure(PurchasesConfiguration.Builder(apiKey).build())
+        // Configuration must never crash the app. A blank key means "no store"; a bad/rejected key
+        // (e.g. a Test Store key that slipped into a build) degrades to unavailable instead of
+        // throwing out of the Koin graph on startup.
+        isAvailable = if (apiKey.isNotBlank()) {
+            try {
+                if (!Purchases.isConfigured) {
+                    Purchases.configure(PurchasesConfiguration.Builder(apiKey).build())
+                }
+                true
+            } catch (e: Throwable) {
+                false
+            }
+        } else {
+            false
         }
     }
 
