@@ -18,6 +18,11 @@ class RoundStore(private val ksafe: KSafe) {
 
     suspend fun clear(languageId: String) = ksafe.put(key(languageId), RoundHolder(null))
 
+    /** Clear stored rounds for every known language (used when wiping local state on account delete). */
+    suspend fun clearAll(languageIds: Iterable<String>) {
+        for (id in languageIds) clear(id)
+    }
+
     private fun key(languageId: String) = "$KEY.$languageId"
 
     companion object {

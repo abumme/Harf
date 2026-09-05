@@ -11,6 +11,7 @@ import uz.abumme.harfgame.data.service.AuthService
 import uz.abumme.harfgame.data.service.SyncService
 import uz.abumme.harfgame.data.sync.ResultRecordDto
 import uz.abumme.harfgame.data.sync.UserStatsDto
+import uz.abumme.harfgame.lang.LanguageRegistry
 
 fun ResultRecord.toDto() = ResultRecordDto(
     language = language,
@@ -31,70 +32,128 @@ class SyncManager(
     private val sessionStore: SessionStore,
     private val authService: AuthService,
     private val syncService: SyncService,
+    private val pendingStore: PendingUploadStore,
+    private val roundStore: RoundStore,
+    private val languageRegistry: LanguageRegistry,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default),
 ) {
 
     fun bootstrap() {
         scope.launch {
-            val session = sessionStore.get()
-            if (session.refreshToken == null) {
-                val authResult = authService.createAnonymousAccount()
-                if (authResult is ApiResult.Success) {
-                    pullStats()
-                }
-            } else {
+            if (ensureSession()) {
                 pullStats()
+                flushPending() // retry any offline result recorded on a previous run
             }
         }
     }
 
-    suspend fun pushStats() {
+    /** Ensure an account/session exists, creating an anonymous one if needed. */
+    private suspend fun ensureSession(): Boolean {
         val session = sessionStore.get()
-        val token = session.accessToken ?: return
-        val records = resultLog.all()
-        val updatedAt = resultLog.getUpdatedAt()
-
-        val dto = UserStatsDto(
-            updatedAt = updatedAt,
-            records = records.map { it.toDto() }
-        )
-        syncService.uploadStats(token, dto)
+        if (session.refreshToken != null) return true
+        return authService.createAnonymousAccount() is ApiResult.Success
     }
 
-    suspend fun pullStats(): Boolean {
-        val session = sessionStore.get()
-        val token = session.accessToken ?: return false
+    /**
+     * Record that stats need uploading (durably) and try to flush now. The durable marker means an
+     * upload that fails here (e.g. offline) is retried on the next launch/foreground/reconnect.
+     */
+    suspend fun pushStats() {
+        pendingStore.markDirty()
+        flushPending()
+    }
+
+    /** Retry a pending upload — call on app foreground or connectivity restore (fire-and-forget). */
+    fun retryPending() {
+        scope.launch {
+            if (ensureSession()) flushPending()
+        }
+    }
+
+    /** Suspending flush of any pending upload — for callers already inside a coroutine/tests. */
+    suspend fun syncPendingUploads() = flushPending()
+
+    private suspend fun flushPending() {
+        if (!pendingStore.isDirty()) return
+        val token = sessionStore.get().accessToken ?: return // stay dirty; retry later
+        val dto = UserStatsDto(
+            updatedAt = resultLog.getUpdatedAt(),
+            records = resultLog.all().map { it.toDto() },
+        )
+        if (syncService.uploadStats(token, dto) is ApiResult.Success) {
+            pendingStore.clear()
+        }
+    }
+
+    suspend fun pullStats(replace: Boolean = false): Boolean {
+        val token = sessionStore.get().accessToken ?: return false
         val result = syncService.getStats(token)
         if (result is ApiResult.Success) {
-            val dto = result.data
-            resultLog.merge(dto.records.map { it.toDomain() }, dto.updatedAt)
+            val records = result.data.records.map { it.toDomain() }
+            if (replace) resultLog.replace(records, result.data.updatedAt)
+            else resultLog.merge(records, result.data.updatedAt)
             return true
         }
         return false
     }
 
-    suspend fun linkAccount(provider: OAuthProvider, idToken: String): ApiResult<Unit> {
-        val session = sessionStore.get()
-        val token = session.accessToken ?: return ApiResult.Error("UNAUTHORIZED", "No active session")
-        val linkResult = authService.linkAccount(token, LinkAccountRequest(provider, idToken))
+    suspend fun linkAccount(provider: OAuthProvider, idToken: String, nonce: String? = null): ApiResult<Unit> {
+        val token = sessionStore.get().accessToken
+            ?: return ApiResult.Error("UNAUTHORIZED", "No active session")
+        val linkResult = authService.linkAccount(token, LinkAccountRequest(provider, idToken, nonce))
         return when (linkResult) {
             is ApiResult.Success -> {
-                pullStats()
+                // Server-wins: adopt the pre-existing account's snapshot and drop any pending marker
+                // so the local mix is never uploaded into it. A failed pull leaves upload suppressed
+                // until a later successful pull rather than pushing local data.
+                // ponytail: pending is cleared even if pull fails — safe direction; next round re-marks.
+                pullStats(replace = true)
+                pendingStore.clear()
                 ApiResult.Success(Unit)
             }
             is ApiResult.Error -> ApiResult.Error(linkResult.code, linkResult.message)
         }
     }
 
+    /**
+     * Sign out: revoke the account's refresh tokens on the server, clear local session/credential
+     * and stats state, then re-establish a fresh anonymous session so offline-first play continues.
+     */
+    suspend fun logout(): ApiResult<Unit> {
+        val token = sessionStore.get().accessToken
+        val result = if (token != null) authService.logout(token) else ApiResult.Success(Unit)
+        wipeLocalState()
+        bootstrap()
+        return result
+    }
+
+    /**
+     * Delete the server account. Local state (session, stats, rounds, pending marker) is cleared
+     * ONLY on a confirmed server success; on failure everything is preserved and a retryable error
+     * is returned so the user can try again without losing data.
+     */
     suspend fun deleteAccount(): ApiResult<Unit> {
-        val session = sessionStore.get()
-        val token = session.accessToken
-        if (token != null) {
-            authService.deleteAccount(token)
+        val token = sessionStore.get().accessToken
+        if (token == null) {
+            // No server account to delete; just reset to a fresh local state.
+            wipeLocalState()
+            bootstrap()
+            return ApiResult.Success(Unit)
         }
+        return when (val result = authService.deleteAccount(token)) {
+            is ApiResult.Success -> {
+                wipeLocalState()
+                bootstrap()
+                ApiResult.Success(Unit)
+            }
+            is ApiResult.Error -> result // keep session + local data; surface retryable error
+        }
+    }
+
+    private suspend fun wipeLocalState() {
         sessionStore.clear()
         resultLog.clear()
-        bootstrap()
-        return ApiResult.Success(Unit)
+        pendingStore.clear()
+        roundStore.clearAll(languageRegistry.ids)
     }
 }

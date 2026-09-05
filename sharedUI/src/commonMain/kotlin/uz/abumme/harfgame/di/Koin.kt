@@ -9,12 +9,14 @@ import org.koin.mp.KoinPlatformTools
 import org.koin.core.module.Module
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
+import uz.abumme.harfgame.BuildConfig
 import uz.abumme.harfgame.billing.EntitlementRepository
 import uz.abumme.harfgame.data.auth.SessionStore
 import uz.abumme.harfgame.data.network.KtorAuthService
 import uz.abumme.harfgame.data.network.KtorSyncService
 import uz.abumme.harfgame.data.service.AuthService
 import uz.abumme.harfgame.data.service.SyncService
+import uz.abumme.harfgame.data.stats.PendingUploadStore
 import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.data.stats.RoundStore
 import uz.abumme.harfgame.data.stats.SyncManager
@@ -30,6 +32,7 @@ val appModule: Module = module {
     single { AppSettings(get()) }
     single { ResultLog(get()) }
     single { RoundStore(get()) }
+    single { PendingUploadStore(get()) }
     single { StyleChoiceLog(get()) }
     single { StyleExperimentController(get(), get()) }
     single { EntitlementRepository(get(), get()) } // PurchaseController from platformModule
@@ -44,9 +47,21 @@ val appModule: Module = module {
             }
         }
     }
-    single<AuthService> { KtorAuthService(get(), sessionStore = get()) }
-    single<SyncService> { KtorSyncService(get(), sessionStore = get(), authService = get()) }
-    single { SyncManager(resultLog = get(), sessionStore = get(), authService = get(), syncService = get()) }
+    single<AuthService> { KtorAuthService(get(), baseUrl = BuildConfig.API_BASE_URL, sessionStore = get()) }
+    single<SyncService> {
+        KtorSyncService(get(), baseUrl = BuildConfig.API_BASE_URL, sessionStore = get(), authService = get())
+    }
+    single {
+        SyncManager(
+            resultLog = get(),
+            sessionStore = get(),
+            authService = get(),
+            syncService = get(),
+            pendingStore = get(),
+            roundStore = get(),
+            languageRegistry = get(),
+        )
+    }
 }
 
 /**
