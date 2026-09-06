@@ -19,9 +19,12 @@ import uz.abumme.harfgame.backend.config.ServerConfig
 import uz.abumme.harfgame.backend.db.DatabaseFactory
 import uz.abumme.harfgame.backend.routes.authRoutes
 import uz.abumme.harfgame.backend.routes.syncRoutes
+import uz.abumme.harfgame.backend.routes.wordPackRoutes
 import uz.abumme.harfgame.backend.security.JwtService
 import uz.abumme.harfgame.backend.service.AuthServerService
 import uz.abumme.harfgame.backend.service.SyncServerService
+import uz.abumme.harfgame.backend.service.WordPackServerService
+import kotlinx.coroutines.runBlocking
 import uz.abumme.harfgame.data.api.ApiErrorResponse
 import uz.abumme.harfgame.data.auth.OAuthProvider
 
@@ -29,6 +32,7 @@ fun main() {
     // Fail fast rather than silently running production on the dev JWT secret.
     ServerConfig.requireSecureProductionConfig()
     DatabaseFactory.init()
+    runBlocking { WordPackServerService().seed() } // idempotent: seeds version 1 if absent
     embeddedServer(Netty, port = (System.getenv("PORT") ?: "8080").toInt(), host = "0.0.0.0", module = Application::module)
         .start(wait = true)
 }
@@ -45,6 +49,7 @@ fun Application.module(
     ),
     authService: AuthServerService = AuthServerService(jwtService, verifiers),
     syncService: SyncServerService = SyncServerService(),
+    wordPackService: WordPackServerService = WordPackServerService(),
 ) {
     install(ContentNegotiation) {
         json(Json {
@@ -92,5 +97,6 @@ fun Application.module(
         }
         authRoutes(authService)
         syncRoutes(syncService)
+        wordPackRoutes(wordPackService)
     }
 }

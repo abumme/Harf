@@ -46,6 +46,7 @@ object DatabaseFactory {
                 OAuthIdentitiesTable,
                 RefreshTokensTable,
                 UserStatsTable,
+                WordPacksTable,
             )
         }
         return db
