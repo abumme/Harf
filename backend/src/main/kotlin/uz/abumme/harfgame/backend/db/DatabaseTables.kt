@@ -45,3 +45,16 @@ object UserStatsTable : Table("user_stats") {
 
     override val primaryKey = PrimaryKey(userId)
 }
+
+object WordPacksTable : Table("word_packs") {
+    val lang = varchar("lang", 16)
+    val version = varchar("version", 64)
+    val effectiveFrom = long("effective_from")
+    val anchorEpochDay = long("anchor_epoch_day")
+    val answers = text("answers")   // JSON array of raw words
+    val guesses = text("guesses")   // JSON array of raw words
+    val schedule = text("schedule") // JSON array of raw words, indexed from anchorEpochDay
+    val updatedAt = timestamp("updated_at")
+
+    override val primaryKey = PrimaryKey(lang)
+}

@@ -32,9 +32,8 @@ class DailyPuzzleTest {
         val cyrl = provider.daily("uz-cyrl", day1)
         assertEquals(latn.epochDay, cyrl.epochDay)
 
-        val idx = latn.epochDay.mod(UzbekDailyWords.lexemes.size)
-        val lexeme = UzbekDailyWords.lexemes[idx]
-        assertEquals(lexeme.graphemes("uz-latn"), latn.answer)
+        // Whatever the schedule picked, both scripts must resolve to the SAME lexeme that day.
+        val lexeme = UzbekDailyWords.lexemes.first { it.graphemes("uz-latn") == latn.answer }
         assertEquals(lexeme.graphemes("uz-cyrl"), cyrl.answer)
     }
 }

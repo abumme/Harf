@@ -49,16 +49,14 @@ class FinishedRoundPersistenceTest {
 
         val puzzle = DailyPuzzle("en", 100L, answer)
 
-        // Play and win, recording the result once (as GameScreen's onFinish does).
+        // Play and win; onFinish fires once. GameScreen records the result — do that here in the
+        // test's suspend scope (runBlocking inside runTest would deadlock the test dispatcher).
         var finishes = 0
-        val vm = GameViewModel(puzzle, pack) { record ->
-            finishes++
-            // idempotent per (language, puzzleDay)
-            kotlinx.coroutines.runBlocking { resultLog.record(record) }
-        }
+        val vm = GameViewModel(puzzle, pack) { finishes++ }
         answer.forEach { vm.onAction(GameAction.Input(it)) }
         vm.onAction(GameAction.Submit)
         assertEquals(GameStatus.Won, vm.state.value.status)
+        resultLog.record(ResultRecord("en", 100L, won = true, attempts = 1)) // idempotent per (lang, day)
 
         // GameScreen persists the finished snapshot (no clear on completion).
         roundStore.save(vm.snapshot())

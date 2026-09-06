@@ -4,9 +4,9 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
+import uz.abumme.harfgame.data.wordpack.WordPackSchedule
 import uz.abumme.harfgame.engine.WordPackRepository
 import uz.abumme.harfgame.lang.LanguageRegistry
-import uz.abumme.harfgame.lang.UzbekDailyWords
 import kotlin.time.ExperimentalTime
 
 /** The word to solve today for one language. */
@@ -43,17 +43,13 @@ class DailyPuzzleProvider(
 
     suspend fun daily(languageId: String, instant: Instant = Clock.System.now()): DailyPuzzle {
         val day = epochDay(languageId, instant)
-        val answer = when (languageId) {
-            "uz-latn", "uz-cyrl" -> {
-                val lex = UzbekDailyWords.lexemes
-                lex[day.mod(lex.size).toInt()].graphemes(languageId)
-                    ?: error("No $languageId decomposition")
-            }
-            else -> {
-                val pack = packs.load(languageId)
-                require(pack.answers.isNotEmpty()) { "Empty answer pack: $languageId" }
-                pack.answers[day.mod(pack.answers.size).toInt()]
-            }
+        val pack = packs.load(languageId)
+        val answer = if (pack.schedule.isNotEmpty()) {
+            // schedule already resolves Uzbek to the right script; anchored + immutable past.
+            WordPackSchedule.answerFor(pack.schedule, pack.anchorEpochDay, day)
+        } else {
+            require(pack.answers.isNotEmpty()) { "Empty answer pack: $languageId" }
+            pack.answers[day.mod(pack.answers.size).toInt()]
         }
         return DailyPuzzle(languageId, day, answer)
     }

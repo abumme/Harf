@@ -1,12 +1,28 @@
 # Production stack: Postgres + Harf backend, both bound to loopback only.
-# The host's Caddy terminates TLS and reverse-proxies https://<domain> -> 127.0.0.1:8080.
+# The host's Caddy terminates TLS and reverse-proxies https://<domain> -> 127.0.0.1:8081.
 # Usage: docker compose -f docker-compose.prod.yml up -d          (pulls the published image)
 #        docker compose -f docker-compose.prod.yml up -d --build  (compiles here instead)
+
+# Docker's json-file driver keeps logs forever by default, which eventually fills the disk on
+# the small shapes. Cap both services at 30 MB total.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
     image: postgres:16-alpine
     container_name: harf-postgres
     restart: unless-stopped
+    # Tuned for the 1 GB Oracle shapes — stock Postgres reserves 128 MB of shared buffers
+    # alone, which the box can't spare alongside the JVM. Raise on a larger instance.
+    command: >
+      postgres
+      -c shared_buffers=64MB
+      -c effective_cache_size=192MB
+      -c max_connections=20
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
@@ -14,15 +30,18 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "127.0.0.1:5432:5432" # never exposed publicly
+      # Loopback only, never public. Host port is overridable because the box may already
+      # run another Postgres; the backend reaches this over the compose network regardless.
+      - "127.0.0.1:${DB_HOST_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
 
   backend:
-    # Published for linux/arm64 by .github/workflows/backend-image.yml. `up -d` pulls it;
+    # Published for linux/amd64 by .github/workflows/backend-image.yml. `up -d` pulls it;
     # `up -d --build` compiles from source on this host instead (same tag either way).
     image: ghcr.io/abumme/harf-backend:latest
     build:
@@ -40,7 +59,10 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "127.0.0.1:8080:8080" # host Caddy proxies to this; not public
+      # Host Caddy proxies to this; not public. Defaults to 8081 because 8080 is commonly
+      # already taken by another app on the box — point Caddy at whatever this resolves to.
+      - "127.0.0.1:${HARF_HOST_PORT:-8081}:8080"
+    logging: *default-logging
 
 volumes:
   postgres_data:
