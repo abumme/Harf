@@ -9,6 +9,6 @@ import uz.abumme.harfgame.lang.LanguageRegistry
 /** Tile-engine + daily-puzzle bindings: language configs, word packs, daily selection. */
 val languageModule: Module = module {
     single { LanguageRegistry() }
-    single { WordPackRepository(get()) }
+    single { WordPackRepository(get(), get()) }
     single { DailyPuzzleProvider(get(), get()) }
 }

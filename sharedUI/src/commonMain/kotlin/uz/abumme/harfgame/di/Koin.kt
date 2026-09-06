@@ -20,6 +20,8 @@ import uz.abumme.harfgame.data.stats.PendingUploadStore
 import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.data.stats.RoundStore
 import uz.abumme.harfgame.data.stats.SyncManager
+import uz.abumme.harfgame.data.wordpack.WordPackCache
+import uz.abumme.harfgame.data.wordpack.WordPackSyncManager
 import uz.abumme.harfgame.feature.cellstyles.StyleChoiceLog
 import uz.abumme.harfgame.feature.cellstyles.StyleExperimentController
 import uz.abumme.harfgame.settings.AppSettings
@@ -33,6 +35,16 @@ val appModule: Module = module {
     single { ResultLog(get()) }
     single { RoundStore(get()) }
     single { PendingUploadStore(get()) }
+    single { WordPackCache(get()) }
+    single {
+        WordPackSyncManager(
+            httpClient = get(),
+            baseUrl = BuildConfig.API_BASE_URL,
+            cache = get(),
+            repository = get(),
+            registry = get(),
+        )
+    }
     single { StyleChoiceLog(get()) }
     single { StyleExperimentController(get(), get()) }
     single { EntitlementRepository(get(), get()) } // PurchaseController from platformModule

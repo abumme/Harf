@@ -26,9 +26,11 @@ fun App(onThemeChanged: @Composable (isDark: Boolean) -> Unit = {}) {
     val settings = koinInject<AppSettings>()
     val entitlements = koinInject<EntitlementRepository>()
     val syncManager = koinInject<SyncManager>()
+    val wordPackSync = koinInject<uz.abumme.harfgame.data.wordpack.WordPackSyncManager>()
     LaunchedEffect(Unit) {
         entitlements.refresh() // reconcile with the store on launch (no-op offline)
         syncManager.bootstrap() // non-blocking background anonymous session and stats sync
+        wordPackSync.syncAll()  // fetch newer vocab in the background (no-op offline)
     }
     var onboarded by remember { mutableStateOf(settings.isOnboarded()) }
     HarfTheme(settings) {
