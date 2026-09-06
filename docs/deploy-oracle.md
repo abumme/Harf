@@ -5,7 +5,7 @@ TLS and reverse-proxies `https://<domain>` → `127.0.0.1:8081`.
 
 **Check the shape's architecture first — `uname -m`.** The published image is built for
 **`linux/amd64`** (Oracle AMD shapes). On an Ampere shape (`aarch64`) that image won't run; either
-flip the workflow to arm64 (see §11) or build on the box, which is arch-agnostic.
+flip the workflow to arm64 (see §12) or build on the box, which is arch-agnostic.
 
 The backend publishes on host port **8081**, not 8080 — 8080 is usually already taken. Override with
 `HARF_HOST_PORT` in `.env`.
@@ -53,38 +53,49 @@ Confirm the host ports in `.env` are actually free before starting:
 sudo ss -ltnp | grep -E ':(8081|5432)\b' || echo "both free"
 ```
 
-## 4. Run it
+## 4. Add swap (mandatory on the 1 GB shapes)
 
-Simplest route — **compile on the box**. No registry, no auth, and it builds natively for whatever
-architecture the shape is:
+`free -h` first. The `VM.Standard.E2.1.Micro` shape has 954 MiB and ships with **no swap**, which
+isn't enough to run a JVM plus Postgres — never mind compiling. Add it once:
 
-```bash
-docker compose -f docker-compose.prod.yml up -d --build
-docker compose -f docker-compose.prod.yml logs -f backend   # watch startup
-```
-
-The Gradle build needs **~2 GB of RAM**. Check with `free -h`; if the box has less (the 1 GB AMD
-micro shape), add swap first or the build is OOM-killed mid-compile:
 ```bash
 sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab   # survives reboot
+free -h                                                       # confirm Swap: 2.0Gi
 ```
 
-**Pulling the prebuilt image instead** (`up -d`, no `--build`) skips the compile, but the image
-architecture must match the shape (§11) and the GHCR package must be readable. It's private until
-you flip it at `https://github.com/orgs/abumme/packages/container/harf-backend/settings` → Change
-visibility → Public. While private, log in on the box once with a classic PAT that has
-`read:packages`:
+The `.env` defaults are sized for this: `JAVA_OPTS=-Xmx256m`, `DB_MAX_POOL_SIZE=5`, and Postgres
+runs with `shared_buffers=64MB` (set in `docker-compose.prod.yml`). On a larger shape you can raise
+all three.
+
+## 5. Run it
+
+Pull the prebuilt image — on a small shape this is the only realistic route, since compiling needs
+~2 GB of its own:
+
+```bash
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml logs -f backend   # watch startup
+```
+
+The image architecture must match the shape (§12). The GHCR package is private until you flip it at
+`https://github.com/orgs/abumme/packages/container/harf-backend/settings` → Change visibility →
+Public. While private, log in on the box once with a classic PAT that has `read:packages`:
 ```bash
 echo <TOKEN> | docker login ghcr.io -u <github-username> --password-stdin
 ```
+
+**Compiling on the box instead** (`up -d --build`) needs ~2 GB of RAM. It's fine on a 6 GB+ Ampere
+shape and is the one route that needs no registry at all, but on the 1 GB micro it will thrash swap
+for the better part of an hour and may still be OOM-killed. Prefer the pull.
 
 Tables are created automatically on first start. Health check:
 ```bash
 curl http://127.0.0.1:8081/          # -> "Harf Backend is running"
 ```
 
-## 5. Point Caddy at it
+## 6. Point Caddy at it
 
 Caddy is already installed and `api.lazydevs.uz` serves apps by path, so mount Harf under `/harf`.
 `handle_path` strips the prefix, so the backend still sees `/api/v1/...`. Add to `/etc/caddy/Caddyfile`
@@ -102,17 +113,17 @@ sudo systemctl reload caddy
 ```
 Caddy auto-issues/renews the Let's Encrypt certificate — needs the DNS record below and ports 80/443 open (step 1).
 
-## 6. DNS
+## 7. DNS
 
 `api.lazydevs.uz` **A record** → your instance's public IP (likely already set if the domain serves other apps).
 
-## 7. Verify end-to-end
+## 8. Verify end-to-end
 
 ```bash
 curl https://api.lazydevs.uz/harf/    # -> "Harf Backend is running", valid TLS
 ```
 
-## 8. Point the app at it
+## 9. Point the app at it
 
 The release default is already `https://api.lazydevs.uz/harf` (baked into the build), so a plain
 release build targets production:
@@ -125,23 +136,22 @@ release build targets production:
 Testing over the raw IP instead? Use a **debug** build (`-Pharf.apiBaseUrl=http://<public-ip>:8081`,
 and temporarily publish port 8081) — a release build requires trusted HTTPS.
 
-## 9. Updates
+## 10. Updates
 
-Recompiling on the box (matches §4):
+A push to `main` that touches the backend republishes `:latest`. On the box:
 ```bash
-cd ~/harf && git pull
-docker compose -f docker-compose.prod.yml up -d --build
-docker image prune -f    # drop the superseded image
-```
-
-Pulling instead — a push to `main` that touches the backend republishes `:latest`:
-```bash
+cd ~/harf && git pull          # picks up compose/.env.example changes
 docker compose -f docker-compose.prod.yml pull backend
 docker compose -f docker-compose.prod.yml up -d
-docker image prune -f
+docker image prune -f          # drop the superseded image
 ```
 
-## 10. Backups
+Recompiling instead (only on a shape with ~2 GB spare):
+```bash
+cd ~/harf && git pull && docker compose -f docker-compose.prod.yml up -d --build
+```
+
+## 11. Backups
 
 ```bash
 # dump (add to cron):
@@ -150,7 +160,7 @@ docker exec harf-postgres pg_dump -U harf harf | gzip > harf-$(date +%F).sql.gz
 gunzip -c harf-YYYY-MM-DD.sql.gz | docker exec -i harf-postgres psql -U harf -d harf
 ```
 
-## 11. Publishing the image
+## 12. Publishing the image
 
 `.github/workflows/backend-image.yml` builds and pushes on every backend-touching push to `main`
 (and on `v*` tags), tagging `latest`, the git tag, and `sha-<short>`. It runs on `ubuntu-24.04` and

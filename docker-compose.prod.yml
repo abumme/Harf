@@ -7,6 +7,13 @@ services:
     image: postgres:16-alpine
     container_name: harf-postgres
     restart: unless-stopped
+    # Tuned for the 1 GB Oracle shapes — stock Postgres reserves 128 MB of shared buffers
+    # alone, which the box can't spare alongside the JVM. Raise on a larger instance.
+    command: >
+      postgres
+      -c shared_buffers=64MB
+      -c effective_cache_size=192MB
+      -c max_connections=20
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
