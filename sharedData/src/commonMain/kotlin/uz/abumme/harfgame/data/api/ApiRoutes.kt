@@ -11,4 +11,9 @@ object ApiRoutes {
     const val ACCOUNT = "$API_PREFIX/account"
 
     const val SYNC_STATS = "$API_PREFIX/sync/stats"
+
+    const val WORDPACKS = "$API_PREFIX/wordpacks"
+
+    /** Path for one language's word pack, e.g. `/api/v1/wordpacks/en`. */
+    fun wordpack(lang: String) = "$WORDPACKS/$lang"
 }
