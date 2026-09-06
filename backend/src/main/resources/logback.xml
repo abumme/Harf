@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Without this file logback falls back to DEBUG on the root logger. Exposed then echoes every
+  statement it runs, including the full word-pack INSERT payloads, which floods the container log.
+
+  Override at runtime with LOG_LEVEL=DEBUG in .env when you actually need the noise.
+-->
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} -- %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="${LOG_LEVEL:-INFO}">
+        <appender-ref ref="STDOUT"/>
+    </root>
+
+    <!-- Chatty enough to be worth silencing even when the root level is raised. -->
+    <logger name="Exposed" level="WARN"/>
+    <logger name="io.netty" level="WARN"/>
+</configuration>

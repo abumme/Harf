@@ -1,7 +1,16 @@
 # Production stack: Postgres + Harf backend, both bound to loopback only.
-# The host's Caddy terminates TLS and reverse-proxies https://<domain> -> 127.0.0.1:8080.
+# The host's Caddy terminates TLS and reverse-proxies https://<domain> -> 127.0.0.1:8081.
 # Usage: docker compose -f docker-compose.prod.yml up -d          (pulls the published image)
 #        docker compose -f docker-compose.prod.yml up -d --build  (compiles here instead)
+
+# Docker's json-file driver keeps logs forever by default, which eventually fills the disk on
+# the small shapes. Cap both services at 30 MB total.
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
     image: postgres:16-alpine
@@ -29,9 +38,10 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging: *default-logging
 
   backend:
-    # Published for linux/arm64 by .github/workflows/backend-image.yml. `up -d` pulls it;
+    # Published for linux/amd64 by .github/workflows/backend-image.yml. `up -d` pulls it;
     # `up -d --build` compiles from source on this host instead (same tag either way).
     image: ghcr.io/abumme/harf-backend:latest
     build:
@@ -52,6 +62,7 @@ services:
       # Host Caddy proxies to this; not public. Defaults to 8081 because 8080 is commonly
       # already taken by another app on the box — point Caddy at whatever this resolves to.
       - "127.0.0.1:${HARF_HOST_PORT:-8081}:8080"
+    logging: *default-logging
 
 volumes:
   postgres_data:
