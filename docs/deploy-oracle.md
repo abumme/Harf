@@ -53,6 +53,11 @@ Confirm the host ports in `.env` are actually free before starting:
 sudo ss -ltnp | grep -E ':(8081|5432)\b' || echo "both free"
 ```
 
+**If the repo itself is private**, this clone needs credentials too — reuse the deploy PAT from §5
+with `repo` scope added: `git clone https://<user>:<TOKEN>@github.com/abumme/Harf.git ~/harf`
+(note this writes the token into `.git/config`). Or skip cloning altogether: the box only needs
+`docker-compose.prod.yml` and `.env`, which you can `scp` across and keep in `~/harf`.
+
 ## 4. Add swap (mandatory on the 1 GB shapes)
 
 `free -h` first. The `VM.Standard.E2.1.Micro` shape has 954 MiB and ships with **no swap**, which
@@ -70,7 +75,21 @@ all three.
 
 ## 5. Run it
 
-Pull the prebuilt image — on a small shape this is the only realistic route, since compiling needs
+The GHCR package is **private**, so the box authenticates before it can pull. Create a *classic*
+PAT — fine-grained tokens don't cover GHCR — at `https://github.com/settings/tokens` → Generate new
+token (classic), tick **`read:packages`** and nothing else. Then on the box:
+
+```bash
+echo <TOKEN> | docker login ghcr.io -u <github-username> --password-stdin
+```
+
+Run that as the **same user that runs compose**. Credentials land in that user's
+`~/.docker/config.json`, so a `sudo docker login` writes to `/root/.docker` and a later rootless
+`docker compose pull` still fails with `denied`. The login survives reboots; if you gave the token
+an expiry, pulls start failing with `denied` when it lapses and you re-run the command with a new
+token.
+
+Then pull and start — on a small shape this is the only realistic route, since compiling needs
 ~2 GB of its own:
 
 ```bash
@@ -79,12 +98,11 @@ docker compose -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.prod.yml logs -f backend   # watch startup
 ```
 
-The image architecture must match the shape (§12). The GHCR package is private until you flip it at
-`https://github.com/orgs/abumme/packages/container/harf-backend/settings` → Change visibility →
-Public. While private, log in on the box once with a classic PAT that has `read:packages`:
-```bash
-echo <TOKEN> | docker login ghcr.io -u <github-username> --password-stdin
-```
+The image architecture must match the shape (§12).
+
+> Making the package public instead (Package settings → Change visibility) removes the login step
+> entirely. That exposes only the built image, **not** the source repo — they're separate settings.
+> The image does contain the compiled backend, though, so it's still a real disclosure.
 
 **Compiling on the box instead** (`up -d --build`) needs ~2 GB of RAM. It's fine on a 6 GB+ Ampere
 shape and is the one route that needs no registry at all, but on the 1 GB micro it will thrash swap
