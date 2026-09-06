@@ -38,4 +38,34 @@
     <string name="signin_unavailable">Вход через %1$s пока недоступен</string>
     <string name="signin_failed">Не удалось войти через %1$s: %2$s</string>
     <string name="delete_failed">Не удалось удалить аккаунт (%1$s). Попробуйте ещё раз.</string>
+
+    <string name="home_tagline">Ежедневная словесная дуэль</string>
+    <string name="statistics">Статистика</string>
+    <string name="home_theme">Тема — %1$s</string>
+
+    <string name="stats_played">сыграно</string>
+    <string name="stats_win_rate">побед %</string>
+    <string name="stats_streak">серия</string>
+    <string name="stats_best">рекорд</string>
+
+    <string name="paywall_purchased">Спасибо — открыто!</string>
+    <string name="paywall_restored">Покупки восстановлены</string>
+    <string name="paywall_intro">Harf бесплатен навсегда — без рекламы и таймеров. Это необязательные способы поддержать проект.</string>
+    <string name="action_close">Закрыть</string>
+    <string name="paywall_loading">Загрузка…</string>
+    <string name="paywall_store_unavailable">Магазин сейчас недоступен.</string>
+    <string name="action_retry">Повторить</string>
+    <string name="paywall_founder_subtitle">Founder — архив, сложный режим, значок</string>
+    <string name="paywall_theme_subtitle">Косметическая тема</string>
+    <string name="paywall_no_products">Нет доступных товаров.</string>
+    <string name="paywall_restore">Восстановить покупки</string>
+    <string name="paywall_owned">Куплено</string>
+    <string name="purchases_unavailable">Покупки недоступны</string>
+
+    <string name="style_prompt_title">Выберите стиль меток</string>
+
+    <string name="result_solved">Решено за %1$d/%2$d</string>
+    <string name="result_out_of_tries">Попытки закончились</string>
+    <string name="action_share">Поделиться</string>
+    <string name="action_copy">Скопировать</string>
 </resources>

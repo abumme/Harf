@@ -29,6 +29,21 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import harf_game.sharedui.generated.resources.Res
+import harf_game.sharedui.generated.resources.action_close
+import harf_game.sharedui.generated.resources.action_retry
+import harf_game.sharedui.generated.resources.paywall_founder_subtitle
+import harf_game.sharedui.generated.resources.paywall_intro
+import harf_game.sharedui.generated.resources.paywall_loading
+import harf_game.sharedui.generated.resources.paywall_no_products
+import harf_game.sharedui.generated.resources.paywall_owned
+import harf_game.sharedui.generated.resources.paywall_purchased
+import harf_game.sharedui.generated.resources.paywall_restore
+import harf_game.sharedui.generated.resources.paywall_restored
+import harf_game.sharedui.generated.resources.paywall_store_unavailable
+import harf_game.sharedui.generated.resources.paywall_theme_subtitle
+import harf_game.sharedui.generated.resources.settings_support_harf
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.EntitlementRepository
 import uz.abumme.harfgame.billing.HostedPaywall
@@ -64,11 +79,13 @@ fun PaywallScreen(onBack: () -> Unit = {}) {
     val colors = LocalHarfColors.current
 
     var message by remember { mutableStateOf<String?>(null) }
+    val purchasedMsg = stringResource(Res.string.paywall_purchased)
+    val restoredMsg = stringResource(Res.string.paywall_restored)
     LaunchedEffect(vm) {
         vm.events.collect { ev ->
             message = when (ev) {
-                PaywallEvent.Purchased -> "Thank you — unlocked!"
-                PaywallEvent.Restored -> "Purchases restored"
+                PaywallEvent.Purchased -> purchasedMsg
+                PaywallEvent.Restored -> restoredMsg
                 is PaywallEvent.Failed -> ev.message
             }
         }
@@ -80,25 +97,25 @@ fun PaywallScreen(onBack: () -> Unit = {}) {
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Support Harf", color = colors.ink, fontFamily = harfSerif(), fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            TextButton(onClick = onBack) { Text("Close", color = colors.muted) }
+            Text(stringResource(Res.string.settings_support_harf), color = colors.ink, fontFamily = harfSerif(), fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            TextButton(onClick = onBack) { Text(stringResource(Res.string.action_close), color = colors.muted) }
         }
         Text(
-            "Harf is free forever — no ads, no timers. These are optional ways to support it.",
+            stringResource(Res.string.paywall_intro),
             color = colors.muted, fontSize = 13.sp,
         )
 
         when (state.phase) {
-            PaywallPhase.Loading -> Text("Loading…", color = colors.muted)
+            PaywallPhase.Loading -> Text(stringResource(Res.string.paywall_loading), color = colors.muted)
             PaywallPhase.Unavailable -> {
-                Text("Store unavailable right now.", color = colors.ink)
-                OutlinedButton(onClick = { vm.onAction(PaywallAction.Load) }) { Text("Retry") }
+                Text(stringResource(Res.string.paywall_store_unavailable), color = colors.ink)
+                OutlinedButton(onClick = { vm.onAction(PaywallAction.Load) }) { Text(stringResource(Res.string.action_retry)) }
             }
             PaywallPhase.Ready -> {
                 state.offerings?.lifetime?.let { item ->
                     ProductRow(
                         item = item,
-                        subtitle = "Founder — archive, hard mode, badge",
+                        subtitle = stringResource(Res.string.paywall_founder_subtitle),
                         owned = state.owns(item.id),
                         busy = state.busyProductId == item.id,
                         colors = colors,
@@ -107,14 +124,14 @@ fun PaywallScreen(onBack: () -> Unit = {}) {
                 state.offerings?.themes?.forEach { item ->
                     ProductRow(
                         item = item,
-                        subtitle = "Cosmetic theme",
+                        subtitle = stringResource(Res.string.paywall_theme_subtitle),
                         owned = state.owns(item.id),
                         busy = state.busyProductId == item.id,
                         colors = colors,
                     ) { vm.onAction(PaywallAction.Purchase(item.id)) }
                 }
                 if (state.offerings?.all.isNullOrEmpty()) {
-                    Text("No products available.", color = colors.muted)
+                    Text(stringResource(Res.string.paywall_no_products), color = colors.muted)
                 }
             }
         }
@@ -125,7 +142,7 @@ fun PaywallScreen(onBack: () -> Unit = {}) {
             onClick = { vm.onAction(PaywallAction.Restore) },
             enabled = state.busyProductId == null,
             modifier = Modifier.fillMaxWidth(),
-        ) { Text("Restore purchases") }
+        ) { Text(stringResource(Res.string.paywall_restore)) }
     }
 }
 
@@ -144,7 +161,7 @@ private fun ProductRow(
             Text(subtitle, color = colors.muted, fontSize = 12.sp)
         }
         if (owned) {
-            Text("Owned", color = colors.accent, fontWeight = FontWeight.Medium)
+            Text(stringResource(Res.string.paywall_owned), color = colors.accent, fontWeight = FontWeight.Medium)
         } else {
             Button(onClick = onBuy, enabled = !busy) { Text(if (busy) "…" else item.priceLabel) }
         }

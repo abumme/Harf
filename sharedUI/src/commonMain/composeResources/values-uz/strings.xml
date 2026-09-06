@@ -38,4 +38,34 @@
     <string name="signin_unavailable">%1$s orqali kirish hozircha mavjud emas</string>
     <string name="signin_failed">%1$s orqali kirib bo\'lmadi: %2$s</string>
     <string name="delete_failed">Hisobni o\'chirib bo\'lmadi (%1$s). Qayta urinib ko\'ring.</string>
+
+    <string name="home_tagline">Har kuni bir so\'z jangi</string>
+    <string name="statistics">Statistika</string>
+    <string name="home_theme">Mavzu — %1$s</string>
+
+    <string name="stats_played">o\'ynaldi</string>
+    <string name="stats_win_rate">g\'alaba %</string>
+    <string name="stats_streak">seriya</string>
+    <string name="stats_best">rekord</string>
+
+    <string name="paywall_purchased">Rahmat — ochildi!</string>
+    <string name="paywall_restored">Xaridlar tiklandi</string>
+    <string name="paywall_intro">Harf abadiy bepul — reklama va taymerlarsiz. Bular loyihani qo\'llab-quvvatlashning ixtiyoriy usullari.</string>
+    <string name="action_close">Yopish</string>
+    <string name="paywall_loading">Yuklanmoqda…</string>
+    <string name="paywall_store_unavailable">Do\'kon hozircha mavjud emas.</string>
+    <string name="action_retry">Qayta urinish</string>
+    <string name="paywall_founder_subtitle">Founder — arxiv, murakkab rejim, nishon</string>
+    <string name="paywall_theme_subtitle">Kosmetik mavzu</string>
+    <string name="paywall_no_products">Mavjud mahsulotlar yo\'q.</string>
+    <string name="paywall_restore">Xaridlarni tiklash</string>
+    <string name="paywall_owned">Sotib olingan</string>
+    <string name="purchases_unavailable">Xaridlar mavjud emas</string>
+
+    <string name="style_prompt_title">Belgi uslubini tanlang</string>
+
+    <string name="result_solved">%1$d/%2$d da yechildi</string>
+    <string name="result_out_of_tries">Urinishlar tugadi</string>
+    <string name="action_share">Ulashish</string>
+    <string name="action_copy">Nusxa olish</string>
 </resources>

@@ -2,6 +2,9 @@ package uz.abumme.harfgame.feature.paywall
 
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import harf_game.sharedui.generated.resources.Res
+import harf_game.sharedui.generated.resources.purchases_unavailable
+import org.jetbrains.compose.resources.getString
 import uz.abumme.harfgame.billing.EntitlementGate
 import uz.abumme.harfgame.billing.EntitlementRepository
 import uz.abumme.harfgame.billing.Entitlements
@@ -83,7 +86,7 @@ class PaywallViewModel(
             }
             PurchaseOutcome.Cancelled -> Unit
             is PurchaseOutcome.Error -> sendEvent(PaywallEvent.Failed(outcome.message))
-            PurchaseOutcome.Unavailable -> sendEvent(PaywallEvent.Failed("Purchases unavailable"))
+            PurchaseOutcome.Unavailable -> sendEvent(PaywallEvent.Failed(getString(Res.string.purchases_unavailable)))
         }
     }
 
@@ -98,7 +101,7 @@ class PaywallViewModel(
             }
             PurchaseOutcome.Cancelled -> Unit
             is PurchaseOutcome.Error -> sendEvent(PaywallEvent.Failed(outcome.message))
-            PurchaseOutcome.Unavailable -> sendEvent(PaywallEvent.Failed("Purchases unavailable"))
+            PurchaseOutcome.Unavailable -> sendEvent(PaywallEvent.Failed(getString(Res.string.purchases_unavailable)))
         }
     }
 

@@ -30,6 +30,11 @@ import harf_game.sharedui.generated.resources.howto_body
 import harf_game.sharedui.generated.resources.howto_title
 import harf_game.sharedui.generated.resources.not_enough_letters
 import harf_game.sharedui.generated.resources.not_in_word_list
+import harf_game.sharedui.generated.resources.action_copy
+import harf_game.sharedui.generated.resources.action_share
+import harf_game.sharedui.generated.resources.result_out_of_tries
+import harf_game.sharedui.generated.resources.result_solved
+import harf_game.sharedui.generated.resources.settings_support_harf
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -301,7 +306,7 @@ private fun ResultView(state: GameState, languageDisplay: String, puzzleNumber: 
 
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            if (state.status == GameStatus.Won) "Solved in ${state.submitted.size}/${state.maxAttempts}" else "Out of tries",
+            if (state.status == GameStatus.Won) stringResource(Res.string.result_solved, state.submitted.size, state.maxAttempts) else stringResource(Res.string.result_out_of_tries),
             color = c.ink, fontWeight = FontWeight.Bold, fontSize = 18.sp,
         )
         if (state.status == GameStatus.Lost && state.revealed != null) {
@@ -315,8 +320,8 @@ private fun ResultView(state: GameState, languageDisplay: String, puzzleNumber: 
             won = state.status == GameStatus.Won,
             maxAttempts = state.maxAttempts,
         )
-        Button(onClick = { scope.launch { sharer.share(shareText) } }) { Text("Share") }
-        OutlinedButton(onClick = { sharer.copy(shareText) }) { Text("Copy") }
-        TextButton(onClick = onPaywall) { Text("Support Harf", color = c.muted) }
+        Button(onClick = { scope.launch { sharer.share(shareText) } }) { Text(stringResource(Res.string.action_share)) }
+        OutlinedButton(onClick = { sharer.copy(shareText) }) { Text(stringResource(Res.string.action_copy)) }
+        TextButton(onClick = onPaywall) { Text(stringResource(Res.string.settings_support_harf), color = c.muted) }
     }
 }

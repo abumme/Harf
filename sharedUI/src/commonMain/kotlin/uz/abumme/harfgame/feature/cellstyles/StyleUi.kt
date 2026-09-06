@@ -21,6 +21,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import harf_game.sharedui.generated.resources.Res
+import harf_game.sharedui.generated.resources.action_skip
+import harf_game.sharedui.generated.resources.style_prompt_title
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.engine.Mark
 import uz.abumme.harfgame.theme.LocalHarfColors
@@ -71,8 +75,8 @@ private fun StylePrompt(onChoose: (HarfMarkStyleId) -> Unit, onDismiss: () -> Un
     AlertDialog(
         onDismissRequest = onDismiss,
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Skip") } },
-        title = { Text("Pick your mark style") },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.action_skip)) } },
+        title = { Text(stringResource(Res.string.style_prompt_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 for (id in HarfMarkStyleId.entries) {

@@ -22,6 +22,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import harf_game.sharedui.generated.resources.Res
+import harf_game.sharedui.generated.resources.home_tagline
+import harf_game.sharedui.generated.resources.home_theme
+import harf_game.sharedui.generated.resources.settings_title
+import harf_game.sharedui.generated.resources.statistics
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.EntitlementGate
 import uz.abumme.harfgame.billing.EntitlementRepository
@@ -66,14 +72,14 @@ fun HomeScreen(onPlay: (String) -> Unit = {}, onStats: () -> Unit = {}, onSettin
             fontSize = 64.sp,
             fontWeight = FontWeight.Bold,
         )
-        Text("A daily word duel", color = colors.muted, fontSize = 14.sp)
+        Text(stringResource(Res.string.home_tagline), color = colors.muted, fontSize = 14.sp)
 
         for ((id, label) in LANGUAGES) {
             Button(onClick = { onPlay(id) }, modifier = Modifier.width(220.dp)) { Text(label) }
         }
 
-        OutlinedButton(onClick = onStats, modifier = Modifier.width(220.dp)) { Text("Statistics") }
-        OutlinedButton(onClick = onSettings, modifier = Modifier.width(220.dp)) { Text("Settings") }
+        OutlinedButton(onClick = onStats, modifier = Modifier.width(220.dp)) { Text(stringResource(Res.string.statistics)) }
+        OutlinedButton(onClick = onSettings, modifier = Modifier.width(220.dp)) { Text(stringResource(Res.string.settings_title)) }
 
         OutlinedButton(
             onClick = {
@@ -85,6 +91,6 @@ fun HomeScreen(onPlay: (String) -> Unit = {}, onStats: () -> Unit = {}, onSettin
                 settings.setPaletteId(ids[(i + 1) % ids.size])
             },
             modifier = Modifier.width(220.dp),
-        ) { Text("Theme — ${HarfPalettes.byId(paletteId).displayName}") }
+        ) { Text(stringResource(Res.string.home_theme, HarfPalettes.byId(paletteId).displayName)) }
     }
 }

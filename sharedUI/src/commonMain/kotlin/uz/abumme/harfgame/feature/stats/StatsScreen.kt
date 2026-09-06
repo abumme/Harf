@@ -21,6 +21,13 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import harf_game.sharedui.generated.resources.Res
+import harf_game.sharedui.generated.resources.statistics
+import harf_game.sharedui.generated.resources.stats_best
+import harf_game.sharedui.generated.resources.stats_played
+import harf_game.sharedui.generated.resources.stats_streak
+import harf_game.sharedui.generated.resources.stats_win_rate
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.core.mvi.BaseViewModel
 import uz.abumme.harfgame.core.mvi.UiAction
@@ -94,15 +101,15 @@ fun StatsContent(state: StatsState) {
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text("Statistics", color = c.ink, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+        Text(stringResource(Res.string.statistics), color = c.ink, fontWeight = FontWeight.Bold, fontSize = 24.sp)
         for (e in state.entries) {
             HorizontalDivider(color = c.rule)
             Text(e.display, color = c.ink, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-                Stat("played", e.stats.played.toString(), c.ink, c.muted)
-                Stat("win %", (e.stats.winRate * 100).toInt().toString(), c.ink, c.muted)
-                Stat("streak", "🔥 ${e.streak.current}", c.accent, c.muted)
-                Stat("best", e.streak.best.toString(), c.ink, c.muted)
+                Stat(stringResource(Res.string.stats_played), e.stats.played.toString(), c.ink, c.muted)
+                Stat(stringResource(Res.string.stats_win_rate), (e.stats.winRate * 100).toInt().toString(), c.ink, c.muted)
+                Stat(stringResource(Res.string.stats_streak), "🔥 ${e.streak.current}", c.accent, c.muted)
+                Stat(stringResource(Res.string.stats_best), e.streak.best.toString(), c.ink, c.muted)
             }
         }
     }

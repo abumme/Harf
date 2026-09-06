@@ -38,4 +38,34 @@
     <string name="signin_unavailable">%1$s sign-in isn\'t available yet</string>
     <string name="signin_failed">%1$s sign-in failed: %2$s</string>
     <string name="delete_failed">Couldn\'t delete your account (%1$s). Please try again.</string>
+
+    <string name="home_tagline">A daily word duel</string>
+    <string name="statistics">Statistics</string>
+    <string name="home_theme">Theme — %1$s</string>
+
+    <string name="stats_played">played</string>
+    <string name="stats_win_rate">win %</string>
+    <string name="stats_streak">streak</string>
+    <string name="stats_best">best</string>
+
+    <string name="paywall_purchased">Thank you — unlocked!</string>
+    <string name="paywall_restored">Purchases restored</string>
+    <string name="paywall_intro">Harf is free forever — no ads, no timers. These are optional ways to support it.</string>
+    <string name="action_close">Close</string>
+    <string name="paywall_loading">Loading…</string>
+    <string name="paywall_store_unavailable">Store unavailable right now.</string>
+    <string name="action_retry">Retry</string>
+    <string name="paywall_founder_subtitle">Founder — archive, hard mode, badge</string>
+    <string name="paywall_theme_subtitle">Cosmetic theme</string>
+    <string name="paywall_no_products">No products available.</string>
+    <string name="paywall_restore">Restore purchases</string>
+    <string name="paywall_owned">Owned</string>
+    <string name="purchases_unavailable">Purchases unavailable</string>
+
+    <string name="style_prompt_title">Pick your mark style</string>
+
+    <string name="result_solved">Solved in %1$d/%2$d</string>
+    <string name="result_out_of_tries">Out of tries</string>
+    <string name="action_share">Share</string>
+    <string name="action_copy">Copy</string>
 </resources>
