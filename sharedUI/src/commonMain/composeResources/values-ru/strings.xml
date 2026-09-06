@@ -1,0 +1,41 @@
+<resources>
+    <string name="onboarding_tagline">Одно слово в день. Угадай за 6 попыток.</string>
+    <string name="legend_correct">на своём месте</string>
+    <string name="legend_present">есть в слове</string>
+    <string name="legend_absent">нет в слове</string>
+    <string name="action_start">Начать</string>
+    <string name="action_skip">Пропустить</string>
+    <string name="action_got_it">Понятно</string>
+    <string name="howto_title">Как играть</string>
+    <string name="howto_body">Введите слово и отправьте. Метки показывают, какие буквы на своих местах, какие есть в слове, но не там, и каких в слове нет.</string>
+    <string name="help">Помощь</string>
+    <string name="not_enough_letters">Недостаточно букв</string>
+    <string name="not_in_word_list">Нет в списке слов</string>
+
+    <string name="settings_title">Настройки</string>
+    <string name="settings_mark_style">Стиль меток</string>
+    <string name="settings_founder">★ Founder</string>
+    <string name="settings_support_harf">Поддержать Harf</string>
+    <string name="settings_support_harf_themes">Поддержать Harf / темы</string>
+    <string name="settings_manage_purchases">Управление покупками</string>
+    <string name="settings_account_sync">Аккаунт и синхронизация</string>
+    <string name="settings_account_linked">✓ Аккаунт привязан</string>
+    <string name="settings_log_out">Выйти</string>
+    <string name="settings_link_google">Привязать аккаунт Google</string>
+    <string name="settings_link_apple">Привязать аккаунт Apple</string>
+    <string name="settings_legal">Правовая информация</string>
+    <string name="settings_privacy_policy">Политика конфиденциальности</string>
+    <string name="settings_terms_offer">Условия использования (оферта)</string>
+    <string name="settings_delete_account">Удалить аккаунт</string>
+    <string name="settings_delete_body">Вы уверены, что хотите удалить аккаунт? Все серверные данные и локальная статистика будут удалены безвозвратно.</string>
+    <string name="settings_deleting">Удаление…</string>
+    <string name="settings_delete">Удалить</string>
+    <string name="settings_cancel">Отмена</string>
+
+    <string name="link_success">Аккаунт %1$s привязан</string>
+    <string name="link_failed">Не удалось привязать аккаунт %1$s (%2$s)</string>
+    <string name="signin_cancelled">Вход через %1$s отменён</string>
+    <string name="signin_unavailable">Вход через %1$s пока недоступен</string>
+    <string name="signin_failed">Не удалось войти через %1$s: %2$s</string>
+    <string name="delete_failed">Не удалось удалить аккаунт (%1$s). Попробуйте ещё раз.</string>
+</resources>

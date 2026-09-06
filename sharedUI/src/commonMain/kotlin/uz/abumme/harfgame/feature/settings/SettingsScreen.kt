@@ -26,10 +26,39 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
+import harf_game.sharedui.generated.resources.Res
+import harf_game.sharedui.generated.resources.delete_failed
+import harf_game.sharedui.generated.resources.link_failed
+import harf_game.sharedui.generated.resources.link_success
+import harf_game.sharedui.generated.resources.settings_account_linked
+import harf_game.sharedui.generated.resources.settings_account_sync
+import harf_game.sharedui.generated.resources.settings_cancel
+import harf_game.sharedui.generated.resources.settings_delete
+import harf_game.sharedui.generated.resources.settings_delete_account
+import harf_game.sharedui.generated.resources.settings_delete_body
+import harf_game.sharedui.generated.resources.settings_deleting
+import harf_game.sharedui.generated.resources.settings_founder
+import harf_game.sharedui.generated.resources.settings_legal
+import harf_game.sharedui.generated.resources.settings_link_apple
+import harf_game.sharedui.generated.resources.settings_link_google
+import harf_game.sharedui.generated.resources.settings_log_out
+import harf_game.sharedui.generated.resources.settings_manage_purchases
+import harf_game.sharedui.generated.resources.settings_mark_style
+import harf_game.sharedui.generated.resources.settings_privacy_policy
+import harf_game.sharedui.generated.resources.settings_support_harf
+import harf_game.sharedui.generated.resources.settings_support_harf_themes
+import harf_game.sharedui.generated.resources.settings_terms_offer
+import harf_game.sharedui.generated.resources.settings_title
+import harf_game.sharedui.generated.resources.signin_cancelled
+import harf_game.sharedui.generated.resources.signin_failed
+import harf_game.sharedui.generated.resources.signin_unavailable
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.EntitlementRepository
 import uz.abumme.harfgame.billing.hostedBillingUiSupported
@@ -41,6 +70,12 @@ import uz.abumme.harfgame.feature.cellstyles.StyleExperimentController
 import uz.abumme.harfgame.feature.cellstyles.StylePreview
 import uz.abumme.harfgame.theme.LocalHarfColors
 import uz.abumme.harfgame.theme.marks.HarfMarkStyleId
+
+/** Public legal document URLs. Update these to the hosted locations before release. */
+private object LegalLinks {
+    const val PRIVACY = "https://lazydevs.uz/harf/privacy"
+    const val OFFER = "https://lazydevs.uz/harf/offer"
+}
 
 @Composable
 fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}) {
@@ -54,6 +89,7 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
     val ents by entitlements.entitlements.collectAsState()
     val session by sessionStore.sessionFlow.collectAsState(initial = null)
     val colors = LocalHarfColors.current
+    val uriHandler = LocalUriHandler.current
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var authMessage by remember { mutableStateOf<String?>(null) }
     var deleteError by remember { mutableStateOf<String?>(null) }
@@ -66,8 +102,8 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text("Settings", color = colors.ink, fontWeight = FontWeight.Bold, fontSize = 24.sp)
-        Text("Mark style", color = colors.muted, fontSize = 13.sp)
+        Text(stringResource(Res.string.settings_title), color = colors.ink, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+        Text(stringResource(Res.string.settings_mark_style), color = colors.muted, fontSize = 13.sp)
 
         for (id in HarfMarkStyleId.entries) {
             val selected = id == active
@@ -95,26 +131,26 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
         }
 
         if (ents.lifetime) {
-            Text("★ Founder", color = colors.accent, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text(stringResource(Res.string.settings_founder), color = colors.accent, fontWeight = FontWeight.Bold, fontSize = 15.sp)
         }
         OutlinedButton(onClick = onPaywall, modifier = Modifier.fillMaxWidth()) {
-            Text(if (ents.lifetime) "Support Harf / themes" else "Support Harf")
+            Text(stringResource(if (ents.lifetime) Res.string.settings_support_harf_themes else Res.string.settings_support_harf))
         }
         if (hostedBillingUiSupported) {
             OutlinedButton(onClick = onCustomerCenter, modifier = Modifier.fillMaxWidth()) {
-                Text("Manage purchases")
+                Text(stringResource(Res.string.settings_manage_purchases))
             }
         }
 
-        Text("Account & Sync", color = colors.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+        Text(stringResource(Res.string.settings_account_sync), color = colors.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
 
         if (session?.isLinked == true) {
-            Text("✓ Account linked", color = colors.accent, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+            Text(stringResource(Res.string.settings_account_linked), color = colors.accent, fontWeight = FontWeight.Medium, fontSize = 14.sp)
             OutlinedButton(
                 onClick = { scope.launch { syncManager.logout() } },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Log out")
+                Text(stringResource(Res.string.settings_log_out))
             }
         } else {
             if (oauthClient.isGoogleSupported) {
@@ -122,7 +158,7 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
                     onClick = { scope.launch { authMessage = linkWith(oauthClient.signInWithGoogle(), OAuthProvider.GOOGLE, "Google", syncManager) } },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Link Google Account")
+                    Text(stringResource(Res.string.settings_link_google))
                 }
             }
             if (oauthClient.isAppleSupported) {
@@ -130,27 +166,41 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
                     onClick = { scope.launch { authMessage = linkWith(oauthClient.signInWithApple(), OAuthProvider.APPLE, "Apple", syncManager) } },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Link Apple Account")
+                    Text(stringResource(Res.string.settings_link_apple))
                 }
             }
         }
 
         authMessage?.let { Text(it, color = colors.muted, fontSize = 13.sp) }
 
+        Text(stringResource(Res.string.settings_legal), color = colors.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+        OutlinedButton(
+            onClick = { uriHandler.openUri(LegalLinks.PRIVACY) },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(Res.string.settings_privacy_policy))
+        }
+        OutlinedButton(
+            onClick = { uriHandler.openUri(LegalLinks.OFFER) },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(stringResource(Res.string.settings_terms_offer))
+        }
+
         OutlinedButton(
             onClick = { deleteError = null; showDeleteConfirm = true },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Delete Account", color = Color(0xFFD32F2F))
+            Text(stringResource(Res.string.settings_delete_account), color = Color(0xFFD32F2F))
         }
 
         if (showDeleteConfirm) {
             AlertDialog(
                 onDismissRequest = { if (!deleting) showDeleteConfirm = false },
-                title = { Text("Delete Account") },
+                title = { Text(stringResource(Res.string.settings_delete_account)) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("Are you sure you want to delete your account? All server-side data and local stats will be permanently removed.")
+                        Text(stringResource(Res.string.settings_delete_body))
                         deleteError?.let { Text(it, color = Color(0xFFD32F2F), fontSize = 13.sp) }
                     }
                 },
@@ -166,18 +216,18 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
                                 when (val result = syncManager.deleteAccount()) {
                                     is uz.abumme.harfgame.data.api.ApiResult.Success -> showDeleteConfirm = false
                                     is uz.abumme.harfgame.data.api.ApiResult.Error ->
-                                        deleteError = "Couldn't delete your account (${result.message}). Please try again."
+                                        deleteError = getString(Res.string.delete_failed, result.message)
                                 }
                                 deleting = false
                             }
                         }
                     ) {
-                        Text(if (deleting) "Deleting…" else "Delete", color = Color(0xFFD32F2F))
+                        Text(stringResource(if (deleting) Res.string.settings_deleting else Res.string.settings_delete), color = Color(0xFFD32F2F))
                     }
                 },
                 dismissButton = {
                     TextButton(enabled = !deleting, onClick = { showDeleteConfirm = false }) {
-                        Text("Cancel")
+                        Text(stringResource(Res.string.settings_cancel))
                     }
                 }
             )
@@ -194,11 +244,11 @@ private suspend fun linkWith(
 ): String = when (result) {
     is uz.abumme.harfgame.data.auth.OAuthResult.Token -> {
         when (val r = syncManager.linkAccount(provider, result.idToken, result.nonce)) {
-            is uz.abumme.harfgame.data.api.ApiResult.Success -> "$label account linked"
-            is uz.abumme.harfgame.data.api.ApiResult.Error -> "Couldn't link $label account (${r.message})"
+            is uz.abumme.harfgame.data.api.ApiResult.Success -> getString(Res.string.link_success, label)
+            is uz.abumme.harfgame.data.api.ApiResult.Error -> getString(Res.string.link_failed, label, r.message)
         }
     }
-    uz.abumme.harfgame.data.auth.OAuthResult.Cancelled -> "$label sign-in cancelled"
-    uz.abumme.harfgame.data.auth.OAuthResult.NotConfigured -> "$label sign-in isn't available yet"
-    is uz.abumme.harfgame.data.auth.OAuthResult.Failed -> "$label sign-in failed: ${result.message}"
+    uz.abumme.harfgame.data.auth.OAuthResult.Cancelled -> getString(Res.string.signin_cancelled, label)
+    uz.abumme.harfgame.data.auth.OAuthResult.NotConfigured -> getString(Res.string.signin_unavailable, label)
+    is uz.abumme.harfgame.data.auth.OAuthResult.Failed -> getString(Res.string.signin_failed, label, result.message)
 }

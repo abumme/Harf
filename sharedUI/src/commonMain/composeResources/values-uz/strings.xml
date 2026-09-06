@@ -1,0 +1,41 @@
+<resources>
+    <string name="onboarding_tagline">Kuniga bitta so\'z. 6 urinishda toping.</string>
+    <string name="legend_correct">o\'z o\'rnida</string>
+    <string name="legend_present">so\'zda bor</string>
+    <string name="legend_absent">so\'zda yo\'q</string>
+    <string name="action_start">Boshlash</string>
+    <string name="action_skip">O\'tkazib yuborish</string>
+    <string name="action_got_it">Tushunarli</string>
+    <string name="howto_title">Qanday o\'ynash kerak</string>
+    <string name="howto_body">So\'z kiriting va yuboring. Belgilar qaysi harflar o\'z o\'rnida, qaysilari so\'zda bor-u lekin boshqa joyda, qaysilari esa so\'zda yo\'qligini ko\'rsatadi.</string>
+    <string name="help">Yordam</string>
+    <string name="not_enough_letters">Harflar yetarli emas</string>
+    <string name="not_in_word_list">So\'zlar ro\'yxatida yo\'q</string>
+
+    <string name="settings_title">Sozlamalar</string>
+    <string name="settings_mark_style">Belgi uslubi</string>
+    <string name="settings_founder">★ Founder</string>
+    <string name="settings_support_harf">Harf\'ni qo\'llab-quvvatlash</string>
+    <string name="settings_support_harf_themes">Harf\'ni qo\'llab-quvvatlash / mavzular</string>
+    <string name="settings_manage_purchases">Xaridlarni boshqarish</string>
+    <string name="settings_account_sync">Hisob va sinxronlash</string>
+    <string name="settings_account_linked">✓ Hisob bog\'landi</string>
+    <string name="settings_log_out">Chiqish</string>
+    <string name="settings_link_google">Google hisobini bog\'lash</string>
+    <string name="settings_link_apple">Apple hisobini bog\'lash</string>
+    <string name="settings_legal">Huquqiy ma\'lumot</string>
+    <string name="settings_privacy_policy">Maxfiylik siyosati</string>
+    <string name="settings_terms_offer">Foydalanish shartlari (oferta)</string>
+    <string name="settings_delete_account">Hisobni o\'chirish</string>
+    <string name="settings_delete_body">Hisobingizni o\'chirmoqchimisiz? Barcha serverdagi ma\'lumotlar va mahalliy statistika butunlay o\'chiriladi.</string>
+    <string name="settings_deleting">O\'chirilmoqda…</string>
+    <string name="settings_delete">O\'chirish</string>
+    <string name="settings_cancel">Bekor qilish</string>
+
+    <string name="link_success">%1$s hisobi bog\'landi</string>
+    <string name="link_failed">%1$s hisobini bog\'lab bo\'lmadi (%2$s)</string>
+    <string name="signin_cancelled">%1$s orqali kirish bekor qilindi</string>
+    <string name="signin_unavailable">%1$s orqali kirish hozircha mavjud emas</string>
+    <string name="signin_failed">%1$s orqali kirib bo\'lmadi: %2$s</string>
+    <string name="delete_failed">Hisobni o\'chirib bo\'lmadi (%1$s). Qayta urinib ko\'ring.</string>
+</resources>
