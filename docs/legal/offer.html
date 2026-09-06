@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="index,follow">
+<title>Harf — Public Offer / Публичная оферта</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: light dark;
+    /* Harf "room" palette — same tokens the lazydevs.uz site uses (--hrf-*) */
+    --paper:#fbfcfe; --card:#ffffff; --ink:#12161b; --muted:#59626d;
+    --navy:#1c3f63; --crimson:#b3282d; --rule:#d8dee6; --wash:#eaf0f6; --key:#e7ecf1;
+    --font-display:'Bricolage Grotesque','Bricolage Grotesque Variable',system-ui,sans-serif;
+    --font-body:'Instrument Sans','Instrument Sans Variable',system-ui,sans-serif;
+    --font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      /* Harf room, dark = late-edition ink blue (site's dark hrf tokens) */
+      --paper:#10151c; --card:#171e27; --ink:#e8edf4; --muted:#93a0af;
+      --navy:#8fb4da; --crimson:#d05a5e; --rule:#2a3542; --wash:#1a2430; --key:#202a35;
+    }
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  a{color:var(--navy)}
+  header{padding:36px 20px 16px;text-align:center;border-bottom:3px double var(--ink);margin:0 auto;max-width:52rem}
+  header .brand{font-family:var(--font-display);font-weight:800;font-size:44px;margin:0;letter-spacing:-.02em}
+  header .brand span{color:var(--navy)}
+  header .doc{font-family:var(--font-mono);color:var(--crimson);margin:10px 0 0;font-size:12px;text-transform:uppercase;letter-spacing:.18em}
+  .rev{font-family:var(--font-mono);color:var(--muted);font-size:12px;margin-top:6px}
+  .territory{color:var(--muted);font-size:12px;margin:4px auto 0;max-width:640px}
+  .langbar{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:18px 0 0}
+  .langbar button{font-family:var(--font-mono);font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;
+    border:1px solid var(--rule);background:var(--card);color:var(--muted);border-radius:20px;padding:7px 16px;cursor:pointer;transition:all .16s cubic-bezier(.22,1,.36,1)}
+  .langbar button:hover{border-color:var(--navy);color:var(--navy)}
+  .langbar button[aria-pressed="true"]{background:var(--navy);color:var(--paper);border-color:var(--navy)}
+  main{max-width:52rem;margin:0 auto;padding:30px 20px 90px}
+  article{display:none}
+  article.active{display:block}
+  article h2{font-family:var(--font-display);font-size:26px;font-weight:750;letter-spacing:-.015em;margin:34px 0 10px;color:var(--navy);border-bottom:1px solid var(--rule);padding-bottom:6px}
+  article h2:first-of-type{margin-top:8px}
+  article p{margin:12px 0}
+  article ul{margin:12px 0;padding-left:22px}
+  article li{margin:6px 0}
+  code{font-family:var(--font-mono);font-size:.9em;background:var(--key);border:1px solid var(--rule);border-radius:5px;padding:1px 5px}
+  .fill{background:var(--wash);border-bottom:1px dashed var(--crimson);padding:0 3px;border-radius:3px}
+  .fill.todo{background:var(--crimson);color:var(--paper);font-weight:600;border:none}
+  footer{max-width:52rem;margin:0 auto;padding:20px;color:var(--muted);font-size:12px;font-family:var(--font-mono);border-top:1px solid var(--rule);text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <p class="brand">Har<span>f</span></p>
+  <p class="doc" data-doc>Public Offer</p>
+  <p class="rev" data-rev></p>
+  <p class="territory" data-territory></p>
+  <nav class="langbar" aria-label="Language">
+    <button type="button" data-lang="uz">O‘zbek</button>
+    <button type="button" data-lang="ru">Русский</button>
+    <button type="button" data-lang="en">English</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ============================ UZBEK ============================ -->
+  <article data-lang="uz" lang="uz">
+    <h2>1. Umumiy qoidalar</h2>
+    <p>1.1. Ushbu hujjat O‘zbekiston Respublikasi Fuqarolik kodeksining 369-moddasiga muvofiq <b>ommaviy oferta</b> (keyingi o‘rinlarda — «Oferta») bo‘lib, «Harf» mobil ilovasida (keyingi o‘rinlarda — «Ilova») raqamli kontentni oldi-sotdi (litsenziya berish) shartnomasining barcha muhim shartlarini o‘z ichiga oladi.</p>
+    <p>1.2. <b>Sotuvchi:</b> {{NAME}}, jismoniy shaxs, O‘zbekiston Respublikasi (keyingi o‘rinlarda — «Sotuvchi»).</p>
+    <p>1.3. <b>Foydalanuvchi</b> — Ilovani o‘rnatgan va Ilova ichida raqamli kontentni sotib olayotgan har qanday muomalaga layoqatli jismoniy shaxs (keyingi o‘rinlarda — «Foydalanuvchi»).</p>
+    <p>1.4. «Harf» — so‘zli boshqotirma o‘yin. Kunlik o‘yin <b>bepul</b> taqdim etiladi va to‘lovni talab qilmaydi. Oferta faqat ixtiyoriy pulli qo‘shimchalarni sotib olishni tartibga soladi.</p>
+
+    <h2>2. Shartnoma predmeti</h2>
+    <p>2.1. Sotuvchi Foydalanuvchiga haq evaziga Ilovaning raqamli kontenti va qo‘shimcha funksiyalaridan foydalanish uchun <b>istisno bo‘lmagan, boshqa shaxsga o‘tkazilmaydigan litsenziya</b> (keyingi o‘rinlarda — «Kontent») beradi, Foydalanuvchi esa ularni Google Play ilovalar do‘koni orqali to‘laydi.</p>
+    <p>2.2. Kontent turlari (ilova ichidagi xaridlar):</p>
+    <ul>
+      <li><b>Kosmetik rang palitralari (bezak mavzulari)</b> — o‘yin maydonining tashqi ko‘rinishini o‘zgartiradi. Bir martalik xarid, Foydalanuvchi hisobida muddatsiz amal qiladi.</li>
+      <li><b>«Lifetime» ochilishi (qo‘shimchalarga umrbod kirish)</b> — o‘tgan o‘yinlar arxivi, «murakkab rejim» va «Founder» nishoniga kirishni ochadi. Bir martalik xarid, muddatsiz amal qiladi.</li>
+    </ul>
+    <p>2.3. Barcha xaridlar <b>bir martalik</b> bo‘lib, <b>obuna emas</b>; davriy yechib olishlar amalga oshirilmaydi.</p>
+    <p>2.4. Kontent moddiy tashuvchisi bo‘lmagan raqamli tovar hisoblanadi. Foydalanish huquqi Google Play do‘koni to‘lovni tasdiqlagan paytda beriladi.</p>
+
+    <h2>3. Ofertani aksept qilish</h2>
+    <p>3.1. Ofertaning akseptasi (shartlarni to‘liq va so‘zsiz qabul qilish) Foydalanuvchi tomonidan Ilova ichida Kontentni sotib olish (xarid tugmasini bosish va Google Playda to‘lovni tasdiqlash) hisoblanadi.</p>
+    <p>3.2. Akseptni amalga oshirish orqali Foydalanuvchi ushbu Oferta va {{PRIVACY_URL}} (Maxfiylik siyosati) bilan tanishganini va rozi ekanligini tasdiqlaydi.</p>
+
+    <h2>4. Narx va to‘lov tartibi</h2>
+    <p>4.1. Har bir Kontent turining narxi Ilovada xarid ekranida, Google Play do‘koni Foydalanuvchi davlati uchun belgilagan valyutada ko‘rsatiladi.</p>
+    <p>4.2. To‘lovlarni qabul qilish, to‘lov ma’lumotlarini qayta ishlash va cheklarni chiqarishni Google Play Google shartlariga muvofiq amalga oshiradi. Sotuvchi Foydalanuvchining to‘lov rekvizitlarini (karta raqamlari va h.k.) <b>olmaydi, saqlamaydi va qayta ishlamaydi</b>.</p>
+    <p>4.3. Foydalanuvchining to‘lov majburiyati Google Play do‘koni tranzaksiyani tasdiqlagan paytdan boshlab bajarilgan hisoblanadi.</p>
+    <p>4.4. Ilgari qilingan xaridlarni tiklash Ilovadagi «Xaridlarni tiklash» funksiyasi orqali mavjud.</p>
+
+    <h2>5. Mablag‘ni qaytarish</h2>
+    <p>5.1. Raqamli Kontent uchun mablag‘ni qaytarish <b>Google Play qaytarish qoidalariga</b> (Google Play Refund Policy) muvofiq amalga oshiriladi, chunki to‘lov operatsiyasi bo‘yicha sotuvchi sifatida Google Play chiqadi.</p>
+    <p>5.2. Qaytarish so‘rovlarini Foydalanuvchi Google Play orqali yuboradi. Sotuvchi Google Play siyosati ruxsat bergan doirada asosli murojaatlarni ko‘rib chiqishda ko‘maklashadi.</p>
+    <p>5.3. O‘zbekiston Respublikasining «Iste’molchilar huquqlarini himoya qilish to‘g‘risida»gi qonunida nazarda tutilgan iste’molchi huquqlari to‘liq saqlanadi.</p>
+
+    <h2>6. Tomonlarning huquq va majburiyatlari</h2>
+    <p>6.1. Sotuvchi to‘lov tasdiqlangandan so‘ng to‘langan Kontentga kirishni ta’minlash majburiyatini oladi.</p>
+    <p>6.2. Sotuvchi Kontent tarkibi, bezaki va narxlarini o‘zgartirishga haqli; allaqachon sotib olingan Kontent Foydalanuvchida saqlanadi.</p>
+    <p>6.3. Foydalanuvchi Kontentdan faqat shaxsiy notijorat maqsadlarida foydalanish majburiyatini oladi va Kontentni nusxalash, tarqatish, o‘zgartirish yoki qayta sotishga haqli emas.</p>
+    <p>6.4. Litsenziya, agar aniq Kontent uchun boshqa muddat ko‘rsatilmagan bo‘lsa, istisno huquqlar amal qilish muddatiga beriladi.</p>
+
+    <h2>7. Javobgarlik va cheklovlar</h2>
+    <p>7.1. Kontent «boricha» (as is) taqdim etiladi. Sotuvchi Ilovaning uzluksiz va xatosiz ishlashini kafolatlamaydi.</p>
+    <p>7.2. Sotuvchi Google Play do‘koni, Foydalanuvchi qurilmasi, operatsion tizim yoki aloqa tarmog‘i ishi bilan bog‘liq nosozliklar uchun javobgar emas.</p>
+    <p>7.3. Sotuvchining umumiy javobgarligi Foydalanuvchi tegishli Kontent uchun haqiqatda to‘lagan summa bilan cheklanadi.</p>
+
+    <h2>8. Shaxsga doir ma’lumotlar</h2>
+    <p>8.1. Shaxsga doir ma’lumotlarni qayta ishlash Maxfiylik siyosati: {{PRIVACY_URL}} va O‘zbekiston Respublikasining «Shaxsga doir ma’lumotlar to‘g‘risida»gi qonuniga muvofiq amalga oshiriladi.</p>
+
+    <h2>9. Qo‘llaniladigan huquq va nizolarni hal etish</h2>
+    <p>9.1. Ofertaga O‘zbekiston Respublikasi huquqi qo‘llaniladi.</p>
+    <p>9.2. Nizolar muzokaralar yo‘li bilan hal etiladi; kelishuvga erishilmasa — iste’molchilar huquqlarini himoya qilish to‘g‘risidagi imperativ normalarda boshqacha belgilanmagan bo‘lsa, Sotuvchi joylashgan joydagi O‘zbekiston Respublikasi sudlarida hal etiladi.</p>
+
+    <h2>10. Yakuniy qoidalar</h2>
+    <p>10.1. Sotuvchi Ofertani bir tomonlama o‘zgartirishga, yangi tahrirni {{OFFER_URL}} manzilida e’lon qilishga haqli. Yangi tahrir e’lon qilingandan keyin amalga oshirilgan xaridlarga qo‘llaniladi.</p>
+    <p>10.2. Ofertaning amaldagi tahriri doimo Ilovada va ko‘rsatilgan havolada mavjud.</p>
+
+    <h2>11. Sotuvchi rekvizitlari</h2>
+    <ul>
+      <li><b>Sotuvchi:</b> {{NAME}} (jismoniy shaxs)</li>
+      <li><b>Davlat:</b> O‘zbekiston Respublikasi</li>
+      <li><b>Murojaatlar uchun email:</b> {{EMAIL}}</li>
+      <li><b>Ilova:</b> «Harf» (paket identifikatori: <code>uz.abumme.harfgame</code>)</li>
+    </ul>
+  </article>
+
+  <!-- ============================ RUSSIAN ============================ -->
+  <article data-lang="ru" lang="ru">
+    <h2>1. Общие положения</h2>
+    <p>1.1. Настоящий документ является публичной офертой (далее — «Оферта») в соответствии со статьёй 369 Гражданского кодекса Республики Узбекистан и содержит все существенные условия договора купли-продажи (предоставления лицензии) цифрового контента в мобильном приложении «Harf» (далее — «Приложение»).</p>
+    <p>1.2. <b>Продавец:</b> {{NAME}}, физическое лицо, Республика Узбекистан (далее — «Продавец»).</p>
+    <p>1.3. <b>Пользователь</b> — любое дееспособное физическое лицо, установившее Приложение и совершающее покупку цифрового контента внутри Приложения (далее — «Пользователь»).</p>
+    <p>1.4. Приложение «Harf» — словесная игра-головоломка. Ежедневная игра предоставляется <b>бесплатно</b> и не требует оплаты. Оферта регулирует только приобретение необязательных платных дополнений.</p>
+
+    <h2>2. Предмет договора</h2>
+    <p>2.1. Продавец предоставляет Пользователю за плату <b>неисключительную, непередаваемую лицензию</b> на использование цифрового контента и дополнительных функций Приложения (далее — «Контент»), а Пользователь оплачивает их через магазин приложений Google Play.</p>
+    <p>2.2. Виды Контента (внутриигровые покупки):</p>
+    <ul>
+      <li><b>Косметические цветовые палитры (темы оформления)</b> — изменяют внешний вид игрового поля. Разовая покупка, действует бессрочно на аккаунте Пользователя.</li>
+      <li><b>Разблокировка «Lifetime» (пожизненный доступ к дополнениям)</b> — открывает доступ к архиву прошлых игр, «сложному режиму» и значку «Founder». Разовая покупка, действует бессрочно.</li>
+    </ul>
+    <p>2.3. Все покупки являются <b>разовыми</b> и <b>не являются подпиской</b>; периодические списания не производятся.</p>
+    <p>2.4. Контент представляет собой цифровой товар, не имеющий материального носителя. Право пользования предоставляется в момент подтверждения оплаты магазином Google Play.</p>
+
+    <h2>3. Акцепт оферты</h2>
+    <p>3.1. Акцептом (полным и безоговорочным принятием условий) Оферты является совершение Пользователем покупки Контента внутри Приложения (нажатие кнопки покупки и подтверждение оплаты в Google Play).</p>
+    <p>3.2. Совершая акцепт, Пользователь подтверждает, что ознакомлен и согласен с настоящей Офертой и {{PRIVACY_URL}} (Политикой конфиденциальности).</p>
+
+    <h2>4. Цена и порядок оплаты</h2>
+    <p>4.1. Цена каждого вида Контента указывается непосредственно в Приложении на экране покупки в валюте, определяемой магазином Google Play для страны Пользователя.</p>
+    <p>4.2. Приём платежей, обработку платёжных данных и выставление чеков осуществляет <b>Google Play</b> в соответствии с условиями Google. Продавец <b>не получает, не хранит и не обрабатывает</b> платёжные реквизиты Пользователя (номера карт и т. п.).</p>
+    <p>4.3. Обязательство Пользователя по оплате считается исполненным с момента подтверждения транзакции магазином Google Play.</p>
+    <p>4.4. Восстановление ранее совершённых покупок доступно через функцию «Восстановить покупки» в Приложении.</p>
+
+    <h2>5. Возврат средств</h2>
+    <p>5.1. Возврат денежных средств за цифровой Контент осуществляется в соответствии с <b>правилами возврата Google Play</b> (Google Play Refund Policy), поскольку продавцом платёжной операции выступает Google Play.</p>
+    <p>5.2. Запросы на возврат Пользователь направляет через Google Play. Продавец содействует рассмотрению обоснованных обращений в пределах, допускаемых политикой Google Play.</p>
+    <p>5.3. Права потребителя, предусмотренные Законом Республики Узбекистан «О защите прав потребителей», сохраняются в полном объёме.</p>
+
+    <h2>6. Права и обязанности сторон</h2>
+    <p>6.1. Продавец обязуется предоставить доступ к оплаченному Контенту после подтверждения оплаты.</p>
+    <p>6.2. Продавец вправе изменять состав, оформление и цены Контента; уже приобретённый Контент за Пользователем сохраняется.</p>
+    <p>6.3. Пользователь обязуется использовать Контент только в личных некоммерческих целях и не вправе копировать, распространять, модифицировать или перепродавать Контент.</p>
+    <p>6.4. Лицензия предоставляется на срок действия исключительных прав, если для конкретного Контента не указан иной срок.</p>
+
+    <h2>7. Ответственность и ограничения</h2>
+    <p>7.1. Контент предоставляется «как есть» (as is). Продавец не гарантирует бесперебойную и безошибочную работу Приложения.</p>
+    <p>7.2. Продавец не несёт ответственности за сбои, вызванные работой магазина Google Play, устройства Пользователя, операционной системы или сети связи.</p>
+    <p>7.3. Совокупная ответственность Продавца ограничена суммой, фактически уплаченной Пользователем за соответствующий Контент.</p>
+
+    <h2>8. Персональные данные</h2>
+    <p>8.1. Обработка персональных данных осуществляется в соответствии с Политикой конфиденциальности: {{PRIVACY_URL}} и Законом Республики Узбекистан «О персональных данных».</p>
+
+    <h2>9. Применимое право и разрешение споров</h2>
+    <p>9.1. К Оферте применяется право Республики Узбекистан.</p>
+    <p>9.2. Споры разрешаются путём переговоров; при недостижении согласия — в судах Республики Узбекистан по месту нахождения Продавца, если иное не установлено императивными нормами о защите прав потребителей.</p>
+
+    <h2>10. Заключительные положения</h2>
+    <p>10.1. Продавец вправе в одностороннем порядке изменять Оферту, публикуя новую редакцию по адресу {{OFFER_URL}}. Новая редакция применяется к покупкам, совершённым после её публикации.</p>
+    <p>10.2. Актуальная редакция Оферты всегда доступна в Приложении и по указанной ссылке.</p>
+
+    <h2>11. Реквизиты Продавца</h2>
+    <ul>
+      <li><b>Продавец:</b> {{NAME}} (физическое лицо)</li>
+      <li><b>Страна:</b> Республика Узбекистан</li>
+      <li><b>Email для обращений:</b> {{EMAIL}}</li>
+      <li><b>Приложение:</b> «Harf» (идентификатор пакета: <code>uz.abumme.harfgame</code>)</li>
+    </ul>
+  </article>
+
+  <!-- ============================ ENGLISH ============================ -->
+  <article data-lang="en" lang="en">
+    <h2>1. General Provisions</h2>
+    <p>1.1. This document is a <b>public offer</b> (the "Offer") pursuant to Article 369 of the Civil Code of the Republic of Uzbekistan and contains all material terms of the agreement for the sale (licensing) of digital content in the «Harf» mobile application (the "Application").</p>
+    <p>1.2. <b>Seller:</b> {{NAME}}, an individual, Republic of Uzbekistan (the "Seller").</p>
+    <p>1.3. <b>User</b> — any legally capable individual who has installed the Application and purchases digital content within the Application (the "User").</p>
+    <p>1.4. «Harf» is a word puzzle game. The daily game is provided <b>free of charge</b> and requires no payment. This Offer governs only the purchase of optional paid extras.</p>
+
+    <h2>2. Subject of the Agreement</h2>
+    <p>2.1. The Seller grants the User, for a fee, a <b>non-exclusive, non-transferable license</b> to use digital content and additional features of the Application (the "Content"), and the User pays for them through the Google Play store.</p>
+    <p>2.2. Types of Content (in-app purchases):</p>
+    <ul>
+      <li><b>Cosmetic color palettes (themes)</b> — change the appearance of the game board. One-time purchase, valid indefinitely on the User's account.</li>
+      <li><b>"Lifetime" unlock (permanent access to extras)</b> — unlocks the archive of past games, "hard mode", and the "Founder" badge. One-time purchase, valid indefinitely.</li>
+    </ul>
+    <p>2.3. All purchases are <b>one-time</b> and are <b>not subscriptions</b>; no recurring charges are made.</p>
+    <p>2.4. The Content is a digital good with no physical medium. The right to use is granted upon confirmation of payment by the Google Play store.</p>
+
+    <h2>3. Acceptance of the Offer</h2>
+    <p>3.1. Acceptance (full and unconditional acceptance of the terms) of the Offer is the User's purchase of Content within the Application (pressing the purchase button and confirming payment in Google Play).</p>
+    <p>3.2. By accepting, the User confirms that they have read and agree to this Offer and the {{PRIVACY_URL}} (Privacy Policy).</p>
+
+    <h2>4. Price and Payment</h2>
+    <p>4.1. The price of each type of Content is shown directly in the Application on the purchase screen, in the currency determined by the Google Play store for the User's country.</p>
+    <p>4.2. Payment acceptance, processing of payment data, and issuance of receipts are performed by <b>Google Play</b> in accordance with Google's terms. The Seller <b>does not receive, store, or process</b> the User's payment details (card numbers, etc.).</p>
+    <p>4.3. The User's payment obligation is deemed fulfilled from the moment the transaction is confirmed by the Google Play store.</p>
+    <p>4.4. Restoring previously made purchases is available via the "Restore purchases" function in the Application.</p>
+
+    <h2>5. Refunds</h2>
+    <p>5.1. Refunds for digital Content are handled in accordance with the <b>Google Play Refund Policy</b>, as Google Play acts as the seller of record for the payment transaction.</p>
+    <p>5.2. The User submits refund requests through Google Play. The Seller assists in reviewing justified requests to the extent permitted by Google Play policy.</p>
+    <p>5.3. Consumer rights provided by the Law of the Republic of Uzbekistan "On the Protection of Consumer Rights" are fully preserved.</p>
+
+    <h2>6. Rights and Obligations of the Parties</h2>
+    <p>6.1. The Seller undertakes to provide access to the paid Content after payment is confirmed.</p>
+    <p>6.2. The Seller may change the composition, design, and prices of the Content; Content already purchased is retained by the User.</p>
+    <p>6.3. The User undertakes to use the Content only for personal, non-commercial purposes and may not copy, distribute, modify, or resell the Content.</p>
+    <p>6.4. The license is granted for the term of the exclusive rights unless another term is specified for particular Content.</p>
+
+    <h2>7. Liability and Limitations</h2>
+    <p>7.1. The Content is provided "as is". The Seller does not guarantee uninterrupted or error-free operation of the Application.</p>
+    <p>7.2. The Seller is not liable for failures caused by the Google Play store, the User's device, the operating system, or the communications network.</p>
+    <p>7.3. The Seller's aggregate liability is limited to the amount actually paid by the User for the relevant Content.</p>
+
+    <h2>8. Personal Data</h2>
+    <p>8.1. Personal data is processed in accordance with the Privacy Policy: {{PRIVACY_URL}} and the Law of the Republic of Uzbekistan "On Personal Data".</p>
+
+    <h2>9. Governing Law and Dispute Resolution</h2>
+    <p>9.1. This Offer is governed by the law of the Republic of Uzbekistan.</p>
+    <p>9.2. Disputes are resolved through negotiation; failing agreement — in the courts of the Republic of Uzbekistan at the Seller's location, unless otherwise established by mandatory consumer-protection rules.</p>
+
+    <h2>10. Final Provisions</h2>
+    <p>10.1. The Seller may unilaterally amend the Offer by publishing a new revision at {{OFFER_URL}}. The new revision applies to purchases made after its publication.</p>
+    <p>10.2. The current revision of the Offer is always available in the Application and at the specified link.</p>
+
+    <h2>11. Seller Details</h2>
+    <ul>
+      <li><b>Seller:</b> {{NAME}} (individual)</li>
+      <li><b>Country:</b> Republic of Uzbekistan</li>
+      <li><b>Contact email:</b> {{EMAIL}}</li>
+      <li><b>Application:</b> «Harf» (package id: <code>uz.abumme.harfgame</code>)</li>
+    </ul>
+  </article>
+</main>
+
+<footer>
+  <p>«Harf» — <code>uz.abumme.harfgame</code></p>
+</footer>
+
+<script>
+  // --- Single source of truth for the fill-in identifiers. -----------------
+  // Set NAME before publishing. Empty NAME renders a visible TODO marker.
+  var LEGAL = {
+    NAME: "Islomov Mekhrojbek",                   // {{ФИО}} — seller full name
+    EMAIL: "lazydevscat@gmail.com",                 // {{КОНТАКТНЫЙ_EMAIL}}
+    DATE: "2026-09-06",                           // {{ДАТА_РЕДАКЦИИ}}
+    PRIVACY_URL: "https://lazydevs.uz/harf/privacy",
+    OFFER_URL: "https://lazydevs.uz/harf/offer"
+  };
+
+  var DOC_TITLE  = { uz: "Ommaviy oferta", ru: "Публичная оферта", en: "Public Offer" };
+  var REV_LABEL  = { uz: "Tahrir sanasi", ru: "Редакция от", en: "Revision date" };
+  var TERRITORY  = {
+    uz: "Amal qilish hududi: O‘zbekiston Respublikasi va ilova Google Play orqali tarqatiladigan boshqa davlatlar",
+    ru: "Территория действия: Республика Узбекистан и иные страны распространения приложения через Google Play",
+    en: "Territory: Republic of Uzbekistan and other countries where the application is distributed via Google Play"
+  };
+  var TODO       = { uz: "[ISM — TO‘LDIRILADI]", ru: "[ФИО — ЗАПОЛНИТЬ]", en: "[NAME — FILL IN]" };
+
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  function fill(html, lang){
+    var name = LEGAL.NAME
+      ? esc(LEGAL.NAME)
+      : '<span class="fill todo">' + TODO[lang] + '</span>';
+    var email = LEGAL.EMAIL
+      ? '<a href="mailto:' + esc(LEGAL.EMAIL) + '">' + esc(LEGAL.EMAIL) + '</a>'
+      : '<span class="fill">EMAIL</span>';
+    var purl = '<a href="' + esc(LEGAL.PRIVACY_URL) + '">' + esc(LEGAL.PRIVACY_URL) + '</a>';
+    var ourl = '<a href="' + esc(LEGAL.OFFER_URL) + '">' + esc(LEGAL.OFFER_URL) + '</a>';
+    return html
+      .replace(/\{\{NAME\}\}/g, name)
+      .replace(/\{\{EMAIL\}\}/g, email)
+      .replace(/\{\{PRIVACY_URL\}\}/g, purl)
+      .replace(/\{\{OFFER_URL\}\}/g, ourl);
+  }
+
+  var LANGS = ["uz","ru","en"];
+  function pickDefault(){
+    try {
+      var stored = localStorage.getItem("harf-legal-lang");
+      if (stored && LANGS.indexOf(stored) >= 0) return stored;
+    } catch(e){}
+    var nav = (navigator.language || "ru").toLowerCase();
+    for (var i=0;i<LANGS.length;i++){ if (nav.indexOf(LANGS[i]) === 0) return LANGS[i]; }
+    return "ru";
+  }
+
+  function apply(lang){
+    document.documentElement.lang = lang;
+    document.querySelector("[data-doc]").textContent = DOC_TITLE[lang];
+    document.querySelector("[data-rev]").textContent = REV_LABEL[lang] + ": " + LEGAL.DATE;
+    document.querySelector("[data-territory]").textContent = TERRITORY[lang];
+    document.title = "Harf — " + DOC_TITLE[lang];
+    document.querySelectorAll("article").forEach(function(a){
+      a.classList.toggle("active", a.getAttribute("data-lang") === lang);
+    });
+    document.querySelectorAll(".langbar button").forEach(function(b){
+      b.setAttribute("aria-pressed", b.getAttribute("data-lang") === lang ? "true" : "false");
+    });
+    try { localStorage.setItem("harf-legal-lang", lang); } catch(e){}
+  }
+
+  document.querySelectorAll("article").forEach(function(a){
+    a.innerHTML = fill(a.innerHTML, a.getAttribute("data-lang"));
+  });
+  document.querySelectorAll(".langbar button").forEach(function(b){
+    b.addEventListener("click", function(){ apply(b.getAttribute("data-lang")); });
+  });
+  apply(pickDefault());
+</script>
+</body>
+</html>
