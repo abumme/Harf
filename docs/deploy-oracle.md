@@ -126,10 +126,17 @@ api.lazydevs.uz {
     # ... your other path blocks ...
 }
 ```
+Validate before reloading — a broken Caddyfile takes down every other site on the host:
 ```bash
-sudo systemctl reload caddy
+sudo cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak
+sudo caddy validate --adapter caddyfile --config /etc/caddy/Caddyfile   # expect "Valid configuration"
+sudo systemctl reload caddy    # reload, not restart — restart drops live connections
 ```
-Caddy auto-issues/renews the Let's Encrypt certificate — needs the DNS record below and ports 80/443 open (step 1).
+
+Caddy auto-issues/renews the Let's Encrypt certificate — needs the DNS record below and ports 80/443
+open (step 1). **The first request after adding a new hostname usually fails** with
+`tlsv1 alert internal error`: issuance takes a few seconds and the cert doesn't exist yet. Wait and
+retry before assuming something's broken. `sudo journalctl -u caddy -n 30` shows the ACME progress.
 
 ## 7. DNS
 
