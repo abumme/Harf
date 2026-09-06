@@ -1,19 +1,14 @@
 # «Harf» ilovasida raqamli kontent oldi-sotdi shartnomasini tuzish to'g'risidagi ommaviy oferta
 
-**Tahrir sanasi:** {{ДАТА_РЕДАКЦИИ}}
+**Tahrir sanasi:** 2026-09-06
 **Amal qilish hududi:** O'zbekiston Respublikasi va ilova Google Play orqali tarqatiladigan boshqa davlatlar
 
-> **NASHR QILISHDAN OLDIN TO'LDIRILADI (ushbu blokni o'chiring):**
-> - `{{ФИО}}` — sotuvchining to'liq ismi (jismoniy shaxs)
-> - `{{КОНТАКТНЫЙ_EMAIL}}` — murojaatlar uchun email (masalan support@lazydevs.uz)
-> - `{{URL_ПОЛИТИКИ_КОНФИДЕНЦИАЛЬНОСТИ}}` — Maxfiylik siyosati havolasi
-> - `{{URL_ОФЕРТЫ}}` — ushbu ofertaning doimiy havolasi
 
 ## 1. Umumiy qoidalar
 
 1.1. Ushbu hujjat O'zbekiston Respublikasi Fuqarolik kodeksining 369-moddasiga muvofiq **ommaviy oferta** (keyingi o'rinlarda — «Oferta») bo'lib, «Harf» mobil ilovasida (keyingi o'rinlarda — «Ilova») raqamli kontentni oldi-sotdi (litsenziya berish) shartnomasining barcha muhim shartlarini o'z ichiga oladi.
 
-1.2. **Sotuvchi:** {{ФИО}}, jismoniy shaxs, O'zbekiston Respublikasi (keyingi o'rinlarda — «Sotuvchi»).
+1.2. **Sotuvchi:** Islomov Mekhrojbek, jismoniy shaxs, O'zbekiston Respublikasi (keyingi o'rinlarda — «Sotuvchi»).
 
 1.3. **Foydalanuvchi** — Ilovani o'rnatgan va Ilova ichida raqamli kontentni sotib olayotgan har qanday muomalaga layoqatli jismoniy shaxs (keyingi o'rinlarda — «Foydalanuvchi»).
 
@@ -36,7 +31,7 @@
 
 3.1. Ofertaning akseptasi (shartlarni to'liq va so'zsiz qabul qilish) Foydalanuvchi tomonidan Ilova ichida Kontentni sotib olish (xarid tugmasini bosish va Google Playda to'lovni tasdiqlash) hisoblanadi.
 
-3.2. Akseptni amalga oshirish orqali Foydalanuvchi ushbu Oferta va {{URL_ПОЛИТИКИ_КОНФИДЕНЦИАЛЬНОСТИ}} (Maxfiylik siyosati) bilan tanishganini va rozi ekanligini tasdiqlaydi.
+3.2. Akseptni amalga oshirish orqali Foydalanuvchi ushbu Oferta va https://lazydevs.uz/harf/privacy (Maxfiylik siyosati) bilan tanishganini va rozi ekanligini tasdiqlaydi.
 
 ## 4. Narx va to'lov tartibi
 
@@ -76,7 +71,7 @@
 
 ## 8. Shaxsga doir ma'lumotlar
 
-8.1. Shaxsga doir ma'lumotlarni qayta ishlash Maxfiylik siyosati: {{URL_ПОЛИТИКИ_КОНФИДЕНЦИАЛЬНОСТИ}} va O'zbekiston Respublikasining «Shaxsga doir ma'lumotlar to'g'risida»gi qonuniga muvofiq amalga oshiriladi.
+8.1. Shaxsga doir ma'lumotlarni qayta ishlash Maxfiylik siyosati: https://lazydevs.uz/harf/privacy va O'zbekiston Respublikasining «Shaxsga doir ma'lumotlar to'g'risida»gi qonuniga muvofiq amalga oshiriladi.
 
 ## 9. Qo'llaniladigan huquq va nizolarni hal etish
 
@@ -86,13 +81,13 @@
 
 ## 10. Yakuniy qoidalar
 
-10.1. Sotuvchi Ofertani bir tomonlama o'zgartirishga, yangi tahrirni {{URL_ОФЕРТЫ}} manzilida e'lon qilishga haqli. Yangi tahrir e'lon qilingandan keyin amalga oshirilgan xaridlarga qo'llaniladi.
+10.1. Sotuvchi Ofertani bir tomonlama o'zgartirishga, yangi tahrirni https://lazydevs.uz/harf/offer manzilida e'lon qilishga haqli. Yangi tahrir e'lon qilingandan keyin amalga oshirilgan xaridlarga qo'llaniladi.
 
 10.2. Ofertaning amaldagi tahriri doimo Ilovada va ko'rsatilgan havolada mavjud.
 
 ## 11. Sotuvchi rekvizitlari
 
-- **Sotuvchi:** {{ФИО}} (jismoniy shaxs)
+- **Sotuvchi:** Islomov Mekhrojbek (jismoniy shaxs)
 - **Davlat:** O'zbekiston Respublikasi
-- **Murojaatlar uchun email:** {{КОНТАКТНЫЙ_EMAIL}}
+- **Murojaatlar uchun email:** lazydevscat@gmail.com
 - **Ilova:** «Harf» (paket identifikatori: `uz.abumme.harfgame`)

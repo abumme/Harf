@@ -1,19 +1,14 @@
 # Public Offer for the Sale of Digital Content in the «Harf» Application
 
-**Revision date:** {{ДАТА_РЕДАКЦИИ}}
+**Revision date:** 2026-09-06
 **Territory:** Republic of Uzbekistan and other countries where the application is distributed via Google Play
 
-> **FILL IN BEFORE PUBLISHING (remove this block):**
-> - `{{ФИО}}` — full name of the seller (individual)
-> - `{{КОНТАКТНЫЙ_EMAIL}}` — contact email (e.g. support@lazydevs.uz)
-> - `{{URL_ПОЛИТИКИ_КОНФИДЕНЦИАЛЬНОСТИ}}` — link to the Privacy Policy
-> - `{{URL_ОФЕРТЫ}}` — permanent link to this offer
 
 ## 1. General Provisions
 
 1.1. This document is a **public offer** (the "Offer") pursuant to Article 369 of the Civil Code of the Republic of Uzbekistan and contains all material terms of the agreement for the sale (licensing) of digital content in the «Harf» mobile application (the "Application").
 
-1.2. **Seller:** {{ФИО}}, an individual, Republic of Uzbekistan (the "Seller").
+1.2. **Seller:** Islomov Mekhrojbek, an individual, Republic of Uzbekistan (the "Seller").
 
 1.3. **User** — any legally capable individual who has installed the Application and purchases digital content within the Application (the "User").
 
@@ -36,7 +31,7 @@
 
 3.1. Acceptance (full and unconditional acceptance of the terms) of the Offer is the User's purchase of Content within the Application (pressing the purchase button and confirming payment in Google Play).
 
-3.2. By accepting, the User confirms that they have read and agree to this Offer and the {{URL_ПОЛИТИКИ_КОНФИДЕНЦИАЛЬНОСТИ}} (Privacy Policy).
+3.2. By accepting, the User confirms that they have read and agree to this Offer and the https://lazydevs.uz/harf/privacy (Privacy Policy).
 
 ## 4. Price and Payment
 
@@ -76,7 +71,7 @@
 
 ## 8. Personal Data
 
-8.1. Personal data is processed in accordance with the Privacy Policy: {{URL_ПОЛИТИКИ_КОНФИДЕНЦИАЛЬНОСТИ}} and the Law of the Republic of Uzbekistan "On Personal Data".
+8.1. Personal data is processed in accordance with the Privacy Policy: https://lazydevs.uz/harf/privacy and the Law of the Republic of Uzbekistan "On Personal Data".
 
 ## 9. Governing Law and Dispute Resolution
 
@@ -86,13 +81,13 @@
 
 ## 10. Final Provisions
 
-10.1. The Seller may unilaterally amend the Offer by publishing a new revision at {{URL_ОФЕРТЫ}}. The new revision applies to purchases made after its publication.
+10.1. The Seller may unilaterally amend the Offer by publishing a new revision at https://lazydevs.uz/harf/offer. The new revision applies to purchases made after its publication.
 
 10.2. The current revision of the Offer is always available in the Application and at the specified link.
 
 ## 11. Seller Details
 
-- **Seller:** {{ФИО}} (individual)
+- **Seller:** Islomov Mekhrojbek (individual)
 - **Country:** Republic of Uzbekistan
-- **Contact email:** {{КОНТАКТНЫЙ_EMAIL}}
+- **Contact email:** lazydevscat@gmail.com
 - **Application:** «Harf» (package id: `uz.abumme.harfgame`)

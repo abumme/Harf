@@ -1,17 +1,13 @@
 # «Harf» ilovasining Maxfiylik siyosati
 
-**Tahrir sanasi:** {{ДАТА_РЕДАКЦИИ}}
+**Tahrir sanasi:** 2026-09-06
 
-> **NASHR QILISHDAN OLDIN TO'LDIRILADI (ushbu blokni o'chiring):**
-> - `{{ФИО}}` — ma'lumotlar operatorining to'liq ismi (jismoniy shaxs)
-> - `{{КОНТАКТНЫЙ_EMAIL}}` — murojaatlar uchun email (masalan support@lazydevs.uz)
-> - `{{URL_ПОЛИТИКИ_КОНФИДЕНЦИАЛЬНОСТИ}}` — ushbu siyosatning doimiy havolasi
 
 ## 1. Umumiy qoidalar
 
 1.1. Ushbu Siyosat «Harf» mobil ilovasida (keyingi o'rinlarda — «Ilova») qanday ma'lumotlar qayta ishlanishini, qanday maqsadda va qanday himoyalanishini tavsiflaydi.
 
-1.2. **Ma'lumotlar operatori:** {{ФИО}}, jismoniy shaxs, O'zbekiston Respublikasi. Email: {{КОНТАКТНЫЙ_EMAIL}}.
+1.2. **Ma'lumotlar operatori:** Islomov Mekhrojbek, jismoniy shaxs, O'zbekiston Respublikasi. Email: lazydevscat@gmail.com.
 
 1.3. Ma'lumotlarni qayta ishlash O'zbekiston Respublikasining «Shaxsga doir ma'lumotlar to'g'risida»gi qonuniga muvofiq amalga oshiriladi.
 
@@ -57,7 +53,7 @@
 
 6.1. **Hisobni o'chirish.** Foydalanuvchi o'z hisobini Ilovada o'chirishi mumkin; o'chirilganda bog'liq server ma'lumotlari (kirish identifikatorlari, statistika, tokenlar) kaskadli o'chiriladi.
 
-6.2. Foydalanuvchi o'z ma'lumotlarini qayta ishlash haqida ma'lumot olish uchun {{КОНТАКТНЫЙ_EMAIL}} manziliga murojaat qilishi mumkin.
+6.2. Foydalanuvchi o'z ma'lumotlarini qayta ishlash haqida ma'lumot olish uchun lazydevscat@gmail.com manziliga murojaat qilishi mumkin.
 
 ## 7. Bolalar
 
@@ -65,10 +61,10 @@
 
 ## 8. Siyosatga o'zgartirishlar
 
-8.1. Operator Siyosatni o'zgartirishga, yangi tahrirni {{URL_ПОЛИТИКИ_КОНФИДЕНЦИАЛЬНОСТИ}} manzilida e'lon qilishga haqli. Amaldagi tahrir doimo Ilovada va ko'rsatilgan havolada mavjud.
+8.1. Operator Siyosatni o'zgartirishga, yangi tahrirni https://lazydevs.uz/harf/privacy manzilida e'lon qilishga haqli. Amaldagi tahrir doimo Ilovada va ko'rsatilgan havolada mavjud.
 
 ## 9. Aloqa
 
-- **Operator:** {{ФИО}} (jismoniy shaxs), O'zbekiston Respublikasi
-- **Email:** {{КОНТАКТНЫЙ_EMAIL}}
+- **Operator:** Islomov Mekhrojbek (jismoniy shaxs), O'zbekiston Respublikasi
+- **Email:** lazydevscat@gmail.com
 - **Ilova:** «Harf» (paket identifikatori: `uz.abumme.harfgame`)
