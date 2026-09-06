@@ -14,7 +14,9 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "127.0.0.1:5432:5432" # never exposed publicly
+      # Loopback only, never public. Host port is overridable because the box may already
+      # run another Postgres; the backend reaches this over the compose network regardless.
+      - "127.0.0.1:${DB_HOST_PORT:-5432}:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
@@ -40,7 +42,9 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "127.0.0.1:8080:8080" # host Caddy proxies to this; not public
+      # Host Caddy proxies to this; not public. Defaults to 8081 because 8080 is commonly
+      # already taken by another app on the box — point Caddy at whatever this resolves to.
+      - "127.0.0.1:${HARF_HOST_PORT:-8081}:8080"
 
 volumes:
   postgres_data:

@@ -1,9 +1,14 @@
 # Deploy the Harf backend to Oracle Cloud (free tier, Ubuntu)
 
 Runs Postgres + the Ktor backend in Docker, both bound to `127.0.0.1`. The host's Caddy terminates
-TLS and reverse-proxies `https://<domain>` → `127.0.0.1:8080`. The published image is built for
-**`linux/arm64`** (Oracle Ampere shapes); on an AMD (x86_64) shape, build on the box instead — the
-Dockerfile and its base images are arch-agnostic.
+TLS and reverse-proxies `https://<domain>` → `127.0.0.1:8081`.
+
+**Check the shape's architecture first — `uname -m`.** The published image is built for
+**`linux/amd64`** (Oracle AMD shapes). On an Ampere shape (`aarch64`) that image won't run; either
+flip the workflow to arm64 (see §11) or build on the box, which is arch-agnostic.
+
+The backend publishes on host port **8081**, not 8080 — 8080 is usually already taken. Override with
+`HARF_HOST_PORT` in `.env`.
 
 Files: [`backend/Dockerfile`](../backend/Dockerfile), [`docker-compose.prod.yml`](../docker-compose.prod.yml),
 [`.env.example`](../.env.example), [`.github/workflows/backend-image.yml`](../.github/workflows/backend-image.yml).
@@ -11,7 +16,7 @@ Files: [`backend/Dockerfile`](../backend/Dockerfile), [`docker-compose.prod.yml`
 ## 1. Open the ports (two firewalls — this is the #1 Oracle gotcha)
 
 **a. Cloud Security List / NSG** (Oracle console → VCN → your subnet → Security List → Add Ingress Rules):
-open **TCP 80** and **TCP 443** from `0.0.0.0/0`. SSH (22) is already open. Do **not** open 8080 or 5432.
+open **TCP 80** and **TCP 443** from `0.0.0.0/0`. SSH (22) is already open. Do **not** open 8081 or 5432.
 
 **b. The instance's own iptables** (Oracle Ubuntu images block everything but 22):
 ```bash
@@ -31,7 +36,7 @@ sudo usermod -aG docker $USER && newgrp docker   # run docker without sudo
 ## 3. Get the code and configure secrets
 
 ```bash
-git clone <your-repo-url> harf && cd harf
+git clone https://github.com/abumme/Harf.git ~/harf && cd ~/harf
 cp .env.example .env
 # generate real secrets:
 sed -i "s|JWT_SECRET=CHANGE_ME|JWT_SECRET=$(openssl rand -base64 48)|" .env
@@ -39,31 +44,45 @@ sed -i "s|CHANGE_ME_strong_db_password|$(openssl rand -base64 24)|" .env
 nano .env   # confirm GOOGLE_CLIENT_IDS is your Web client id
 ```
 
+Only ever run this on a **fresh** box. Regenerating `JWT_SECRET` on an existing deployment logs
+every user out, and a new `POSTGRES_PASSWORD` won't match the password already baked into the
+`postgres_data` volume — the backend then fails to connect.
+
+Confirm the host ports in `.env` are actually free before starting:
+```bash
+sudo ss -ltnp | grep -E ':(8081|5432)\b' || echo "both free"
+```
+
 ## 4. Run it
 
-CI publishes the backend image to GHCR for `linux/arm64` (see §11), so the box only pulls:
+Simplest route — **compile on the box**. No registry, no auth, and it builds natively for whatever
+architecture the shape is:
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d
+docker compose -f docker-compose.prod.yml up -d --build
 docker compose -f docker-compose.prod.yml logs -f backend   # watch startup
 ```
 
-The GHCR package is private until you flip it (GitHub → your profile → Packages → `harf-backend` →
-Package settings → Change visibility → Public). While it's private, log in on the box once with a
-classic PAT that has `read:packages`:
+The Gradle build needs **~2 GB of RAM**. Check with `free -h`; if the box has less (the 1 GB AMD
+micro shape), add swap first or the build is OOM-killed mid-compile:
+```bash
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab   # survives reboot
+```
+
+**Pulling the prebuilt image instead** (`up -d`, no `--build`) skips the compile, but the image
+architecture must match the shape (§11) and the GHCR package must be readable. It's private until
+you flip it at `https://github.com/orgs/abumme/packages/container/harf-backend/settings` → Change
+visibility → Public. While private, log in on the box once with a classic PAT that has
+`read:packages`:
 ```bash
 echo <TOKEN> | docker login ghcr.io -u <github-username> --password-stdin
 ```
 
 Tables are created automatically on first start. Health check:
 ```bash
-curl http://127.0.0.1:8080/          # -> "Harf Backend is running"
+curl http://127.0.0.1:8081/          # -> "Harf Backend is running"
 ```
-
-> **Compiling on the box instead** (`up -d --build`) also works — the same Dockerfile, no registry
-> involved. It needs ~2 GB of RAM, so on the 1 GB AMD micro shape add swap first:
-> `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile`
-> (Ampere shapes have plenty of RAM — no swap needed.)
 
 ## 5. Point Caddy at it
 
@@ -73,7 +92,7 @@ Caddy is already installed and `api.lazydevs.uz` serves apps by path, so mount H
 ```
 api.lazydevs.uz {
     handle_path /harf/* {
-        reverse_proxy 127.0.0.1:8080
+        reverse_proxy 127.0.0.1:8081
     }
     # ... your other path blocks ...
 }
@@ -103,18 +122,24 @@ release build targets production:
 ```
 `GOOGLE_CLIENT_IDS` is already set in `.env`, so the server trusts Google sign-in tokens.
 
-Testing over the raw IP instead? Use a **debug** build (`-Pharf.apiBaseUrl=http://<public-ip>:8080`,
-and temporarily publish port 8080) — a release build requires trusted HTTPS.
+Testing over the raw IP instead? Use a **debug** build (`-Pharf.apiBaseUrl=http://<public-ip>:8081`,
+and temporarily publish port 8081) — a release build requires trusted HTTPS.
 
 ## 9. Updates
 
-A push to `main` that touches the backend republishes `:latest`. On the box:
+Recompiling on the box (matches §4):
+```bash
+cd ~/harf && git pull
+docker compose -f docker-compose.prod.yml up -d --build
+docker image prune -f    # drop the superseded image
+```
+
+Pulling instead — a push to `main` that touches the backend republishes `:latest`:
 ```bash
 docker compose -f docker-compose.prod.yml pull backend
 docker compose -f docker-compose.prod.yml up -d
-docker image prune -f    # drop the superseded image
+docker image prune -f
 ```
-Compiling locally instead: `git pull && docker compose -f docker-compose.prod.yml up -d --build`.
 
 ## 10. Backups
 
@@ -128,16 +153,21 @@ gunzip -c harf-YYYY-MM-DD.sql.gz | docker exec -i harf-postgres psql -U harf -d 
 ## 11. Publishing the image
 
 `.github/workflows/backend-image.yml` builds and pushes on every backend-touching push to `main`
-(and on `v*` tags), tagging `latest`, the git tag, and `sha-<short>`. It runs on GitHub's native
-`ubuntu-24.04-arm` runner — free for this public repo, and far faster than emulating aarch64.
+(and on `v*` tags), tagging `latest`, the git tag, and `sha-<short>`. It runs on `ubuntu-24.04` and
+builds `linux/amd64`, matching the current AMD deploy shape.
+
+**Moving to an Ampere/aarch64 shape?** Change both lines together — `runs-on: ubuntu-24.04-arm` and
+`platforms: linux/arm64`. GitHub's arm runner is free on public repos and ~10x faster than QEMU.
+Leaving them mismatched with the server yields `no matching manifest for linux/<arch>` on pull.
 
 To push by hand from a workstation:
 ```bash
 docker login ghcr.io -u <github-username>      # classic PAT with write:packages
-docker buildx build --platform linux/arm64 \
+docker buildx build --platform linux/amd64 \
   -f backend/Dockerfile -t ghcr.io/abumme/harf-backend:latest --push .
 ```
-On an x86_64 machine that runs the whole Gradle build under QEMU — budget 15–30 minutes. Prefer CI.
+Building the *other* architecture runs the whole Gradle build under QEMU — budget 15–30 minutes.
+Prefer CI.
 
 ## Notes
 
