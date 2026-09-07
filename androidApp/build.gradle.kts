@@ -32,3 +32,18 @@ dependencies {
     implementation(project(":sharedUI"))
     implementation(libs.androidx.activityCompose)
 }
+
+// Convenience for debugging against a local backend. The `Local` in this task's name flips
+// sharedUI's apiBaseUrl default to http://localhost:8080 (see sharedUI/build.gradle.kts); the
+// adb-reverse tunnel makes that reachable from a physical device or emulator.
+//   ./gradlew :androidApp:installLocalDebug
+tasks.register<Exec>("adbReverse8080") {
+    description = "adb reverse tcp:8080 -> host:8080 so the device can reach a local backend."
+    commandLine("adb", "reverse", "tcp:8080", "tcp:8080")
+    isIgnoreExitValue = true
+}
+tasks.register("installLocalDebug") {
+    description = "Install the debug app wired to http://localhost:8080 and tunnel :8080 to the host."
+    group = "install"
+    dependsOn("installDebug", "adbReverse8080")
+}

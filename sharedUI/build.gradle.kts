@@ -154,18 +154,16 @@ fun rcReleaseKey(name: String, prodPrefix: String): String {
     return value
 }
 
-// Backend API base URL per environment. Dev defaults to localhost; a release build must supply a
-// production HTTPS URL (never a loopback) via `-Pharf.apiBaseUrl=...` or local.properties.
+// Backend API base URL. Production is the default for every build; to debug against a local server
+// override with `-Pharf.apiBaseUrl=http://localhost:8080` or run the `:androidApp:installLocalDebug`
+// task (which defaults the URL to localhost). A release build additionally requires non-loopback HTTPS.
+val localBackend = gradle.startParameter.taskNames.any { it.contains("Local", ignoreCase = true) }
 fun apiBaseUrl(): String {
     val prodDefault = "https://api.lazydevs.uz/harf"
-    val configured = localProps.getProperty("harf.apiBaseUrl")
+    val value = (localProps.getProperty("harf.apiBaseUrl")
         ?: providers.gradleProperty("harf.apiBaseUrl").orNull
-        ?: ""
-    val value = configured.ifBlank { if (isReleaseBuild) prodDefault else "http://localhost:8080" }
+        ?: "").ifBlank { if (localBackend) "http://localhost:8080" else prodDefault }
     if (isReleaseBuild) {
-        require(value.isNotBlank()) {
-            "Release build requires 'harf.apiBaseUrl' (production HTTPS API URL); refusing to default to localhost."
-        }
         require(value.startsWith("https://")) { "Release API base URL must be HTTPS: '$value'." }
         val host = value.removePrefix("https://").substringBefore('/').substringBefore(':')
         require(host !in setOf("localhost", "127.0.0.1", "10.0.2.2")) {
