@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug-only: allow plaintext HTTP so a debug build can hit a local backend
+     (adb reverse localhost:8080 / a LAN IP). Never merged into release. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <application
+        android:usesCleartextTraffic="true"
+        tools:ignore="AllowBackup" />
+</manifest>
