@@ -97,10 +97,15 @@ class SyncManager(
         return false
     }
 
-    suspend fun linkAccount(provider: OAuthProvider, idToken: String, nonce: String? = null): ApiResult<Unit> {
+    suspend fun linkAccount(
+        provider: OAuthProvider,
+        idToken: String,
+        nonce: String? = null,
+        displayName: String? = null,
+    ): ApiResult<Unit> {
         val token = sessionStore.get().accessToken
             ?: return ApiResult.Error("UNAUTHORIZED", "No active session")
-        val linkResult = authService.linkAccount(token, LinkAccountRequest(provider, idToken, nonce))
+        val linkResult = authService.linkAccount(token, LinkAccountRequest(provider, idToken, nonce, displayName))
         return when (linkResult) {
             is ApiResult.Success -> {
                 // Server-wins: adopt the pre-existing account's snapshot and drop any pending marker

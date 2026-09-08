@@ -12,6 +12,8 @@ data class SessionData(
     val accessToken: String? = null,
     val refreshToken: String? = null,
     val isLinked: Boolean = false,
+    /** User-confirmed display name for the linked account; null when anonymous / unnamed. */
+    val displayName: String? = null,
 )
 
 class SessionStore(private val ksafe: KSafe) {
@@ -24,13 +26,20 @@ class SessionStore(private val ksafe: KSafe) {
         return data
     }
 
-    suspend fun saveSession(userId: String, accessToken: String, refreshToken: String, isLinked: Boolean? = null) {
+    suspend fun saveSession(
+        userId: String,
+        accessToken: String,
+        refreshToken: String,
+        isLinked: Boolean? = null,
+        displayName: String? = null,
+    ) {
         val current = get()
         val updated = SessionData(
             userId = userId,
             accessToken = accessToken,
             refreshToken = refreshToken,
-            isLinked = isLinked ?: current.isLinked
+            isLinked = isLinked ?: current.isLinked,
+            displayName = displayName ?: current.displayName,
         )
         ksafe.put(KEY, updated)
         _session.value = updated

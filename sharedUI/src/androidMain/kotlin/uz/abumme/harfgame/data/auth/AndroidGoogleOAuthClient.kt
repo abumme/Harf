@@ -42,8 +42,12 @@ class AndroidGoogleOAuthClient(
             if (credential is CustomCredential &&
                 credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
             ) {
-                val idToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
-                OAuthResult.Token(idToken = idToken, nonce = nonce)
+                val googleCredential = GoogleIdTokenCredential.createFrom(credential.data)
+                OAuthResult.Token(
+                    idToken = googleCredential.idToken,
+                    nonce = nonce,
+                    suggestedName = googleCredential.displayName?.takeIf { it.isNotBlank() },
+                )
             } else {
                 OAuthResult.Failed("Unexpected credential type")
             }

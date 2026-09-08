@@ -184,6 +184,85 @@ class AccountLinkMergeTest {
     }
 
     @Test
+    fun testConfirmedDisplayNameIsPersistedAndReturnedOnLink() = testApplication {
+        val mockVerifier = MockOAuthVerifier(
+            mapOf("valid-google-id-token" to OAuthIdentityResult(OAuthProvider.GOOGLE, "google-sub-name"))
+        )
+        application {
+            module(verifiers = mapOf(OAuthProvider.GOOGLE to mockVerifier))
+        }
+        val client = createClient {
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        }
+
+        val anon = client.post(ApiRoutes.AUTH_ANONYMOUS).body<AnonymousAuthResponse>()
+        val linkResp = client.post(ApiRoutes.AUTH_LINK) {
+            header(HttpHeaders.Authorization, "Bearer ${anon.tokens.accessToken}")
+            contentType(ContentType.Application.Json)
+            setBody(
+                LinkAccountRequest(
+                    provider = OAuthProvider.GOOGLE,
+                    idToken = "valid-google-id-token",
+                    displayName = "Ada Lovelace",
+                )
+            )
+        }
+        assertEquals(HttpStatusCode.OK, linkResp.status)
+        assertEquals("Ada Lovelace", linkResp.body<LinkAccountResponse>().displayName)
+
+        val db = DatabaseFactory.init()
+        transaction(db) {
+            val row = UsersTable.selectAll().where { UsersTable.id eq anon.userId }.single()
+            assertEquals("Ada Lovelace", row[UsersTable.name])
+        }
+    }
+
+    @Test
+    fun testConfirmedDisplayNameIsAppliedToAdoptedAccountOnMerge() = testApplication {
+        val mockVerifier = MockOAuthVerifier(
+            mapOf("google-token-existing-user" to OAuthIdentityResult(OAuthProvider.GOOGLE, "google-sub-merge"))
+        )
+        application {
+            module(verifiers = mapOf(OAuthProvider.GOOGLE to mockVerifier))
+        }
+        val client = createClient {
+            install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+        }
+
+        // Account A links the identity (no name yet).
+        val accountA = client.post(ApiRoutes.AUTH_ANONYMOUS).body<AnonymousAuthResponse>()
+        client.post(ApiRoutes.AUTH_LINK) {
+            header(HttpHeaders.Authorization, "Bearer ${accountA.tokens.accessToken}")
+            contentType(ContentType.Application.Json)
+            setBody(LinkAccountRequest(provider = OAuthProvider.GOOGLE, idToken = "google-token-existing-user"))
+        }
+
+        // Account B links the SAME identity with a confirmed name -> session adopts A, name applied to A.
+        val accountB = client.post(ApiRoutes.AUTH_ANONYMOUS).body<AnonymousAuthResponse>()
+        val linkRespB = client.post(ApiRoutes.AUTH_LINK) {
+            header(HttpHeaders.Authorization, "Bearer ${accountB.tokens.accessToken}")
+            contentType(ContentType.Application.Json)
+            setBody(
+                LinkAccountRequest(
+                    provider = OAuthProvider.GOOGLE,
+                    idToken = "google-token-existing-user",
+                    displayName = "Grace Hopper",
+                )
+            )
+        }
+        assertEquals(HttpStatusCode.OK, linkRespB.status)
+        val linkBodyB = linkRespB.body<LinkAccountResponse>()
+        assertEquals(accountA.userId, linkBodyB.userId)
+        assertEquals("Grace Hopper", linkBodyB.displayName)
+
+        val db = DatabaseFactory.init()
+        transaction(db) {
+            val row = UsersTable.selectAll().where { UsersTable.id eq accountA.userId }.single()
+            assertEquals("Grace Hopper", row[UsersTable.name])
+        }
+    }
+
+    @Test
     fun testInvalidProviderTokenIsRejectedAndDoesNotModifyAccount() = testApplication {
         val mockVerifier = MockOAuthVerifier(emptyMap())
         application {

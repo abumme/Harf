@@ -20,6 +20,10 @@
     <string name="settings_manage_purchases">Xaridlarni boshqarish</string>
     <string name="settings_account_sync">Hisob va sinxronlash</string>
     <string name="settings_account_linked">✓ Hisob bog\'landi</string>
+    <string name="settings_signed_in_as">%1$s sifatida kirdingiz</string>
+    <string name="settings_name_dialog_title">Ismingizni tasdiqlang</string>
+    <string name="settings_name_label">Ism</string>
+    <string name="settings_name_confirm">Tasdiqlash</string>
     <string name="settings_log_out">Chiqish</string>
     <string name="settings_link_google">Google hisobini bog\'lash</string>
     <string name="settings_link_apple">Apple hisobini bog\'lash</string>

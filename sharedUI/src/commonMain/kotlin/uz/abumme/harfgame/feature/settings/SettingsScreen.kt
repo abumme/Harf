@@ -14,6 +14,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -46,6 +47,10 @@ import harf_game.sharedui.generated.resources.settings_founder
 import harf_game.sharedui.generated.resources.settings_legal
 import harf_game.sharedui.generated.resources.settings_link_apple
 import harf_game.sharedui.generated.resources.settings_link_google
+import harf_game.sharedui.generated.resources.settings_name_confirm
+import harf_game.sharedui.generated.resources.settings_name_dialog_title
+import harf_game.sharedui.generated.resources.settings_name_label
+import harf_game.sharedui.generated.resources.settings_signed_in_as
 import harf_game.sharedui.generated.resources.settings_log_out
 import harf_game.sharedui.generated.resources.settings_manage_purchases
 import harf_game.sharedui.generated.resources.settings_mark_style
@@ -65,6 +70,7 @@ import uz.abumme.harfgame.billing.PurchaseController
 import uz.abumme.harfgame.billing.hostedBillingUiSupported
 import uz.abumme.harfgame.data.auth.OAuthClient
 import uz.abumme.harfgame.data.auth.OAuthProvider
+import uz.abumme.harfgame.data.auth.OAuthResult
 import uz.abumme.harfgame.data.auth.SessionStore
 import uz.abumme.harfgame.data.stats.SyncManager
 import uz.abumme.harfgame.feature.cellstyles.StyleExperimentController
@@ -94,6 +100,8 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
     val uriHandler = LocalUriHandler.current
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var authMessage by remember { mutableStateOf<String?>(null) }
+    var pendingLink by remember { mutableStateOf<PendingLink?>(null) }
+    var nameInput by remember { mutableStateOf("") }
     var deleteError by remember { mutableStateOf<String?>(null) }
     var deleting by remember { mutableStateOf(false) }
 
@@ -152,7 +160,14 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
         Text(stringResource(Res.string.settings_account_sync), color = colors.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
 
         if (session?.isLinked == true) {
-            Text(stringResource(Res.string.settings_account_linked), color = colors.accent, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+            val linkedName = session?.displayName
+            Text(
+                if (linkedName != null) stringResource(Res.string.settings_signed_in_as, linkedName)
+                else stringResource(Res.string.settings_account_linked),
+                color = colors.accent,
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+            )
             OutlinedButton(
                 onClick = { scope.launch { syncManager.logout() } },
                 modifier = Modifier.fillMaxWidth()
@@ -160,9 +175,25 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
                 Text(stringResource(Res.string.settings_log_out))
             }
         } else {
+            // Sign-in yields a token; the actual link is deferred until the user confirms a name in
+            // the dialog below. A cancel/unavailable/failure surfaces as a status message instead.
+            val startSignIn: (OAuthProvider, String, suspend () -> OAuthResult) -> Unit = { provider, label, signIn ->
+                scope.launch {
+                    when (val result = signIn()) {
+                        is OAuthResult.Token -> {
+                            nameInput = result.suggestedName ?: session?.displayName ?: ""
+                            authMessage = null
+                            pendingLink = PendingLink(provider, label, result.idToken, result.nonce)
+                        }
+                        OAuthResult.Cancelled -> authMessage = getString(Res.string.signin_cancelled, label)
+                        OAuthResult.NotConfigured -> authMessage = getString(Res.string.signin_unavailable, label)
+                        is OAuthResult.Failed -> authMessage = getString(Res.string.signin_failed, label, result.message)
+                    }
+                }
+            }
             if (oauthClient.isGoogleSupported) {
                 OutlinedButton(
-                    onClick = { scope.launch { authMessage = linkWith(oauthClient.signInWithGoogle(), OAuthProvider.GOOGLE, "Google", syncManager) } },
+                    onClick = { startSignIn(OAuthProvider.GOOGLE, "Google") { oauthClient.signInWithGoogle() } },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(Res.string.settings_link_google))
@@ -170,7 +201,7 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
             }
             if (oauthClient.isAppleSupported) {
                 OutlinedButton(
-                    onClick = { scope.launch { authMessage = linkWith(oauthClient.signInWithApple(), OAuthProvider.APPLE, "Apple", syncManager) } },
+                    onClick = { startSignIn(OAuthProvider.APPLE, "Apple") { oauthClient.signInWithApple() } },
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(stringResource(Res.string.settings_link_apple))
@@ -179,6 +210,44 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
         }
 
         authMessage?.let { Text(it, color = colors.muted, fontSize = 13.sp) }
+
+        pendingLink?.let { link ->
+            AlertDialog(
+                onDismissRequest = { pendingLink = null },
+                title = { Text(stringResource(Res.string.settings_name_dialog_title)) },
+                text = {
+                    OutlinedTextField(
+                        value = nameInput,
+                        onValueChange = { nameInput = it },
+                        singleLine = true,
+                        label = { Text(stringResource(Res.string.settings_name_label)) },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = nameInput.isNotBlank(),
+                        onClick = {
+                            val confirmedName = nameInput.trim()
+                            scope.launch {
+                                authMessage = when (val r = syncManager.linkAccount(link.provider, link.idToken, link.nonce, confirmedName)) {
+                                    is uz.abumme.harfgame.data.api.ApiResult.Success -> getString(Res.string.link_success, link.label)
+                                    is uz.abumme.harfgame.data.api.ApiResult.Error -> getString(Res.string.link_failed, link.label, r.message)
+                                }
+                                pendingLink = null
+                            }
+                        }
+                    ) {
+                        Text(stringResource(Res.string.settings_name_confirm))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { pendingLink = null }) {
+                        Text(stringResource(Res.string.settings_cancel))
+                    }
+                }
+            )
+        }
 
         Text(stringResource(Res.string.settings_legal), color = colors.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
         OutlinedButton(
@@ -242,20 +311,10 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
     }
 }
 
-/** Run a native sign-in outcome through account linking; returns a user-facing status message. */
-private suspend fun linkWith(
-    result: uz.abumme.harfgame.data.auth.OAuthResult,
-    provider: OAuthProvider,
-    label: String,
-    syncManager: SyncManager,
-): String = when (result) {
-    is uz.abumme.harfgame.data.auth.OAuthResult.Token -> {
-        when (val r = syncManager.linkAccount(provider, result.idToken, result.nonce)) {
-            is uz.abumme.harfgame.data.api.ApiResult.Success -> getString(Res.string.link_success, label)
-            is uz.abumme.harfgame.data.api.ApiResult.Error -> getString(Res.string.link_failed, label, r.message)
-        }
-    }
-    uz.abumme.harfgame.data.auth.OAuthResult.Cancelled -> getString(Res.string.signin_cancelled, label)
-    uz.abumme.harfgame.data.auth.OAuthResult.NotConfigured -> getString(Res.string.signin_unavailable, label)
-    is uz.abumme.harfgame.data.auth.OAuthResult.Failed -> getString(Res.string.signin_failed, label, result.message)
-}
+/** A sign-in that produced a token and is waiting for the user to confirm a display name. */
+private data class PendingLink(
+    val provider: OAuthProvider,
+    val label: String,
+    val idToken: String,
+    val nonce: String?,
+)

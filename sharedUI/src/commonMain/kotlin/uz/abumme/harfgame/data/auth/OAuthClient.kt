@@ -2,8 +2,15 @@ package uz.abumme.harfgame.data.auth
 
 /** Typed outcome of a native sign-in attempt — never a bare null, so the UI can react to each case. */
 sealed interface OAuthResult {
-    /** A verified provider identity token, plus the nonce the request was bound to (if any). */
-    data class Token(val idToken: String, val nonce: String? = null) : OAuthResult
+    /**
+     * A verified provider identity token, plus the nonce the request was bound to (if any) and the
+     * provider's suggested display name for prefilling the link-time name confirmation (if any).
+     */
+    data class Token(
+        val idToken: String,
+        val nonce: String? = null,
+        val suggestedName: String? = null,
+    ) : OAuthResult
 
     /** The user dismissed the native flow. */
     data object Cancelled : OAuthResult

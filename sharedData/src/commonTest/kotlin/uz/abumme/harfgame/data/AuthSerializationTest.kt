@@ -46,6 +46,39 @@ class AuthSerializationTest {
     }
 
     @Test
+    fun testLinkAccountDisplayNameRoundTrip() {
+        // With a confirmed display name.
+        val withName = LinkAccountRequest(
+            provider = OAuthProvider.GOOGLE,
+            idToken = "google-id-token",
+            nonce = "nonce-1",
+            displayName = "Ada Lovelace",
+        )
+        assertEquals(withName, json.decodeFromString(json.encodeToString(withName)))
+
+        // Absent display name stays null.
+        val withoutName = LinkAccountRequest(provider = OAuthProvider.APPLE, idToken = "apple-id-token")
+        val decoded = json.decodeFromString<LinkAccountRequest>(json.encodeToString(withoutName))
+        assertEquals(withoutName, decoded)
+        assertEquals(null, decoded.displayName)
+
+        val respWithName = LinkAccountResponse(
+            userId = "user-1",
+            tokens = TokenPairDto(accessToken = "a", refreshToken = "r"),
+            displayName = "Ada Lovelace",
+        )
+        assertEquals(respWithName, json.decodeFromString(json.encodeToString(respWithName)))
+
+        val respWithoutName = LinkAccountResponse(
+            userId = "user-1",
+            tokens = TokenPairDto(accessToken = "a", refreshToken = "r"),
+        )
+        val respDecoded = json.decodeFromString<LinkAccountResponse>(json.encodeToString(respWithoutName))
+        assertEquals(respWithoutName, respDecoded)
+        assertEquals(null, respDecoded.displayName)
+    }
+
+    @Test
     fun testRefreshRequestAndResponseSerialization() {
         val req = RefreshRequest(refreshToken = "refresh-token-xyz")
         val reqSerialized = json.encodeToString(req)

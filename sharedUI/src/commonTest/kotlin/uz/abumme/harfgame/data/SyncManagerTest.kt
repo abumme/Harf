@@ -18,6 +18,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import uz.abumme.harfgame.data.api.ApiResult
 import uz.abumme.harfgame.data.api.ApiRoutes
+import uz.abumme.harfgame.data.auth.OAuthProvider
 import uz.abumme.harfgame.data.auth.SessionStore
 import uz.abumme.harfgame.data.network.KtorAuthService
 import uz.abumme.harfgame.data.network.KtorSyncService
@@ -370,5 +371,47 @@ class SyncManagerTest {
 
         assertEquals(2, uploadAttempts, "Should retry the upload once connectivity returns")
         assertFalse(pendingStore.isDirty(), "Pending marker clears after a confirmed upload")
+    }
+
+    @Test
+    fun testLinkAccountStoresConfirmedDisplayName() = runTest {
+        val ksafe = KSafe()
+        val resultLog = ResultLog(ksafe); resultLog.clear()
+        val sessionStore = SessionStore(ksafe); sessionStore.clear()
+        sessionStore.saveSession(userId = "user-1", accessToken = "access-1", refreshToken = "refresh-1")
+
+        var sentBody: String? = null
+        val mockEngine = MockEngine { request ->
+            when (request.url.encodedPath) {
+                ApiRoutes.AUTH_LINK -> {
+                    sentBody = request.body.toByteArray().decodeToString()
+                    respond(
+                        content = """{"userId":"user-1","tokens":{"accessToken":"a2","refreshToken":"r2"},"displayName":"Ada Lovelace"}""",
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                }
+                ApiRoutes.SYNC_STATS -> respond(
+                    content = json.encodeToString(UserStatsDto(updatedAt = Instant.fromEpochMilliseconds(0L), records = emptyList())),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                )
+                else -> error("Unexpected route ${request.url.encodedPath}")
+            }
+        }
+
+        val httpClient = HttpClient(mockEngine) { install(ContentNegotiation) { json(json) } }
+        val authService = KtorAuthService(httpClient, baseUrl = "http://test", sessionStore = sessionStore)
+        val syncService = KtorSyncService(httpClient, baseUrl = "http://test", sessionStore = sessionStore, authService = authService)
+        val pendingStore = PendingUploadStore(ksafe).also { it.clear() }
+        val syncManager = manager(resultLog, sessionStore, authService, syncService, pendingStore, RoundStore(ksafe))
+
+        val result = syncManager.linkAccount(OAuthProvider.GOOGLE, "id-token", nonce = "n1", displayName = "Ada Lovelace")
+
+        assertTrue(result is ApiResult.Success)
+        assertTrue(sentBody!!.contains("\"displayName\":\"Ada Lovelace\""), "Confirmed name is sent in the link request")
+        val session = sessionStore.get()
+        assertEquals("Ada Lovelace", session.displayName, "Response name is stored in the session")
+        assertTrue(session.isLinked)
     }
 }

@@ -7,6 +7,8 @@ import org.jetbrains.exposed.v1.javatime.timestamp
 object UsersTable : Table("users") {
     val id = varchar("id", 36)
     val createdAt = timestamp("created_at")
+    /** User-confirmed display name captured at link time; null for anonymous / unnamed accounts. */
+    val name = varchar("name", 255).nullable()
 
     override val primaryKey = PrimaryKey(id)
 }

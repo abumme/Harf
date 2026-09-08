@@ -20,6 +20,10 @@
     <string name="settings_manage_purchases">Управление покупками</string>
     <string name="settings_account_sync">Аккаунт и синхронизация</string>
     <string name="settings_account_linked">✓ Аккаунт привязан</string>
+    <string name="settings_signed_in_as">Вы вошли как %1$s</string>
+    <string name="settings_name_dialog_title">Подтвердите имя</string>
+    <string name="settings_name_label">Имя</string>
+    <string name="settings_name_confirm">Подтвердить</string>
     <string name="settings_log_out">Выйти</string>
     <string name="settings_link_google">Привязать аккаунт Google</string>
     <string name="settings_link_apple">Привязать аккаунт Apple</string>

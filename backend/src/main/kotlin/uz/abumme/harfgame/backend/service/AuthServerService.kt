@@ -193,6 +193,21 @@ class AuthServerService(
                 }
             }
 
+            // The user confirmed a display name during the link step; store it on whichever account
+            // the session ends up as (fresh link, re-link, or adopted pre-existing account). A blank
+            // name is treated as no name and leaves any existing stored name untouched.
+            val confirmedName = request.displayName?.takeIf { it.isNotBlank() }
+            if (confirmedName != null) {
+                UsersTable.update({ UsersTable.id eq targetUserId }) {
+                    it[name] = confirmedName
+                }
+            }
+            val storedName = UsersTable
+                .selectAll()
+                .where { UsersTable.id eq targetUserId }
+                .singleOrNull()
+                ?.get(UsersTable.name)
+
             val newRawRefreshToken = TokenUtils.generateSecureToken()
             val newHash = TokenUtils.hashToken(newRawRefreshToken)
             val nowMillis = System.currentTimeMillis()
@@ -214,7 +229,8 @@ class AuthServerService(
                 tokens = TokenPairDto(
                     accessToken = newAccessToken,
                     refreshToken = newRawRefreshToken
-                )
+                ),
+                displayName = storedName,
             )
         }
     }

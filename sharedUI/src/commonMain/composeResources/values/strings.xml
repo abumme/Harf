@@ -20,6 +20,10 @@
     <string name="settings_manage_purchases">Manage purchases</string>
     <string name="settings_account_sync">Account &amp; Sync</string>
     <string name="settings_account_linked">✓ Account linked</string>
+    <string name="settings_signed_in_as">Signed in as %1$s</string>
+    <string name="settings_name_dialog_title">Confirm your name</string>
+    <string name="settings_name_label">Name</string>
+    <string name="settings_name_confirm">Confirm</string>
     <string name="settings_log_out">Log out</string>
     <string name="settings_link_google">Link Google Account</string>
     <string name="settings_link_apple">Link Apple Account</string>

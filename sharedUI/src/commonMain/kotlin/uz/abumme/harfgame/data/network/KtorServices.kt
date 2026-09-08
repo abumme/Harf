@@ -57,7 +57,8 @@ class KtorAuthService(
                     userId = body.userId,
                     accessToken = body.tokens.accessToken,
                     refreshToken = body.tokens.refreshToken,
-                    isLinked = true
+                    isLinked = true,
+                    displayName = body.displayName,
                 )
                 ApiResult.Success(body)
             } else {
