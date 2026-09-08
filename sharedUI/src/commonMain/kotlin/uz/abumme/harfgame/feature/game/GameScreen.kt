@@ -46,7 +46,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.foundation.focusable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.utf16CodePoint
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
@@ -161,11 +170,34 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
         roundStore.save(vm.snapshot())
     }
 
+    // Physical-keyboard support (desktop, tablets, Play Games on PC): map hardware keys to the same
+    // game input. A typed char maps to a single-grapheme key of the current language; multi-char
+    // graphemes (Uzbek sh/ch/oʻ/gʻ/ng) have no single physical key and stay on-screen only.
+    val focusRequester = remember { FocusRequester() }
+    val keyLookup = remember(config) { config.keyboard.flatten().associateBy { it.lowercase() } }
+    LaunchedEffect(script) { runCatching { focusRequester.requestFocus() } }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(16.dp),
+            .padding(16.dp)
+            .focusRequester(focusRequester)
+            .onPreviewKeyEvent { ev ->
+                if (ev.type != KeyEventType.KeyDown || state.status != GameStatus.Playing) {
+                    return@onPreviewKeyEvent false
+                }
+                when (ev.key) {
+                    Key.Enter, Key.NumPadEnter -> { vm.onAction(GameAction.Submit); true }
+                    Key.Backspace -> { vm.onAction(GameAction.Delete); true }
+                    else -> {
+                        val key = ev.utf16CodePoint.takeIf { it != 0 }
+                            ?.let { keyLookup[it.toChar().toString().lowercase()] }
+                        if (key != null) { vm.onAction(GameAction.Input(key)); true } else false
+                    }
+                }
+            }
+            .focusable(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
