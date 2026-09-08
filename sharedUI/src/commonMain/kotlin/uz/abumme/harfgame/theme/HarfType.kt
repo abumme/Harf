@@ -5,24 +5,29 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import harf_game.sharedui.generated.resources.GolosText
-import harf_game.sharedui.generated.resources.PTSerif_Bold
-import harf_game.sharedui.generated.resources.PTSerif_Italic
-import harf_game.sharedui.generated.resources.PTSerif_Regular
+import harf_game.sharedui.generated.resources.Lora_Bold
+import harf_game.sharedui.generated.resources.Lora_Italic
+import harf_game.sharedui.generated.resources.Lora_Regular
 import harf_game.sharedui.generated.resources.Res
 import org.jetbrains.compose.resources.Font
 
-/** PT Serif — display / editorial headings. */
+/** Lora — display / editorial headings (covers Latin + Uzbek/Kazakh Cyrillic). */
 @Composable
 fun harfSerif() = FontFamily(
-    Font(Res.font.PTSerif_Regular, FontWeight.Normal),
-    Font(Res.font.PTSerif_Bold, FontWeight.Bold),
-    Font(Res.font.PTSerif_Italic, FontWeight.Normal, FontStyle.Italic),
+    Font(Res.font.Lora_Regular, FontWeight.Normal),
+    Font(Res.font.Lora_Bold, FontWeight.Bold),
+    Font(Res.font.Lora_Italic, FontWeight.Normal, FontStyle.Italic),
 )
 
-/** Golos Text — UI / body (full Kazakh + Uzbek Cyrillic). */
+/**
+ * UI / body. Now also Lora — the app is single-typeface. Kept as a separate accessor so call sites
+ * and the typography split stay stable if body ever moves back to a sans.
+ */
 @Composable
-fun harfSans() = FontFamily(Font(Res.font.GolosText))
+fun harfSans() = FontFamily(
+    Font(Res.font.Lora_Regular, FontWeight.Normal),
+    Font(Res.font.Lora_Bold, FontWeight.Bold),
+)
 
 @Composable
 fun harfTypography(): Typography {
