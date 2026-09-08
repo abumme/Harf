@@ -74,6 +74,7 @@ output.json
 # Keystore files
 *.jks
 *.keystore
+keystore.properties
 
 ### Kotlin
 # KMP/IDE build metadata
