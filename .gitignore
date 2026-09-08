@@ -111,3 +111,5 @@ target/
 ### Xcode (user-specific)
 xcuserdata/
 *.xcuserstate
+# Codegraph MCP index (generated, local)
+.codegraph/
