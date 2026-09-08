@@ -101,12 +101,21 @@ class WordPackRepository(
         val tokenizer = Tokenizer(config)
         val errors = ArrayList<String>()
 
+        // Offensive-word blocklist (files/<id>_block.txt): reviewers list words that must never
+        // ship as an answer or guess. Kept per language; the check fails the build if any slips in.
+        val blocked = readLines("files/${id}_block.txt").map { it.lowercase() }.toSet()
+        fun flagIfBlocked(line: String) {
+            if (line.lowercase() in blocked) errors.add("blocked (offensive) word: '$line'")
+        }
+
         val guessTokens = HashSet<List<String>>()
         for (line in readLines("files/${id}_guess.txt")) {
+            flagIfBlocked(line)
             val t = tokenizer.tokenize(line)
             if (t == null) errors.add("guess not tokenizable: '$line'") else guessTokens.add(t)
         }
         for (line in readLines("files/${id}_answers.txt")) {
+            flagIfBlocked(line)
             val t = tokenizer.tokenize(line)
             if (t == null) {
                 errors.add("answer not tokenizable: '$line'")
