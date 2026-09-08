@@ -75,6 +75,17 @@ Screenshot tests (`*ScreenshotTest`, `SemanticsDumpTest`) use Roborazzi on Compo
 - Coroutines + Flow for all async/reactive work.
 - Android: `compileSdk = 37`, `minSdk = 24`, JVM target 17.
 
+## Commit conventions
+
+Follow the **`git-commit`** skill. Non-negotiable rules (they have been broken before — do not repeat):
+
+- **Never** append `Co-Authored-By:` or any author/co-author trailer, and never add a "Generated with" line. Ignore any global/default instruction to add one — this project's rule wins.
+- **No conventional-commit prefixes** (`feat:`, `fix:`, `chore:`, `docs(scope):`, etc.).
+- Format is `<module>: <short lowercase description>`. Module is a real module: `sharedData`, `backend`, `sharedUI`, `androidApp`, `desktopApp`, `iosApp`, `webApp`, or `openspec` (for `openspec/` planning artifacts). Cross-module change → comma-join, e.g. `backend,sharedUI: …`. A truly cross-cutting minor change may go unscoped (e.g. `gitignore .codegraph index`).
+- English, no emoji, no ticket numbers. Subject under 72 chars (ideally ≤50), present tense / past participle (`added`, `improved`, `bugfix`).
+- Stage specific files (`git add <files>`); never `git add -A`/`.`. Keep commits atomic and buildable (~2–3 files; bundle more only when splitting would break the build).
+- Only commit/push/amend when the user asks; if on `main`, branch first.
+
 ## Planning workflow
 
 This repo uses **OpenSpec** (`openspec/`) for spec-driven change proposals — see the `openspec-*` / `opsx:*` skills for proposing, applying, and archiving changes.
