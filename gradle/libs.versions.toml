@@ -18,7 +18,7 @@ ksafe = "3.0.0"
 roborazzi = "1.72.0"
 kotlinx-datetime = "0.8.0"
 purchases-kmp = "2.2.2+17.10.0"
-exposed = "0.58.0"
+exposed = "1.5.0"
 postgresql = "42.7.5"
 hikaricp = "6.2.1"
 google-api-client = "2.7.2"
@@ -80,6 +80,8 @@ exposed-jdbc = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "e
 exposed-dao = { module = "org.jetbrains.exposed:exposed-dao", version.ref = "exposed" }
 exposed-javatime = { module = "org.jetbrains.exposed:exposed-java-time", version.ref = "exposed" }
 exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datetime", version.ref = "exposed" }
+exposed-migration-core = { module = "org.jetbrains.exposed:exposed-migration-core", version.ref = "exposed" }
+exposed-migration-jdbc = { module = "org.jetbrains.exposed:exposed-migration-jdbc", version.ref = "exposed" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
 google-api-client = { module = "com.google.api-client:google-api-client", version.ref = "google-api-client" }

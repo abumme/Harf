@@ -3,10 +3,10 @@ package uz.abumme.harfgame.backend.db
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.Dispatchers
-import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
-import org.jetbrains.exposed.sql.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.Database
+import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.migration.jdbc.MigrationUtils
 
 object DatabaseFactory {
     @Volatile
@@ -41,13 +41,24 @@ object DatabaseFactory {
         database = db
 
         transaction(db) {
-            SchemaUtils.createMissingTablesAndColumns(
+            // Bring the schema in line with the table definitions. Postgres runs DDL
+            // transactionally, so applying the whole diff in one transaction is atomic — any failure
+            // rolls back, which is exactly the hazard the deprecated createMissingTablesAndColumns had.
+            val statements = MigrationUtils.statementsRequiredForDatabaseMigration(
                 UsersTable,
                 OAuthIdentitiesTable,
                 RefreshTokensTable,
                 UserStatsTable,
                 WordPacksTable,
+                withLogs = false,
             )
+            // MigrationUtils can emit destructive DROPs for columns/tables absent from the model
+            // (e.g. after a rename). Refuse to auto-run those — apply them by hand after review.
+            // ponytail: schema-diff, not versioned. Adopt Flyway when migrations need review,
+            // data backfills, or the destructive changes this guard blocks.
+            val destructive = statements.filter { it.trimStart().uppercase().startsWith("DROP") || it.uppercase().contains("DROP COLUMN") }
+            require(destructive.isEmpty()) { "Refusing destructive migration; apply manually: $destructive" }
+            statements.forEach { exec(it) }
         }
         return db
     }
