@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
@@ -49,11 +50,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import uz.abumme.harfgame.billing.PurchaseController
 import uz.abumme.harfgame.data.stats.InProgressRound
 import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.data.stats.RoundStore
@@ -255,24 +258,35 @@ fun KeyboardView(
     modifier: Modifier = Modifier,
 ) {
     val c = LocalHarfColors.current
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        for (rowKeys in config.keyboard) {
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                for (k in rowKeys) KeyCap(k, keyStates[k], c) { onKey(k) }
+    val spacing = 4.dp
+    // Uniform key width sized to the widest row so even the 12-key Cyrillic layout fits any phone
+    // (fixed-width keys used to clip the last column). Capped so a short row's keys don't balloon.
+    val maxKeys = config.keyboard.maxOf { it.size }
+    BoxWithConstraints(modifier) {
+        val keyW = ((maxWidth - spacing * (maxKeys - 1)) / maxKeys).coerceAtMost(44.dp)
+        Column(
+            Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            for (rowKeys in config.keyboard) {
+                Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
+                    for (k in rowKeys) KeyCap(k, keyStates[k], c, keyW) { onKey(k) }
+                }
             }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ActionCap("ENTER", c, onEnter)
-            ActionCap("⌫", c, onDelete)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ActionCap("ENTER", c, onEnter)
+                ActionCap("⌫", c, onDelete)
+            }
         }
     }
 }
 
 @Composable
-private fun KeyCap(label: String, mark: Mark?, c: HarfColors, onClick: () -> Unit) {
+private fun KeyCap(label: String, mark: Mark?, c: HarfColors, width: Dp, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .size(width = 30.dp, height = 42.dp)
+            .size(width = width, height = 42.dp)
             .clip(RoundedCornerShape(5.dp))
             .background(c.key)
             .clickable(onClick = onClick),
@@ -301,6 +315,7 @@ private fun ResultView(state: GameState, languageDisplay: String, puzzleNumber: 
     val c = LocalHarfColors.current
     val settings = koinInject<AppSettings>()
     val sharer = koinInject<Sharer>()
+    val purchases = koinInject<PurchaseController>()
     val paletteId by settings.paletteId.collectAsState()
     val scope = rememberCoroutineScope()
 
@@ -322,6 +337,9 @@ private fun ResultView(state: GameState, languageDisplay: String, puzzleNumber: 
         )
         Button(onClick = { scope.launch { sharer.share(shareText) } }) { Text(stringResource(Res.string.action_share)) }
         OutlinedButton(onClick = { sharer.copy(shareText) }) { Text(stringResource(Res.string.action_copy)) }
-        TextButton(onClick = onPaywall) { Text(stringResource(Res.string.settings_support_harf), color = c.muted) }
+        // Only when the store is configured (real RevenueCat key); blank key hides the support link.
+        if (purchases.isAvailable) {
+            TextButton(onClick = onPaywall) { Text(stringResource(Res.string.settings_support_harf), color = c.muted) }
+        }
     }
 }
