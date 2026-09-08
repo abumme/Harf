@@ -4,6 +4,7 @@ import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import org.jetbrains.exposed.v1.jdbc.update
 import uz.abumme.harfgame.backend.db.DatabaseFactory
 import uz.abumme.harfgame.backend.db.WordPacksTable
 import uz.abumme.harfgame.data.wordpack.WordPackDto
@@ -33,6 +34,27 @@ class WordPackServerService(
                 schedule = json.decodeFromString(row[WordPacksTable.schedule]),
             )
         }
+    }
+
+    /**
+     * Append an accepted [word] to [lang]'s guesses and bump the pack version so clients pick it up
+     * on their next pull. Answers/schedule/effectiveFrom are untouched, keeping past days immutable.
+     * Idempotent per word: a word already present only bumps nothing. Returns true if the pack changed.
+     */
+    suspend fun addGuess(lang: String, word: String): Boolean = DatabaseFactory.dbQuery {
+        val row = WordPacksTable.selectAll().where { WordPacksTable.lang eq lang }.singleOrNull()
+            ?: return@dbQuery false
+        val guesses: List<String> = json.decodeFromString(row[WordPacksTable.guesses])
+        val normalized = word.trim()
+        if (guesses.any { it.equals(normalized, ignoreCase = true) }) return@dbQuery false
+        val newGuesses = guesses + normalized
+        val newVersion = (row[WordPacksTable.version].toIntOrNull()?.plus(1) ?: 2).toString()
+        WordPacksTable.update({ WordPacksTable.lang eq lang }) {
+            it[WordPacksTable.guesses] = json.encodeToString(newGuesses)
+            it[WordPacksTable.version] = newVersion
+            it[WordPacksTable.updatedAt] = java.time.Instant.ofEpochMilli(System.currentTimeMillis())
+        }
+        true
     }
 
     /** Insert version 1 for every language if absent. Idempotent: existing rows are left untouched. */

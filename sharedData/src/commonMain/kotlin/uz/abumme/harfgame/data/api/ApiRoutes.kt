@@ -14,6 +14,8 @@ object ApiRoutes {
 
     const val WORDPACKS = "$API_PREFIX/wordpacks"
 
+    const val SUGGESTIONS = "$API_PREFIX/suggestions"
+
     /** Path for one language's word pack, e.g. `/api/v1/wordpacks/en`. */
     fun wordpack(lang: String) = "$WORDPACKS/$lang"
 }

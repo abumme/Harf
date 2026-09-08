@@ -23,7 +23,10 @@ import uz.abumme.harfgame.data.auth.SessionStore
 import uz.abumme.harfgame.data.network.KtorAuthService
 import uz.abumme.harfgame.data.network.KtorSyncService
 import uz.abumme.harfgame.data.service.AuthService
+import uz.abumme.harfgame.data.service.SuggestionService
 import uz.abumme.harfgame.data.service.SyncService
+import uz.abumme.harfgame.data.suggestion.SuggestWordRequest
+import uz.abumme.harfgame.data.suggestion.SuggestWordResponse
 import uz.abumme.harfgame.data.stats.PendingUploadStore
 import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.data.stats.ResultRecord
@@ -48,15 +51,27 @@ class SyncManagerTest {
         syncService: SyncService,
         pendingStore: PendingUploadStore,
         roundStore: RoundStore,
+        suggestionService: SuggestionService = RecordingSuggestionService(),
     ) = SyncManager(
         resultLog = resultLog,
         sessionStore = sessionStore,
         authService = authService,
         syncService = syncService,
+        suggestionService = suggestionService,
         pendingStore = pendingStore,
         roundStore = roundStore,
         languageRegistry = LanguageRegistry(emptyMap()),
     )
+
+    private class RecordingSuggestionService : SuggestionService {
+        var lastToken: String? = null
+        var lastRequest: SuggestWordRequest? = null
+        override suspend fun suggest(token: String, request: SuggestWordRequest): ApiResult<SuggestWordResponse> {
+            lastToken = token
+            lastRequest = request
+            return ApiResult.Success(SuggestWordResponse(status = "PENDING"))
+        }
+    }
 
     @Test
     fun testPushStatsUploadsCurrentResultLog() = runTest {
@@ -371,6 +386,29 @@ class SyncManagerTest {
 
         assertEquals(2, uploadAttempts, "Should retry the upload once connectivity returns")
         assertFalse(pendingStore.isDirty(), "Pending marker clears after a confirmed upload")
+    }
+
+    @Test
+    fun testSuggestWordSendsActiveLangAndWordWithToken() = runTest {
+        val ksafe = KSafe()
+        val resultLog = ResultLog(ksafe); resultLog.clear()
+        val sessionStore = SessionStore(ksafe); sessionStore.clear()
+        sessionStore.saveSession(userId = "user-1", accessToken = "access-1", refreshToken = "refresh-1")
+
+        // No network calls expected (session already exists, suggestion service is a fake).
+        val mockEngine = MockEngine { error("no HTTP expected") }
+        val httpClient = HttpClient(mockEngine) { install(ContentNegotiation) { json(json) } }
+        val authService = KtorAuthService(httpClient, baseUrl = "http://test", sessionStore = sessionStore)
+        val syncService = KtorSyncService(httpClient, baseUrl = "http://test", sessionStore = sessionStore, authService = authService)
+        val pendingStore = PendingUploadStore(ksafe).also { it.clear() }
+        val suggestions = RecordingSuggestionService()
+        val syncManager = manager(resultLog, sessionStore, authService, syncService, pendingStore, RoundStore(ksafe), suggestions)
+
+        val result = syncManager.suggestWord("uz-latn", "salom")
+
+        assertTrue(result is ApiResult.Success)
+        assertEquals("access-1", suggestions.lastToken)
+        assertEquals(SuggestWordRequest("uz-latn", "salom"), suggestions.lastRequest)
     }
 
     @Test

@@ -1,0 +1,16 @@
+# Offensive-word blocklist — words that must never ship as an answer or guess.
+# One word per line (lowercase). Native reviewers extend this per language.
+# Enforced by WordPackRepository.validate() and the WordPackTest integrity check.
+fuck
+shit
+cunt
+bitch
+dick
+cock
+twat
+whore
+slut
+nigga
+spic
+kike
+wetba

@@ -31,6 +31,9 @@ import harf_game.sharedui.generated.resources.howto_body
 import harf_game.sharedui.generated.resources.howto_title
 import harf_game.sharedui.generated.resources.not_enough_letters
 import harf_game.sharedui.generated.resources.not_in_word_list
+import harf_game.sharedui.generated.resources.game_suggest_word
+import harf_game.sharedui.generated.resources.suggest_failed
+import harf_game.sharedui.generated.resources.suggest_sent
 import harf_game.sharedui.generated.resources.action_copy
 import harf_game.sharedui.generated.resources.action_share
 import harf_game.sharedui.generated.resources.result_out_of_tries
@@ -135,19 +138,33 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
 
     // transient feedback for rejected submissions (too short / not in dictionary)
     var message by remember { mutableStateOf<String?>(null) }
+    // the just-rejected unknown word, offered for suggestion until the player edits or sends it
+    var suggestCandidate by remember { mutableStateOf<String?>(null) }
+    var suggestBusy by remember { mutableStateOf(false) }
     val incompleteMsg = stringResource(Res.string.not_enough_letters)
     val invalidMsg = stringResource(Res.string.not_in_word_list)
+    val suggestSentMsg = stringResource(Res.string.suggest_sent)
+    val suggestFailedMsg = stringResource(Res.string.suggest_failed)
     LaunchedEffect(vm) {
         vm.events.collect { ev ->
             when (ev) {
                 GameEvent.Incomplete -> message = incompleteMsg
-                GameEvent.InvalidGuess -> message = invalidMsg
+                GameEvent.InvalidGuess -> {
+                    message = invalidMsg
+                    suggestCandidate = vm.state.value.current.joinToString("")
+                }
                 is GameEvent.RoundEnded -> {}
             }
         }
     }
     LaunchedEffect(message) {
         if (message != null) { kotlinx.coroutines.delay(1500); message = null }
+    }
+    // A new/edited guess invalidates the pending suggestion offer.
+    LaunchedEffect(state.current) {
+        if (suggestCandidate != null && state.current.joinToString("") != suggestCandidate) {
+            suggestCandidate = null
+        }
     }
 
     if (showHelp) {
@@ -217,6 +234,24 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
         MarkLegend(Modifier.padding(vertical = 2.dp), compact = true)
         Box(Modifier.height(20.dp), contentAlignment = Alignment.Center) {
             message?.let { Text(it, color = colors.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
+        }
+        // Offer to suggest an unknown full-length word for editor review.
+        if (state.status == GameStatus.Playing && suggestCandidate != null) {
+            val candidate = suggestCandidate!!
+            TextButton(
+                enabled = !suggestBusy,
+                onClick = {
+                    scope.launch {
+                        suggestBusy = true
+                        val result = syncManager.suggestWord(script, candidate)
+                        message = if (result is uz.abumme.harfgame.data.api.ApiResult.Success) suggestSentMsg else suggestFailedMsg
+                        suggestCandidate = null
+                        suggestBusy = false
+                    }
+                },
+            ) {
+                Text(stringResource(Res.string.game_suggest_word), color = colors.accent, fontSize = 13.sp)
+            }
         }
         if (state.status == GameStatus.Playing) {
             KeyboardView(

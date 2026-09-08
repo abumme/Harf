@@ -50,6 +50,7 @@ object DatabaseFactory {
                 RefreshTokensTable,
                 UserStatsTable,
                 WordPacksTable,
+                WordSuggestionsTable,
                 withLogs = false,
             )
             // MigrationUtils can emit destructive DROPs for columns/tables absent from the model

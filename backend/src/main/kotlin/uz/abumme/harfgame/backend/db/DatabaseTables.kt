@@ -48,6 +48,27 @@ object UserStatsTable : Table("user_stats") {
     override val primaryKey = PrimaryKey(userId)
 }
 
+object WordSuggestionsTable : Table("word_suggestions") {
+    val id = varchar("id", 36)
+    val lang = varchar("lang", 16)
+    val word = varchar("word", 64)
+    /** Author account; SET NULL on deletion so contribution history outlives the account. */
+    val suggestedBy = varchar("suggested_by", 36)
+        .references(UsersTable.id, onDelete = ReferenceOption.SET_NULL).nullable()
+    val status = varchar("status", 16)
+    val createdAt = timestamp("created_at")
+    /** Telegram editor who decided (id/username); null while pending. */
+    val decidedBy = varchar("decided_by", 64).nullable()
+    val decidedAt = timestamp("decided_at").nullable()
+
+    override val primaryKey = PrimaryKey(id)
+
+    init {
+        index("idx_suggestion_lang_word_status", false, lang, word, status)
+        index("idx_suggestion_author_created", false, suggestedBy, createdAt)
+    }
+}
+
 object WordPacksTable : Table("word_packs") {
     val lang = varchar("lang", 16)
     val version = varchar("version", 64)

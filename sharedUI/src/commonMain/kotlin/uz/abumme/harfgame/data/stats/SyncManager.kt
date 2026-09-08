@@ -8,7 +8,9 @@ import uz.abumme.harfgame.data.auth.OAuthProvider
 import uz.abumme.harfgame.data.auth.SessionStore
 import uz.abumme.harfgame.data.auth.LinkAccountRequest
 import uz.abumme.harfgame.data.service.AuthService
+import uz.abumme.harfgame.data.service.SuggestionService
 import uz.abumme.harfgame.data.service.SyncService
+import uz.abumme.harfgame.data.suggestion.SuggestWordRequest
 import uz.abumme.harfgame.data.sync.ResultRecordDto
 import uz.abumme.harfgame.data.sync.UserStatsDto
 import uz.abumme.harfgame.lang.LanguageRegistry
@@ -32,6 +34,7 @@ class SyncManager(
     private val sessionStore: SessionStore,
     private val authService: AuthService,
     private val syncService: SyncService,
+    private val suggestionService: SuggestionService,
     private val pendingStore: PendingUploadStore,
     private val roundStore: RoundStore,
     private val languageRegistry: LanguageRegistry,
@@ -117,6 +120,20 @@ class SyncManager(
                 ApiResult.Success(Unit)
             }
             is ApiResult.Error -> ApiResult.Error(linkResult.code, linkResult.message)
+        }
+    }
+
+    /**
+     * Submit a word suggestion for review. Ensures a session first (creating an anonymous one if
+     * needed), so a player can suggest even before they've linked an account.
+     */
+    suspend fun suggestWord(lang: String, word: String): ApiResult<Unit> {
+        if (!ensureSession()) return ApiResult.Error("UNAUTHORIZED", "No active session")
+        val token = sessionStore.get().accessToken
+            ?: return ApiResult.Error("UNAUTHORIZED", "No active session")
+        return when (val r = suggestionService.suggest(token, SuggestWordRequest(lang, word))) {
+            is ApiResult.Success -> ApiResult.Success(Unit)
+            is ApiResult.Error -> ApiResult.Error(r.code, r.message)
         }
     }
 

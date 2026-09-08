@@ -18,12 +18,20 @@ import uz.abumme.harfgame.backend.auth.oauth.OAuthVerifier
 import uz.abumme.harfgame.backend.config.ServerConfig
 import uz.abumme.harfgame.backend.db.DatabaseFactory
 import uz.abumme.harfgame.backend.routes.authRoutes
+import uz.abumme.harfgame.backend.routes.suggestionRoutes
 import uz.abumme.harfgame.backend.routes.syncRoutes
 import uz.abumme.harfgame.backend.routes.wordPackRoutes
 import uz.abumme.harfgame.backend.security.JwtService
 import uz.abumme.harfgame.backend.service.AuthServerService
+import uz.abumme.harfgame.backend.service.SuggestionServerService
 import uz.abumme.harfgame.backend.service.SyncServerService
 import uz.abumme.harfgame.backend.service.WordPackServerService
+import uz.abumme.harfgame.backend.telegram.TelegramBot
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import uz.abumme.harfgame.data.api.ApiErrorResponse
 import uz.abumme.harfgame.data.auth.OAuthProvider
@@ -32,10 +40,39 @@ fun main() {
     // Fail fast rather than silently running production on the dev JWT secret.
     ServerConfig.requireSecureProductionConfig()
     DatabaseFactory.init()
-    runBlocking { WordPackServerService().seed() } // idempotent: seeds version 1 if absent
-    embeddedServer(Netty, port = (System.getenv("PORT") ?: "8080").toInt(), host = "0.0.0.0", module = Application::module)
-        .start(wait = true)
+    val wordPackService = WordPackServerService()
+    runBlocking { wordPackService.seed() } // idempotent: seeds version 1 if absent
+    val suggestionService = SuggestionServerService(wordPackService)
+    val telegramBot = telegramBotFromEnv(suggestionService)
+
+    // Long-poll for editor decisions in the background. Supervised: restart on unexpected failure so
+    // a transient crash doesn't silently stop reviews (suggestions keep storing regardless).
+    if (telegramBot.enabled) {
+        CoroutineScope(Dispatchers.IO).launch {
+            while (isActive) {
+                runCatching { telegramBot.runPolling() }
+                    .onFailure { it.printStackTrace() }
+                delay(5000)
+            }
+        }
+    }
+
+    embeddedServer(Netty, port = (System.getenv("PORT") ?: "8080").toInt(), host = "0.0.0.0") {
+        module(
+            wordPackService = wordPackService,
+            suggestionService = suggestionService,
+            telegramBot = telegramBot,
+        )
+    }.start(wait = true)
 }
+
+private fun telegramBotFromEnv(suggestionService: SuggestionServerService) = TelegramBot(
+    botToken = System.getenv("TELEGRAM_BOT_TOKEN") ?: "",
+    editorChatId = System.getenv("TELEGRAM_EDITOR_CHAT_ID") ?: "",
+    editorIds = (System.getenv("TELEGRAM_EDITOR_IDS") ?: "")
+        .split(",").mapNotNull { it.trim().toLongOrNull() }.toSet(),
+    suggestions = suggestionService,
+)
 
 fun Application.module(
     jwtService: JwtService = JwtService(),
@@ -50,6 +87,14 @@ fun Application.module(
     authService: AuthServerService = AuthServerService(jwtService, verifiers),
     syncService: SyncServerService = SyncServerService(),
     wordPackService: WordPackServerService = WordPackServerService(),
+    suggestionService: SuggestionServerService = SuggestionServerService(wordPackService),
+    telegramBot: TelegramBot = TelegramBot(
+        botToken = System.getenv("TELEGRAM_BOT_TOKEN") ?: "",
+        editorChatId = System.getenv("TELEGRAM_EDITOR_CHAT_ID") ?: "",
+        editorIds = (System.getenv("TELEGRAM_EDITOR_IDS") ?: "")
+            .split(",").mapNotNull { it.trim().toLongOrNull() }.toSet(),
+        suggestions = suggestionService,
+    ),
 ) {
     install(ContentNegotiation) {
         json(Json {
@@ -98,5 +143,6 @@ fun Application.module(
         authRoutes(authService)
         syncRoutes(syncService)
         wordPackRoutes(wordPackService)
+        suggestionRoutes(suggestionService, telegramBot)
     }
 }

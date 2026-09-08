@@ -11,6 +11,9 @@
     <string name="help">Помощь</string>
     <string name="not_enough_letters">Недостаточно букв</string>
     <string name="not_in_word_list">Нет в списке слов</string>
+    <string name="game_suggest_word">Предложить к добавлению</string>
+    <string name="suggest_sent">Отправлено на проверку</string>
+    <string name="suggest_failed">Не удалось отправить, повторите</string>
 
     <string name="settings_title">Настройки</string>
     <string name="settings_mark_style">Стиль меток</string>

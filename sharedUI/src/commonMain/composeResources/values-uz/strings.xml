@@ -11,6 +11,9 @@
     <string name="help">Yordam</string>
     <string name="not_enough_letters">Harflar yetarli emas</string>
     <string name="not_in_word_list">So\'zlar ro\'yxatida yo\'q</string>
+    <string name="game_suggest_word">Qo\'shishni taklif qilish</string>
+    <string name="suggest_sent">Ko\'rib chiqishga yuborildi</string>
+    <string name="suggest_failed">Yuborilmadi, qayta urining</string>
 
     <string name="settings_title">Sozlamalar</string>
     <string name="settings_mark_style">Belgi uslubi</string>
