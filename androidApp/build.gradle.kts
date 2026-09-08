@@ -23,7 +23,7 @@ android {
         targetSdk = 37
 
         applicationId = "uz.abumme.harfgame"
-        versionCode = 1
+        versionCode = 2
         versionName = "1.0.0"
     }
 
@@ -47,6 +47,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+            // Play's recommended setting for native crash/ANR symbolication. Currently a no-op:
+            // the only native code is prebuilt AndroidX .so with no extractable debug symbols, so
+            // the AAB carries none and Play's "upload debug symbols" notice is advisory (safe to
+            // ignore). It activates automatically if a symbol-bearing native lib is ever added.
+            // Our Kotlin is symbolicated via the R8 mapping, which the AAB already includes.
+            ndk { debugSymbolLevel = "FULL" }
         }
     }
 
