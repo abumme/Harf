@@ -61,6 +61,7 @@ import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.EntitlementRepository
+import uz.abumme.harfgame.billing.PurchaseController
 import uz.abumme.harfgame.billing.hostedBillingUiSupported
 import uz.abumme.harfgame.data.auth.OAuthClient
 import uz.abumme.harfgame.data.auth.OAuthProvider
@@ -80,6 +81,7 @@ private object LegalLinks {
 @Composable
 fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}) {
     val controller = koinInject<StyleExperimentController>()
+    val purchases = koinInject<PurchaseController>()
     val entitlements = koinInject<EntitlementRepository>()
     val sessionStore = koinInject<SessionStore>()
     val syncManager = koinInject<SyncManager>()
@@ -130,15 +132,20 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
             }
         }
 
-        if (ents.lifetime) {
-            Text(stringResource(Res.string.settings_founder), color = colors.accent, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-        }
-        OutlinedButton(onClick = onPaywall, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(if (ents.lifetime) Res.string.settings_support_harf_themes else Res.string.settings_support_harf))
-        }
-        if (hostedBillingUiSupported) {
-            OutlinedButton(onClick = onCustomerCenter, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(Res.string.settings_manage_purchases))
+        // Purchases surface only when the store is actually configured (real RevenueCat key). With a
+        // blank key isAvailable is false, so the whole paywall/founder/manage block is hidden — the
+        // first release ships without purchases and the section reappears once a key + products exist.
+        if (purchases.isAvailable) {
+            if (ents.lifetime) {
+                Text(stringResource(Res.string.settings_founder), color = colors.accent, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            }
+            OutlinedButton(onClick = onPaywall, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(if (ents.lifetime) Res.string.settings_support_harf_themes else Res.string.settings_support_harf))
+            }
+            if (hostedBillingUiSupported) {
+                OutlinedButton(onClick = onCustomerCenter, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(Res.string.settings_manage_purchases))
+                }
             }
         }
 
