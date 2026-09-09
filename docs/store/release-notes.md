@@ -3,6 +3,48 @@
 For Play Console → Release → "What's new". One entry per language, ≤ 500 chars each.
 First release: **versionCode 1 / versionName 1.0.0**.
 
+# 1.1.0 (versionCode 3)
+
+## en
+
+```
+What's new in 1.1.0
+
+• Suggest a word: when your guess is a real word we don't know yet, send it to our editors to add
+• Your display name is now kept when you link your account
+• Smaller app and performance tweaks under the hood
+
+Thanks for playing — see you tomorrow.
+```
+
+## ru
+
+```
+Что нового в 1.1.0
+
+• Предложить слово: если ваша догадка — настоящее слово, которого у нас пока нет, отправьте его редакторам на добавление
+• Ваше отображаемое имя теперь сохраняется при привязке аккаунта
+• Меньший размер приложения и улучшения производительности
+
+Спасибо, что играете — до завтра.
+```
+
+## uz
+
+```
+1.1.0 dagi yangiliklar
+
+• So'z taklif qilish: agar topgan so'zingiz haqiqiy, ammo bizda hali yo'q bo'lsa, uni muharrirlarga qo'shish uchun yuboring
+• Endi hisobingizni bog'laganda ko'rinadigan ismingiz saqlanadi
+• Ilova hajmi kichraydi va ishlashi yaxshilandi
+
+O'ynaganingiz uchun rahmat — ertaga ko'rishguncha.
+```
+
+---
+
+# 1.0.0 (versionCode 1)
+
 ## en
 
 ```
