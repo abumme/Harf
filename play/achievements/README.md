@@ -6,7 +6,7 @@ Assets for the Play Console **bulk import** of achievements (Play Console → Pl
 - `AchievementsMetadata.csv` — one row per achievement. Columns (no header row):
   `Name,Description,Incremental,Steps,State,Points,ListOrder`
 - `AchievementsLocalizations.csv` — translations. Columns (no header row):
-  `Name,Localized name,Localized description,locale` (base language is the English text in Metadata; `ru-RU` added here). Locale codes must match Play Console's supported list exactly — Russian is `ru-RU` (not `ru`), and **Uzbek is not supported** by Play Console listings/games metadata, so it is omitted (in-app `uz` strings are unaffected).
+  `Name,Localized name,Localized description,locale` (base language is the English text in Metadata; `ru` added here). Locale codes must match Play Console's supported-languages table exactly (https://support.google.com/googleplay/android-developer/table/4419860) — Russian is **`ru`** (bare, not `ru-RU`), English base is `en-US`. **Uzbek is not supported** by Play Console, so it is omitted (in-app `uz` strings are unaffected).
 - `AchievementsIconsMappings.csv` — icon per achievement. Columns (no header row):
   `Name,Icon filename`.
 - `*.png` — 512×512 badge icons referenced by the mappings.
