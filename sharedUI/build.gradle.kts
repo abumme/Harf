@@ -91,6 +91,8 @@ kotlin {
             implementation(libs.androidx.credentials)
             implementation(libs.androidx.credentials.play.services)
             implementation(libs.googleid)
+            // Play Games Services v2 (Android-only: sign-in, leaderboards, achievements)
+            implementation(libs.play.services.games.v2)
         }
 
         jvmMain.dependencies {

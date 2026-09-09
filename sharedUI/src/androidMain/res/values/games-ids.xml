@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--Google Play game services IDs. Save this file as res/values/games-ids.xml in your project.-->
+<resources>
+  <!--app_id-->
+  <string name="app_id" translatable="false">508164918683</string>
+  <!--package_name-->
+  <string name="package_name" translatable="false">uz.abumme.harfgame</string>
+  <!--achievement First win-->
+  <string name="achievement_first_win" translatable="false">CgkIm5v1h-UOEAIQAg</string>
+  <!--achievement Week streak-->
+  <string name="achievement_week_streak" translatable="false">CgkIm5v1h-UOEAIQAw</string>
+  <!--achievement Month streak-->
+  <string name="achievement_month_streak" translatable="false">CgkIm5v1h-UOEAIQBA</string>
+  <!--achievement Hole in one-->
+  <string name="achievement_hole_in_one" translatable="false">CgkIm5v1h-UOEAIQAQ</string>
+  <!--achievement Centurion-->
+  <string name="achievement_centurion" translatable="false">CgkIm5v1h-UOEAIQBQ</string>
+  <!--leaderboard Streak Masters-->
+  <string name="leaderboard_streak_masters" translatable="false">CgkIm5v1h-UOEAIQBg</string>
+  <!--leaderboard Puzzles Solved-->
+  <string name="leaderboard_puzzles_solved" translatable="false">CgkIm5v1h-UOEAIQBw</string>
+</resources>

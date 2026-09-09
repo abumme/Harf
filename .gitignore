@@ -113,3 +113,6 @@ xcuserdata/
 *.xcuserstate
 # Codegraph MCP index (generated, local)
 .codegraph/
+
+# Local release build outputs
+androidApp/release/

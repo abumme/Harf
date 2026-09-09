@@ -54,6 +54,9 @@ import harf_game.sharedui.generated.resources.settings_signed_in_as
 import harf_game.sharedui.generated.resources.settings_log_out
 import harf_game.sharedui.generated.resources.settings_manage_purchases
 import harf_game.sharedui.generated.resources.settings_mark_style
+import harf_game.sharedui.generated.resources.settings_achievements
+import harf_game.sharedui.generated.resources.settings_leaderboards
+import harf_game.sharedui.generated.resources.settings_play_games
 import harf_game.sharedui.generated.resources.settings_privacy_policy
 import harf_game.sharedui.generated.resources.settings_support_harf
 import harf_game.sharedui.generated.resources.settings_support_harf_themes
@@ -92,6 +95,7 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
     val sessionStore = koinInject<SessionStore>()
     val syncManager = koinInject<SyncManager>()
     val oauthClient = koinInject<OAuthClient>()
+    val gamesServices = koinInject<uz.abumme.harfgame.games.GamesServices>()
     val scope = rememberCoroutineScope()
     val active by controller.activeStyle.collectAsState()
     val ents by entitlements.entitlements.collectAsState()
@@ -247,6 +251,16 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
                     }
                 }
             )
+        }
+
+        if (gamesServices.isAvailable) {
+            Text(stringResource(Res.string.settings_play_games), color = colors.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
+            OutlinedButton(onClick = { gamesServices.showLeaderboards() }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(Res.string.settings_leaderboards))
+            }
+            OutlinedButton(onClick = { gamesServices.showAchievements() }, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(Res.string.settings_achievements))
+            }
         }
 
         Text(stringResource(Res.string.settings_legal), color = colors.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))

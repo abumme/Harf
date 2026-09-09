@@ -103,6 +103,7 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
     val resultLog = koinInject<ResultLog>()
     val roundStore = koinInject<RoundStore>()
     val syncManager = koinInject<uz.abumme.harfgame.data.stats.SyncManager>()
+    val gamesServices = koinInject<uz.abumme.harfgame.games.GamesServices>()
     val scope = rememberCoroutineScope()
 
     // active script (Uzbek can switch latn <-> cyrl for the same daily lexeme)
@@ -129,6 +130,10 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
                 // B11: keep the finished round persisted so reopening today shows the result,
                 // not a blank editable board. The snapshot is saved by the effect below.
                 syncManager.pushStats()
+                // Best-effort Play Games update (Android only; no-op elsewhere or when signed out).
+                gamesServices.submitProgress(
+                    uz.abumme.harfgame.games.GamesProgress.from(resultLog.all(), registry.ids)
+                )
             }
         }
     }

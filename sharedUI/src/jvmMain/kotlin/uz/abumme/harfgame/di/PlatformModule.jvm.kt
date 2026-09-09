@@ -8,6 +8,8 @@ import uz.abumme.harfgame.billing.PurchaseController
 import uz.abumme.harfgame.data.auth.NoOpOAuthClient
 import uz.abumme.harfgame.data.auth.OAuthClient
 import uz.abumme.harfgame.feature.share.Sharer
+import uz.abumme.harfgame.games.GamesServices
+import uz.abumme.harfgame.games.NoOpGamesServices
 import java.awt.Toolkit
 import java.awt.datatransfer.StringSelection
 
@@ -16,6 +18,7 @@ actual val platformModule: Module = module {
     single<Sharer> { DesktopSharer() }
     single<PurchaseController> { NoOpPurchaseController }
     single<OAuthClient> { NoOpOAuthClient(isGoogleSupported = true) }
+    single<GamesServices> { NoOpGamesServices() }
 }
 
 private class DesktopSharer : Sharer {

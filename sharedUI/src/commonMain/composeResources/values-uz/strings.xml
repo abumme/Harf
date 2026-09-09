@@ -30,6 +30,9 @@
     <string name="settings_log_out">Chiqish</string>
     <string name="settings_link_google">Google hisobini bog\'lash</string>
     <string name="settings_link_apple">Apple hisobini bog\'lash</string>
+    <string name="settings_play_games">Play Games</string>
+    <string name="settings_leaderboards">Reyting jadvallari</string>
+    <string name="settings_achievements">Yutuqlar</string>
     <string name="settings_legal">Huquqiy ma\'lumot</string>
     <string name="settings_privacy_policy">Maxfiylik siyosati</string>
     <string name="settings_terms_offer">Foydalanish shartlari (oferta)</string>

@@ -69,6 +69,7 @@ kotlin {
 dependencies {
     implementation(project(":sharedUI"))
     implementation(libs.androidx.activityCompose)
+    implementation(libs.play.services.games.v2) // PlayGamesSdk.initialize in HarfApplication
 }
 
 // Convenience for debugging against a local backend. The `Local` in this task's name flips

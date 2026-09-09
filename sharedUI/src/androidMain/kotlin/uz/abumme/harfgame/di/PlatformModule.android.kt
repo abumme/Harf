@@ -15,6 +15,8 @@ import uz.abumme.harfgame.data.auth.AndroidGoogleOAuthClient
 import uz.abumme.harfgame.data.auth.NoOpOAuthClient
 import uz.abumme.harfgame.data.auth.OAuthClient
 import uz.abumme.harfgame.feature.share.Sharer
+import uz.abumme.harfgame.games.AndroidGamesServices
+import uz.abumme.harfgame.games.GamesServices
 
 actual val platformModule: Module = module {
     single { KSafe(androidApplication()) }
@@ -25,6 +27,7 @@ actual val platformModule: Module = module {
         if (serverClientId.isNotBlank()) AndroidGoogleOAuthClient(serverClientId)
         else NoOpOAuthClient(isGoogleSupported = false)
     }
+    single<GamesServices> { AndroidGamesServices(androidApplication()) }
 }
 
 private class AndroidSharer(private val context: Context) : Sharer {
