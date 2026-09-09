@@ -7,14 +7,15 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import uz.abumme.harfgame.backend.db.DatabaseFactory
+import uz.abumme.harfgame.backend.db.UsersTable
 import uz.abumme.harfgame.backend.db.WordSuggestionsTable
 import uz.abumme.harfgame.data.suggestion.SuggestionStatus
 import java.util.UUID
 
 /** Result of attempting to store a suggestion. The route maps these to HTTP status codes. */
 sealed interface SuggestOutcome {
-    /** A new pending suggestion was stored. */
-    data class Stored(val id: String, val lang: String, val word: String) : SuggestOutcome
+    /** A new pending suggestion was stored. [author] is a human label (display name, else short id). */
+    data class Stored(val id: String, val lang: String, val word: String, val author: String) : SuggestOutcome
     /** An identical pending suggestion already existed; reported as success, nothing new stored. */
     data object DuplicatePending : SuggestOutcome
     /** Failed validation (ill-formed, offensive, gibberish, or already in the pack). */
@@ -75,7 +76,9 @@ class SuggestionServerService(
                 it[status] = SuggestionStatus.PENDING.name
                 it[createdAt] = java.time.Instant.ofEpochMilli(System.currentTimeMillis())
             }
-            SuggestOutcome.Stored(id, lang, word)
+            val name = UsersTable.selectAll().where { UsersTable.id eq userId }
+                .singleOrNull()?.get(UsersTable.name)?.takeIf { it.isNotBlank() }
+            SuggestOutcome.Stored(id, lang, word, author = name ?: "id:${userId.take(8)}")
         }
     }
 

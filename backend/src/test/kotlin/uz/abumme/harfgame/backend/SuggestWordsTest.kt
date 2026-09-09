@@ -225,11 +225,33 @@ class SuggestWordsTest {
             botToken = "", editorChatId = "chat", editorIds = setOf(42L),
             suggestions = svc(), topics = mapOf("uz-latn" to 7),
         )
-        val mapped = bot.suggestionMessage("id1", "uz-latn", "salom")
+        val mapped = bot.suggestionMessage("id1", "uz-latn", "salom", author = "Ada")
         assertEquals(7, mapped["message_thread_id"]?.jsonPrimitive?.int)
 
-        val unmapped = bot.suggestionMessage("id2", "en", "hello")
+        val unmapped = bot.suggestionMessage("id2", "en", "hello", author = "Ada")
         assertEquals(null, unmapped["message_thread_id"])
+    }
+
+    @Test
+    fun suggestionMessageIncludesAuthor() {
+        val bot = TelegramBot(botToken = "", editorChatId = "chat", editorIds = emptySet(), suggestions = svc())
+        val text = bot.suggestionMessage("id", "en", "hello", author = "Grace")["text"]!!.jsonPrimitive.content
+        assertTrue(text.contains("Grace"))
+    }
+
+    @Test
+    fun storedAuthorIsDisplayNameElseShortId() = runBlocking {
+        // No display name -> short id fallback.
+        val anon = svc().suggest("u1", "en", "hello")
+        assertTrue(anon is SuggestOutcome.Stored && anon.author == "id:${"u1".take(8)}")
+
+        // With a display name -> the name.
+        transaction(DatabaseFactory.init()) {
+            UsersTable.deleteAll()
+            UsersTable.insert { it[id] = "u2"; it[createdAt] = Instant.now(); it[name] = "Grace" }
+        }
+        val named = svc().suggest("u2", "en", "world")
+        assertTrue(named is SuggestOutcome.Stored && named.author == "Grace")
     }
 
     @Test

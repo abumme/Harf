@@ -29,7 +29,7 @@ fun Route.suggestionRoutes(service: SuggestionServerService, telegram: TelegramB
             val request = call.receive<SuggestWordRequest>()
             when (val outcome = service.suggest(userId, request.lang, request.word)) {
                 is SuggestOutcome.Stored -> {
-                    telegram.notifyPending(outcome.id, outcome.lang, outcome.word)
+                    telegram.notifyPending(outcome.id, outcome.lang, outcome.word, outcome.author)
                     call.respond(HttpStatusCode.Accepted, SuggestWordResponse(SuggestionStatus.PENDING.name))
                 }
                 SuggestOutcome.DuplicatePending ->
