@@ -30,6 +30,9 @@
     <string name="settings_log_out">Log out</string>
     <string name="settings_link_google">Link Google Account</string>
     <string name="settings_link_apple">Link Apple Account</string>
+    <string name="settings_play_games">Play Games</string>
+    <string name="settings_leaderboards">Leaderboards</string>
+    <string name="settings_achievements">Achievements</string>
     <string name="settings_legal">Legal</string>
     <string name="settings_privacy_policy">Privacy Policy</string>
     <string name="settings_terms_offer">Terms of Use (Offer)</string>

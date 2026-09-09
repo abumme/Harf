@@ -30,6 +30,9 @@
     <string name="settings_log_out">Выйти</string>
     <string name="settings_link_google">Привязать аккаунт Google</string>
     <string name="settings_link_apple">Привязать аккаунт Apple</string>
+    <string name="settings_play_games">Play Games</string>
+    <string name="settings_leaderboards">Таблицы лидеров</string>
+    <string name="settings_achievements">Достижения</string>
     <string name="settings_legal">Правовая информация</string>
     <string name="settings_privacy_policy">Политика конфиденциальности</string>
     <string name="settings_terms_offer">Условия использования (оферта)</string>
