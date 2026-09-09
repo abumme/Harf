@@ -2,9 +2,14 @@ package uz.abumme.harfgame
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onRoot
@@ -52,5 +57,27 @@ class BoardScreenshotTest {
             }
         }
         onRoot().captureRoboImage("roborazzi/game_board_uz_latn.png")
+    }
+
+    @Test
+    fun board_and_keyboard_landscape() = runDesktopComposeUiTest {
+        setContent {
+            HarfTheme(paletteId = "newsprint") {
+                val c = LocalHarfColors.current
+                // Wide/side-by-side arrangement: board (scaled down) left, keyboard right.
+                Row(
+                    modifier = Modifier.size(640.dp, 360.dp).background(c.paper).padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                        BoardView(state, tileSize = 40.dp)
+                    }
+                    Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                        KeyboardView(LaunchLanguages.uzLatn, state.keyStates, {}, {}, {})
+                    }
+                }
+            }
+        }
+        onRoot().captureRoboImage("roborazzi/game_board_landscape.png")
     }
 }

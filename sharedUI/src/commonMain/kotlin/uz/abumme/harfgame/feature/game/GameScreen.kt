@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -199,7 +200,77 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
     val keyLookup = remember(config) { config.keyboard.flatten().associateBy { it.lowercase() } }
     LaunchedEffect(script) { runCatching { focusRequester.requestFocus() } }
 
-    Column(
+    // Reusable pieces so the tall and wide layouts share one source of truth.
+    val helpRow: @Composable () -> Unit = {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            val helpLabel = stringResource(Res.string.help)
+            TextButton(onClick = { showHelp = true }, modifier = Modifier.semantics { contentDescription = helpLabel }) {
+                Text("?", color = colors.muted)
+            }
+        }
+    }
+    val chips: @Composable () -> Unit = {
+        if (languageId.startsWith("uz")) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ScriptChip("Lotin", script == "uz-latn") { script = "uz-latn" }
+                ScriptChip("Кирилл", script == "uz-cyrl") { script = "uz-cyrl" }
+            }
+        }
+    }
+    val feedback: @Composable () -> Unit = {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            MarkLegend(Modifier.padding(vertical = 2.dp), compact = true)
+            Box(Modifier.height(20.dp), contentAlignment = Alignment.Center) {
+                message?.let { Text(it, color = colors.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
+            }
+            // Offer to suggest an unknown full-length word for editor review.
+            if (state.status == GameStatus.Playing && suggestCandidate != null) {
+                val candidate = suggestCandidate!!
+                TextButton(
+                    enabled = !suggestBusy,
+                    onClick = {
+                        scope.launch {
+                            suggestBusy = true
+                            val result = syncManager.suggestWord(script, candidate)
+                            message = if (result is uz.abumme.harfgame.data.api.ApiResult.Success) suggestSentMsg else suggestFailedMsg
+                            suggestCandidate = null
+                            suggestBusy = false
+                        }
+                    },
+                ) {
+                    Text(stringResource(Res.string.game_suggest_word), color = colors.accent, fontSize = 13.sp)
+                }
+            }
+        }
+    }
+    val playArea: @Composable () -> Unit = {
+        if (state.status == GameStatus.Playing) {
+            KeyboardView(
+                config = config,
+                keyStates = state.keyStates,
+                onKey = { vm.onAction(GameAction.Input(it)) },
+                onDelete = { vm.onAction(GameAction.Delete) },
+                onEnter = { vm.onAction(GameAction.Submit) },
+            )
+        } else {
+            ResultView(state, config.displayName, puzzle.epochDay, onPaywall)
+        }
+    }
+    // Board sized to fully fit whatever space it is given; capped at 46.dp so tall phones look unchanged.
+    val board: @Composable (maxW: Dp, maxH: Dp) -> Unit = { maxW, maxH ->
+        val gap = 6.dp
+        val ts = minOf(
+            46.dp,
+            (maxW - gap * (state.tileCount - 1)) / state.tileCount,
+            (maxH - gap * (state.maxAttempts - 1)) / state.maxAttempts,
+        )
+        BoardView(state, tileSize = ts)
+    }
+
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing)
@@ -220,54 +291,38 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
                 }
             }
             .focusable(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            val helpLabel = stringResource(Res.string.help)
-            TextButton(onClick = { showHelp = true }, modifier = Modifier.semantics { contentDescription = helpLabel }) {
-                Text("?", color = colors.muted)
-            }
-        }
-        if (languageId.startsWith("uz")) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ScriptChip("Lotin", script == "uz-latn") { script = "uz-latn" }
-                ScriptChip("Кирилл", script == "uz-cyrl") { script = "uz-cyrl" }
-            }
-        }
-        BoardView(state)
-        MarkLegend(Modifier.padding(vertical = 2.dp), compact = true)
-        Box(Modifier.height(20.dp), contentAlignment = Alignment.Center) {
-            message?.let { Text(it, color = colors.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
-        }
-        // Offer to suggest an unknown full-length word for editor review.
-        if (state.status == GameStatus.Playing && suggestCandidate != null) {
-            val candidate = suggestCandidate!!
-            TextButton(
-                enabled = !suggestBusy,
-                onClick = {
-                    scope.launch {
-                        suggestBusy = true
-                        val result = syncManager.suggestWord(script, candidate)
-                        message = if (result is uz.abumme.harfgame.data.api.ApiResult.Success) suggestSentMsg else suggestFailedMsg
-                        suggestCandidate = null
-                        suggestBusy = false
+        val wide = maxWidth > maxHeight
+        if (wide) {
+            // Board and keyboard side by side, each using half the width and the full height.
+            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(
+                    Modifier.weight(1f).fillMaxHeight(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    helpRow(); chips()
+                    BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        board(maxWidth, maxHeight)
                     }
-                },
-            ) {
-                Text(stringResource(Res.string.game_suggest_word), color = colors.accent, fontSize = 13.sp)
+                    feedback()
+                }
+                Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) { playArea() }
             }
-        }
-        if (state.status == GameStatus.Playing) {
-            KeyboardView(
-                config = config,
-                keyStates = state.keyStates,
-                onKey = { vm.onAction(GameAction.Input(it)) },
-                onDelete = { vm.onAction(GameAction.Delete) },
-                onEnter = { vm.onAction(GameAction.Submit) },
-            )
         } else {
-            ResultView(state, config.displayName, puzzle.epochDay, onPaywall)
+            // Vertical stack; the board fills the space left between the chrome and the keyboard.
+            Column(
+                Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                helpRow(); chips()
+                BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    board(maxWidth, maxHeight)
+                }
+                feedback()
+                playArea()
+            }
         }
     }
 }
@@ -285,7 +340,7 @@ private fun ScriptChip(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-fun BoardView(state: GameState, modifier: Modifier = Modifier) {
+fun BoardView(state: GameState, modifier: Modifier = Modifier, tileSize: Dp = 46.dp) {
     val colors = LocalHarfColors.current
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         for (r in 0 until state.maxAttempts) {
@@ -294,7 +349,7 @@ fun BoardView(state: GameState, modifier: Modifier = Modifier) {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 for (c in 0 until state.tileCount) {
                     val g = row?.graphemes?.getOrNull(c) ?: if (isCurrent) state.current.getOrNull(c) else null
-                    Tile(g, row?.marks?.getOrNull(c), colors)
+                    Tile(g, row?.marks?.getOrNull(c), colors, tileSize)
                 }
             }
         }
@@ -302,14 +357,15 @@ fun BoardView(state: GameState, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun Tile(grapheme: String?, mark: Mark?, colors: HarfColors) {
+private fun Tile(grapheme: String?, mark: Mark?, colors: HarfColors, size: Dp = 46.dp) {
     Box(
-        modifier = Modifier.size(46.dp).border(1.dp, colors.rule, RoundedCornerShape(3.dp)),
+        modifier = Modifier.size(size).border(1.dp, colors.rule, RoundedCornerShape(3.dp)),
         contentAlignment = Alignment.Center,
     ) {
         if (mark != null) FeedbackMark(mark, colors, Modifier.fillMaxSize())
         if (grapheme != null) {
-            Text(grapheme.uppercase(), color = colors.ink, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+            // Text scales with the tile — exactly 20.sp at the standard 46.dp.
+            Text(grapheme.uppercase(), color = colors.ink, fontWeight = FontWeight.Bold, fontSize = (size.value * (20f / 46f)).sp)
         }
     }
 }
