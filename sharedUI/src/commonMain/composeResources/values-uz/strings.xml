@@ -18,8 +18,8 @@
     <string name="settings_title">Sozlamalar</string>
     <string name="settings_mark_style">Belgi uslubi</string>
     <string name="settings_founder">★ Founder</string>
-    <string name="settings_support_harf">Harf\'ni qo'llab-quvvatlash</string>
-    <string name="settings_support_harf_themes">Harf\'ni qo'llab-quvvatlash / mavzular</string>
+    <string name="settings_support_harf">Harf'ni qo'llab-quvvatlash</string>
+    <string name="settings_support_harf_themes">Harf'ni qo'llab-quvvatlash / mavzular</string>
     <string name="settings_manage_purchases">Xaridlarni boshqarish</string>
     <string name="settings_account_sync">Hisob va sinxronlash</string>
     <string name="settings_account_linked">✓ Hisob bog'landi</string>
@@ -33,11 +33,11 @@
     <string name="settings_play_games">Play Games</string>
     <string name="settings_leaderboards">Reyting jadvallari</string>
     <string name="settings_achievements">Yutuqlar</string>
-    <string name="settings_legal">Huquqiy ma\'lumot</string>
+    <string name="settings_legal">Huquqiy ma'lumot</string>
     <string name="settings_privacy_policy">Maxfiylik siyosati</string>
     <string name="settings_terms_offer">Foydalanish shartlari (oferta)</string>
     <string name="settings_delete_account">Hisobni o'chirish</string>
-    <string name="settings_delete_body">Hisobingizni o'chirmoqchimisiz? Barcha serverdagi ma\'lumotlar va mahalliy statistika butunlay o'chiriladi.</string>
+    <string name="settings_delete_body">Hisobingizni o'chirmoqchimisiz? Barcha serverdagi ma'lumotlar va mahalliy statistika butunlay o'chiriladi.</string>
     <string name="settings_deleting">o'chirilmoqda…</string>
     <string name="settings_delete">o'chirish</string>
     <string name="settings_cancel">Bekor qilish</string>
