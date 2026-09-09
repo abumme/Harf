@@ -13,6 +13,8 @@ import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.insert
@@ -213,6 +215,31 @@ class SuggestWordsTest {
         val reply = bot.onCallback(fromId = 42L, data = "accept:$id")
         assertTrue(reply.contains("Принято"))
         assertEquals(SuggestionStatus.ACCEPTED.name, statusOf(id))
+    }
+
+    // ---- Telegram forum topics ----
+
+    @Test
+    fun suggestionRoutedToLanguageTopic() {
+        val bot = TelegramBot(
+            botToken = "", editorChatId = "chat", editorIds = setOf(42L),
+            suggestions = svc(), topics = mapOf("uz-latn" to 7),
+        )
+        val mapped = bot.suggestionMessage("id1", "uz-latn", "salom")
+        assertEquals(7, mapped["message_thread_id"]?.jsonPrimitive?.int)
+
+        val unmapped = bot.suggestionMessage("id2", "en", "hello")
+        assertEquals(null, unmapped["message_thread_id"])
+    }
+
+    @Test
+    fun parseTelegramTopicsParsesPairsAndSkipsJunk() {
+        assertEquals(
+            mapOf("en" to 2, "ru" to 3, "uz-latn" to 4),
+            parseTelegramTopics("en=2, ru=3 ,uz-latn=4, bad, x=notint, =5")
+        )
+        assertEquals(emptyMap(), parseTelegramTopics(null))
+        assertEquals(emptyMap(), parseTelegramTopics(""))
     }
 
     // ---- route integration (4.2) ----

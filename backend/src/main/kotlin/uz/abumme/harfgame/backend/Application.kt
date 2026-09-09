@@ -71,8 +71,17 @@ private fun telegramBotFromEnv(suggestionService: SuggestionServerService) = Tel
     editorChatId = System.getenv("TELEGRAM_EDITOR_CHAT_ID") ?: "",
     editorIds = (System.getenv("TELEGRAM_EDITOR_IDS") ?: "")
         .split(",").mapNotNull { it.trim().toLongOrNull() }.toSet(),
+    topics = parseTelegramTopics(System.getenv("TELEGRAM_TOPICS")),
     suggestions = suggestionService,
 )
+
+/** Parse "en=123,ru=456,uz-latn=789" into a lang -> topic (message_thread_id) map. */
+internal fun parseTelegramTopics(raw: String?): Map<String, Int> =
+    (raw ?: "").split(",").mapNotNull { entry ->
+        val (lang, id) = entry.split("=").map { it.trim() }.takeIf { it.size == 2 } ?: return@mapNotNull null
+        val threadId = id.toIntOrNull() ?: return@mapNotNull null
+        if (lang.isEmpty()) null else lang to threadId
+    }.toMap()
 
 fun Application.module(
     jwtService: JwtService = JwtService(),
@@ -93,6 +102,7 @@ fun Application.module(
         editorChatId = System.getenv("TELEGRAM_EDITOR_CHAT_ID") ?: "",
         editorIds = (System.getenv("TELEGRAM_EDITOR_IDS") ?: "")
             .split(",").mapNotNull { it.trim().toLongOrNull() }.toSet(),
+        topics = parseTelegramTopics(System.getenv("TELEGRAM_TOPICS")),
         suggestions = suggestionService,
     ),
 ) {

@@ -68,6 +68,10 @@ The system SHALL notify word editors of each pending suggestion through a Telegr
 - **WHEN** a suggestion has been stored as pending and Telegram is configured
 - **THEN** the bot SHALL post the word, its language, to the editors' chat with an accept control and a reject control
 
+#### Scenario: Suggestions are routed to per-language topics when configured
+- **WHEN** a per-language forum topic is configured for the suggestion's language
+- **THEN** the bot SHALL post the suggestion into that language's topic; a language with no configured topic SHALL post to the chat root
+
 #### Scenario: Only allowlisted editors may decide
 - **WHEN** a Telegram user who is not on the editor allowlist taps a decision control
 - **THEN** the system SHALL ignore the action and SHALL NOT change the suggestion's status

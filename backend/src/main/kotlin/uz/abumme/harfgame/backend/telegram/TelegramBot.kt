@@ -37,14 +37,21 @@ class TelegramBot(
     private val editorChatId: String,
     private val editorIds: Set<Long>,
     private val suggestions: SuggestionServerService,
+    /** Per-language forum topic (message_thread_id) to post into; langs absent post to the chat root. */
+    private val topics: Map<String, Int> = emptyMap(),
     private val http: HttpClient = HttpClient.newHttpClient(),
 ) {
     val enabled: Boolean = botToken.isNotBlank()
     private val json = Json { ignoreUnknownKeys = true }
 
-    /** Post a pending suggestion to the editors' chat with accept/reject controls. No-op if disabled. */
+    /** Post a pending suggestion to the editors' chat/topic with accept/reject controls. No-op if disabled. */
     suspend fun notifyPending(id: String, lang: String, word: String) {
         if (!enabled) return
+        runCatching { post("sendMessage", suggestionMessage(id, lang, word)) }
+    }
+
+    /** The sendMessage payload for a pending suggestion, routed to the language's topic when mapped. */
+    internal fun suggestionMessage(id: String, lang: String, word: String): JsonObject {
         val keyboard = buildJsonObject {
             put("inline_keyboard", buildJsonArray {
                 add(buildJsonArray {
@@ -53,12 +60,12 @@ class TelegramBot(
                 })
             })
         }
-        val body = buildJsonObject {
+        return buildJsonObject {
             put("chat_id", editorChatId)
+            topics[lang]?.let { put("message_thread_id", it) }
             put("text", "Новое слово: $word ($lang)")
             put("reply_markup", keyboard)
         }
-        runCatching { post("sendMessage", body) }
     }
 
     /**
