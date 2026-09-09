@@ -1,13 +1,18 @@
 package uz.abumme.harfgame.feature.home
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -54,10 +59,18 @@ fun HomeScreen(onPlay: (String) -> Unit = {}, onStats: () -> Unit = {}, onSettin
     val ents by entitlements.entitlements.collectAsState()
     val colors = LocalHarfColors.current
 
-    Column(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .windowInsetsPadding(WindowInsets.safeDrawing),
+    ) {
+      // Centered when it fits; scrolls (never clips) when content exceeds the viewport —
+      // heightIn(min = maxHeight) gives Center room to work while allowing overflow to grow.
+      Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .heightIn(min = maxHeight)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically),
@@ -92,5 +105,6 @@ fun HomeScreen(onPlay: (String) -> Unit = {}, onStats: () -> Unit = {}, onSettin
             },
             modifier = Modifier.width(220.dp),
         ) { Text(stringResource(Res.string.home_theme, HarfPalettes.byId(paletteId).displayName)) }
+      }
     }
 }

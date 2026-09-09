@@ -3,8 +3,9 @@ package uz.abumme.harfgame.feature.paywall
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -96,6 +97,11 @@ fun PaywallScreen(onBack: () -> Unit = {}) {
         modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
+      // Scrollable body takes the remaining space; the Restore CTA below stays pinned + always visible.
+      Column(
+        modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+      ) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(Res.string.settings_support_harf), color = colors.ink, fontFamily = harfSerif(), fontSize = 28.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             TextButton(onClick = onBack) { Text(stringResource(Res.string.action_close), color = colors.muted) }
@@ -136,7 +142,7 @@ fun PaywallScreen(onBack: () -> Unit = {}) {
             }
         }
 
-        Spacer(Modifier.weight(1f))
+      }
         message?.let { Text(it, color = colors.accent, fontSize = 13.sp) }
         OutlinedButton(
             onClick = { vm.onAction(PaywallAction.Restore) },
