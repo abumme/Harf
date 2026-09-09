@@ -78,7 +78,7 @@ class SuggestionServerService(
             }
             val name = UsersTable.selectAll().where { UsersTable.id eq userId }
                 .singleOrNull()?.get(UsersTable.name)?.takeIf { it.isNotBlank() }
-            SuggestOutcome.Stored(id, lang, word, author = name ?: "id:${userId.take(8)}")
+            SuggestOutcome.Stored(id, lang, word, author = name ?: "Аноним")
         }
     }
 

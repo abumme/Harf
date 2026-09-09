@@ -240,10 +240,10 @@ class SuggestWordsTest {
     }
 
     @Test
-    fun storedAuthorIsDisplayNameElseShortId() = runBlocking {
-        // No display name -> short id fallback.
+    fun storedAuthorIsDisplayNameElseAnonymous() = runBlocking {
+        // No display name -> "Аноним" fallback.
         val anon = svc().suggest("u1", "en", "hello")
-        assertTrue(anon is SuggestOutcome.Stored && anon.author == "id:${"u1".take(8)}")
+        assertTrue(anon is SuggestOutcome.Stored && anon.author == "Аноним")
 
         // With a display name -> the name.
         transaction(DatabaseFactory.init()) {
