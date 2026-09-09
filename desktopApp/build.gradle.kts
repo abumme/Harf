@@ -18,7 +18,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "Harf Game"
-            packageVersion = "1.0.0"
+            packageVersion = property("harf.versionName") as String
 
             linux {
                 iconFile.set(project.file("appIcons/LinuxIcon.png"))

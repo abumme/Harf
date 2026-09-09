@@ -23,8 +23,8 @@ android {
         targetSdk = 37
 
         applicationId = "uz.abumme.harfgame"
-        versionCode = 2
-        versionName = "1.0.0"
+        versionCode = (property("harf.versionCode") as String).toInt()
+        versionName = property("harf.versionName") as String
     }
 
     signingConfigs {
