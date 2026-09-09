@@ -12,8 +12,8 @@ The game already computes rich per-player history (streaks, wins, attempt distri
 - Play Console leaderboard/achievement IDs are injected as Android string resources (from the Play Console `games-ids.xml`), not hard-coded in shared logic. Missing/blank IDs ⇒ the feature no-ops without crashing (mirrors the blank-key billing pattern).
 
 ### Proposed leaderboards (2)
-- **Best streak** — the player's best daily-solve streak (max across languages).
-- **Total wins** — total solved dailies across languages.
+- **Streak Masters** — the player's best daily-solve streak, max across languages (integer, larger is better).
+- **Puzzles Solved** — total solved dailies across languages (integer, larger is better).
 
 ### Proposed achievements (5)
 - **First win** — first solved daily.
