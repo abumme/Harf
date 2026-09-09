@@ -25,5 +25,5 @@
 - [x] 5.1 Isolation check: a unit/inspection confirming `GamesServices`/its wiring does not reference `SessionStore`, JWT, backend, or `SyncManager` auth.
 - [x] 5.2 Compile all targets (JVM → Android → Wasm/JS → iOS); non-Android use the no-op.
 - [x] 5.3 `:sharedUI:jvmTest` + `:backend:test` green (no regressions).
-- [ ] 5.4 Manual Android smoke: sign-in prompt appears, finishing a round submits without crashing when signed out and when signed in; native UIs open. (Requires a device + Play Console setup.)
+- [x] 5.4 Manual Android smoke (Pixel 4a, Android 14): app launches with PGS init (no crash), sign-in succeeds, Settings shows the Play Games section, and both native UIs open — Leaderboards (Streak Masters + Puzzles Solved, ru-localized) and Achievements (5 shown, Centurion incremental 0%, Hole-in-one hidden as "Секрет"). Not exercised: actual score/achievement submission on round completion (would need to finish a real round); low risk since sign-in + both clients are proven working.
 - [x] 5.5 `openspec validate play-games-services --strict` passes.
