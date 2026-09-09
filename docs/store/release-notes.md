@@ -3,6 +3,49 @@
 For Play Console → Release → "What's new". One entry per language, ≤ 500 chars each.
 First release: **versionCode 1 / versionName 1.0.0**.
 
+# 1.2.0 (versionCode 4)
+
+## en
+
+```
+What's new in 1.2.0
+
+• Google Play Games: leaderboards and achievements — climb Streak Masters and Puzzles Solved
+• Plays great on any screen — tablets, foldables, and big displays now get an adaptive layout
+• Every screen scrolls to fit, so nothing is cut off on small or short screens
+• Uzbek text fixes and polish
+
+Thanks for playing — see you tomorrow.
+```
+
+## ru
+
+```
+Что нового в 1.2.0
+
+• Google Play Игры: таблицы лидеров и достижения — поднимайтесь в Streak Masters и Puzzles Solved
+• Отлично на любом экране — планшеты, складные и большие дисплеи получили адаптивную вёрстку
+• Все экраны прокручиваются и помещаются целиком, ничего не обрезается
+• Исправления узбекского текста и мелкие улучшения
+
+Спасибо, что играете — до завтра.
+```
+
+## uz
+
+```
+1.2.0 dagi yangiliklar
+
+• Google Play O'yinlari: reyting jadvallari va yutuqlar — Streak Masters va Puzzles Solved da yuqoriga chiqing
+• Har qanday ekranda ajoyib — planshet, buklanuvchi va katta ekranlar uchun moslashuvchan tartib
+• Har bir ekran to'liq sig'adi va aylantiriladi, hech narsa kesilmaydi
+• O'zbek matni tuzatildi va sayqallandi
+
+O'ynaganingiz uchun rahmat — ertaga ko'rishguncha.
+```
+
+---
+
 # 1.1.0 (versionCode 3)
 
 ## en
