@@ -1,6 +1,6 @@
 # Deleting your account and data — «Harf»
 
-**Revision date:** 2026-09-08
+**Revision date:** 2026-09-10
 
 This page explains how to delete your account and associated data in the «Harf» mobile application.
 
@@ -22,6 +22,7 @@ On deletion the following are removed from the server:
 
 - the anonymous account identifier (random UUID);
 - the linked sign-in identifier (Google/Apple provider + subject id), if you signed in;
+- the confirmed profile name, if you provided one at sign-in;
 - synchronized game statistics (language, puzzle number, win/attempts, update time);
 - all session and refresh tokens.
 
@@ -29,7 +30,8 @@ Local data on your device (theme, language, unfinished round, local statistics) 
 
 ## What is retained, and for how long
 
-- We do not keep any personally identifying data after deletion — the app never stores your name, email, or profile photo on the server.
+- No personal data is kept after deletion. While the account is active, the only personal detail stored on the server is the confirmed profile name (if you provided one at sign-in); your email and profile photo are never stored — the email is used solely to verify sign-in and is not recorded.
+- Words you suggested remain in the dictionary database but are detached from your account (authorship is cleared), so after deletion they can no longer be linked to you.
 - Encrypted database backups may still contain your rows for up to **30 days**, after which they are overwritten and the data is permanently gone.
 - Purchase records are held by Google Play / RevenueCat under their own policies; the app stores no payment details.
 
