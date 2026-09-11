@@ -60,6 +60,10 @@ object DatabaseFactory {
             val destructive = statements.filter { it.trimStart().uppercase().startsWith("DROP") || it.uppercase().contains("DROP COLUMN") }
             require(destructive.isEmpty()) { "Refusing destructive migration; apply manually: $destructive" }
             statements.forEach { exec(it) }
+            // Raw exec() skips the cache reset SchemaUtils does after DDL, so the table names cached
+            // while diffing (none, on a fresh database) would outlive the CREATEs and make
+            // Table.exists() report false for tables that now exist.
+            db.dialectMetadata.resetCaches()
         }
         return db
     }
