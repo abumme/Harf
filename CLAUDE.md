@@ -40,9 +40,11 @@ Tests:
 ./gradlew :sharedUI:jvmTest                            # all sharedUI unit tests
 ./gradlew :sharedUI:jvmTest --tests "*ScorerTest"      # a single test class
 ./gradlew :sharedUI:verifyRoborazziJvm                 # screenshot tests (compare vs golden)
-./gradlew :sharedUI:recordRoborazziJvm                 # regenerate golden screenshots after intended UI changes
+./gradlew :sharedUI:recordRoborazziJvm                 # regenerate goldens locally (preview only — CI's are canonical)
 ```
-Screenshot tests (`*ScreenshotTest`, `SemanticsDumpTest`) use Roborazzi on Compose Desktop. When a UI change is intentional, run `recordRoborazziJvm` to update goldens and commit them.
+Screenshot tests (`*ScreenshotTest`, `SemanticsDumpTest`) use Roborazzi on Compose Desktop. Goldens are canonical **as rendered on the CI runner**: fonts, emoji fallback and the JVM default locale all change the pixels, so `verifyRoborazziJvm` on a dev machine is advisory and locally recorded goldens will fail CI. When a UI change is intentional, take the `roborazzi-goldens` artifact from the failing CI run (`gh run download <run-id> -n roborazzi-goldens -D sharedUI/roborazzi`), review the diff, and commit that.
+
+**CI** (`.github/workflows/ci.yml`): PRs and pushes to `main` run the backend tests (against a Postgres service), the sharedUI tests and goldens, and the Android debug + JS/Wasm builds. A push to `main` that touches backend inputs also publishes the image to GHCR and deploys it to the Oracle box (`docs/deploy-oracle.md` §13).
 
 **Compile-check order** (fastest → slowest, skip absent targets): JVM → Android → Wasm/JS → iOS.
 
