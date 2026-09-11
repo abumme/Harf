@@ -11,7 +11,8 @@ The backend publishes on host port **8081**, not 8080 — 8080 is usually alread
 `HARF_HOST_PORT` in `.env`.
 
 Files: [`backend/Dockerfile`](../backend/Dockerfile), [`docker-compose.prod.yml`](../docker-compose.prod.yml),
-[`.env.example`](../.env.example), [`.github/workflows/backend-image.yml`](../.github/workflows/backend-image.yml).
+[`.env.example`](../.env.example), [`.github/workflows/ci.yml`](../.github/workflows/ci.yml),
+[`.github/scripts/deploy-backend.sh`](../.github/scripts/deploy-backend.sh).
 
 ## 1. Open the ports (two firewalls — this is the #1 Oracle gotcha)
 
@@ -163,7 +164,8 @@ and temporarily publish port 8081) — a release build requires trusted HTTPS.
 
 ## 10. Updates
 
-A push to `main` that touches the backend republishes `:latest`. On the box:
+Once §13 is set up this is automatic: a push to `main` that touches the backend runs the tests,
+publishes the image and deploys it. By hand (or before §13 is configured), on the box:
 ```bash
 cd ~/harf && git pull          # picks up compose/.env.example changes
 docker compose -f docker-compose.prod.yml pull backend
@@ -176,6 +178,9 @@ Recompiling instead (only on a shape with ~2 GB spare):
 cd ~/harf && git pull && docker compose -f docker-compose.prod.yml up -d --build
 ```
 
+CI only ships the image. It never touches `docker-compose.prod.yml` or `.env` on the box, so after a
+change to either, still `git pull` (or `scp`) and `up -d` by hand.
+
 ## 11. Backups
 
 ```bash
@@ -187,12 +192,13 @@ gunzip -c harf-YYYY-MM-DD.sql.gz | docker exec -i harf-postgres psql -U harf -d 
 
 ## 12. Publishing the image
 
-`.github/workflows/backend-image.yml` builds and pushes on every backend-touching push to `main`
-(and on `v*` tags), tagging `latest`, the git tag, and `sha-<short>`. It runs on `ubuntu-24.04` and
-builds `linux/amd64`, matching the current AMD deploy shape.
+The `publish-image` job in `.github/workflows/ci.yml` builds and pushes once the backend tests pass,
+on every push to `main` that touches backend inputs (and on `v*` tags), tagging `latest`, the git
+tag, and `sha-<short>`. It runs on `ubuntu-24.04` and builds `linux/amd64`, matching the current AMD
+deploy shape.
 
-**Moving to an Ampere/aarch64 shape?** Change both lines together — `runs-on: ubuntu-24.04-arm` and
-`platforms: linux/arm64`. GitHub's arm runner is free on public repos and ~10x faster than QEMU.
+**Moving to an Ampere/aarch64 shape?** Change both lines of the `publish-image` job together —
+`runs-on: ubuntu-24.04-arm` and `platforms: linux/arm64`. GitHub's arm runner is free on public repos and ~10x faster than QEMU.
 Leaving them mismatched with the server yields `no matching manifest for linux/<arch>` on pull.
 
 To push by hand from a workstation:
@@ -203,6 +209,66 @@ docker buildx build --platform linux/amd64 \
 ```
 Building the *other* architecture runs the whole Gradle build under QEMU — budget 15–30 minutes.
 Prefer CI.
+
+## 13. Continuous deployment
+
+After `publish-image`, the `deploy` job in `.github/workflows/ci.yml` SSHes into the box and runs
+[`.github/scripts/deploy-backend.sh`](../.github/scripts/deploy-backend.sh), which:
+
+1. pulls the image CI just built, by digest;
+2. stops there if its layers match what is already running (a CI-only change, say), so nothing restarts;
+3. points the compose file's image tag at it and recreates the `backend` container only (Postgres is
+   never touched);
+4. waits up to ~90 s for `Harf Backend is running` on the loopback port Caddy proxies to;
+5. if it never comes up, puts the previous image back and fails the run, so a bad build can't leave
+   production crash-looping.
+
+It re-runs compose with the project, directory and files the running container was started with,
+so it works wherever you set the stack up. It only *updates* a running stack; the first start is
+still §5.
+
+### One-time setup
+
+On your workstation, make a keypair used only by CI (no passphrase, since CI can't type one):
+```bash
+ssh-keygen -t ed25519 -N "" -C harf-ci-deploy -f harf_ci_deploy
+```
+
+On the box, as **the user that runs compose** (the one holding the GHCR login from §5, in the
+`docker` group), authorize the public key. The `restrict` prefix disables port/agent/X11 forwarding
+and PTYs for this key:
+```bash
+echo 'restrict ssh-ed25519 AAAA…paste harf_ci_deploy.pub here… harf-ci-deploy' >> ~/.ssh/authorized_keys
+```
+
+Back on the workstation, store four repository secrets and delete the local private key:
+```bash
+gh secret set ORACLE_SSH_HOST --repo abumme/Harf --body '<public IP or hostname>'
+gh secret set ORACLE_SSH_USER --repo abumme/Harf --body '<that user, e.g. ubuntu>'
+gh secret set ORACLE_SSH_KEY  --repo abumme/Harf < harf_ci_deploy
+ssh-keyscan -t ed25519 <host> | gh secret set ORACLE_SSH_KNOWN_HOSTS --repo abumme/Harf
+rm harf_ci_deploy
+```
+
+Check the scanned host key before trusting it: `ssh-keyscan -t ed25519 <host> | ssh-keygen -lf -`
+locally must print the same fingerprint as `ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub` on the
+box. That pin is what stops a spoofed host from receiving deploys.
+
+These are repository secrets because GitHub Environments aren't available to private repos on the
+org's Free plan. `docker` group membership is root-equivalent, so treat `ORACLE_SSH_KEY` like a root
+credential: anyone who can push a workflow to this repo can use it.
+
+### Operating it
+
+- **Redeploy or retry:** Actions → CI → Run workflow on `main`. It republishes and redeploys, and is a
+  no-op if the running image already has those layers.
+- **`denied` on pull:** the box's GHCR token (§5) has expired. Log in again on the box, then re-run.
+- **Roll back by hand:** every build stays on GHCR as `sha-<short>`:
+  ```bash
+  docker pull ghcr.io/abumme/harf-backend:sha-<short>
+  docker tag ghcr.io/abumme/harf-backend:sha-<short> ghcr.io/abumme/harf-backend:latest
+  docker compose -f docker-compose.prod.yml up -d backend
+  ```
 
 ## Notes
 

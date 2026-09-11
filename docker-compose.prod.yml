@@ -41,7 +41,8 @@ services:
     logging: *default-logging
 
   backend:
-    # Published for linux/amd64 by .github/workflows/backend-image.yml. `up -d` pulls it;
+    # Published for linux/amd64 by the publish-image job in .github/workflows/ci.yml; its deploy
+    # job points this tag at each new build (docs/deploy-oracle.md §13). `up -d` pulls it;
     # `up -d --build` compiles from source on this host instead (same tag either way).
     image: ghcr.io/abumme/harf-backend:latest
     build:
