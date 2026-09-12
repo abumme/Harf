@@ -1,12 +1,15 @@
 package uz.abumme.harfgame.backend.service
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
+import org.jetbrains.exposed.v1.jdbc.upsert
 import uz.abumme.harfgame.backend.db.DatabaseFactory
 import uz.abumme.harfgame.backend.db.UserStatsTable
 import uz.abumme.harfgame.data.sync.ResultRecordDto
@@ -34,28 +37,35 @@ class SyncServerService(
         val javaInstant = java.time.Instant.ofEpochMilli(incoming.updatedAt.toEpochMilliseconds())
 
         return DatabaseFactory.dbQuery {
-            val existing = UserStatsTable
-                .selectAll()
-                .where { UserStatsTable.userId eq userId }
-                .singleOrNull()
+            val updated = UserStatsTable.update({
+                (UserStatsTable.userId eq userId) and (UserStatsTable.updatedAt less javaInstant)
+            }) {
+                it[data] = recordsJson
+                it[updatedAt] = javaInstant
+            }
 
-            if (existing == null) {
-                UserStatsTable.insert {
-                    it[UserStatsTable.userId] = userId
-                    it[data] = recordsJson
-                    it[updatedAt] = javaInstant
-                }
+            if (updated > 0) {
                 UploadStatsResult.Success
             } else {
-                val currentUpdatedAt = existing[UserStatsTable.updatedAt]
-                if (javaInstant.isAfter(currentUpdatedAt)) {
-                    UserStatsTable.update({ UserStatsTable.userId eq userId }) {
+                val existing = UserStatsTable
+                    .selectAll()
+                    .where { UserStatsTable.userId eq userId }
+                    .singleOrNull()
+
+                if (existing != null) {
+                    UploadStatsResult.StoredSnapshotWon
+                } else {
+                    // A concurrent insert may have raced us in between the update and this select,
+                    // so guard the conflict path too: only overwrite an existing row when ours is
+                    // newer, preserving last-write-wins.
+                    UserStatsTable.upsert(
+                        where = { UserStatsTable.updatedAt less javaInstant },
+                    ) {
+                        it[UserStatsTable.userId] = userId
                         it[data] = recordsJson
                         it[updatedAt] = javaInstant
                     }
                     UploadStatsResult.Success
-                } else {
-                    UploadStatsResult.StoredSnapshotWon
                 }
             }
         }
