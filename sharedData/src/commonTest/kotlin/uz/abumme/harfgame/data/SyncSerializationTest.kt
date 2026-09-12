@@ -1,6 +1,6 @@
 package uz.abumme.harfgame.data
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import uz.abumme.harfgame.data.api.ApiErrorResponse

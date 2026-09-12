@@ -1,6 +1,6 @@
 package uz.abumme.harfgame.data.sync
 
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.Serializable
 
 @Serializable
