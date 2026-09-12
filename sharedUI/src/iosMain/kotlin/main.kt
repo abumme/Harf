@@ -1,27 +1,43 @@
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.window.ComposeUIViewController
-import uz.abumme.harfgame.App
-import uz.abumme.harfgame.di.initKoin
-import platform.UIKit.UIApplication
+import kotlinx.cinterop.ExperimentalForeignApi
+import platform.UIKit.UIStatusBarStyle
 import platform.UIKit.UIStatusBarStyleDarkContent
 import platform.UIKit.UIStatusBarStyleLightContent
+import platform.UIKit.UIViewAutoresizingFlexibleHeight
+import platform.UIKit.UIViewAutoresizingFlexibleWidth
 import platform.UIKit.UIViewController
-import platform.UIKit.setStatusBarStyle
+import platform.UIKit.addChildViewController
+import platform.UIKit.didMoveToParentViewController
+import uz.abumme.harfgame.App
+import uz.abumme.harfgame.di.initKoin
 
-fun MainViewController(): UIViewController {
-    initKoin()
-    return ComposeUIViewController {
-        App(onThemeChanged = { ThemeChanged(it) })
+@OptIn(ExperimentalForeignApi::class)
+private class MainAppViewController : UIViewController(nibName = null, bundle = null) {
+    private var isDark = false
+
+    override fun preferredStatusBarStyle(): UIStatusBarStyle {
+        return if (isDark) UIStatusBarStyleLightContent else UIStatusBarStyleDarkContent
+    }
+
+    override fun viewDidLoad() {
+        super.viewDidLoad()
+        val composeVc = ComposeUIViewController {
+            App(onThemeChanged = { dark ->
+                if (isDark != dark) {
+                    isDark = dark
+                    setNeedsStatusBarAppearanceUpdate()
+                }
+            })
+        }
+        addChildViewController(composeVc)
+        view.addSubview(composeVc.view)
+        composeVc.view.setFrame(view.bounds)
+        composeVc.view.autoresizingMask = UIViewAutoresizingFlexibleWidth or UIViewAutoresizingFlexibleHeight
+        composeVc.didMoveToParentViewController(this)
     }
 }
 
-@Composable
-private fun ThemeChanged(isDark: Boolean) {
-    LaunchedEffect(isDark) {
-        UIApplication.sharedApplication.setStatusBarStyle(
-            // dark content = dark icons; a light (paper) background needs dark content
-            if (isDark) UIStatusBarStyleLightContent else UIStatusBarStyleDarkContent
-        )
-    }
+fun MainViewController(): UIViewController {
+    initKoin()
+    return MainAppViewController()
 }
