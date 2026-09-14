@@ -3,6 +3,7 @@ package uz.abumme.harfgame.backend.service
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
+import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import uz.abumme.harfgame.backend.db.DatabaseFactory
@@ -34,6 +35,11 @@ class WordPackServerService(
                 schedule = json.decodeFromString(row[WordPacksTable.schedule]),
             )
         }
+    }
+
+    /** Languages that have a word pack, alphabetically. */
+    suspend fun languages(): List<String> = DatabaseFactory.dbQuery {
+        WordPacksTable.select(WordPacksTable.lang).orderBy(WordPacksTable.lang).map { it[WordPacksTable.lang] }
     }
 
     /**

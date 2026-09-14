@@ -17,6 +17,10 @@ import uz.abumme.harfgame.backend.auth.oauth.GoogleOAuthVerifier
 import uz.abumme.harfgame.backend.auth.oauth.OAuthVerifier
 import uz.abumme.harfgame.backend.config.ServerConfig
 import uz.abumme.harfgame.backend.db.DatabaseFactory
+import uz.abumme.harfgame.backend.dictionary.WiktionaryLookup
+import uz.abumme.harfgame.backend.review.DailyReportScheduler
+import uz.abumme.harfgame.backend.review.SuggestionReviewWorker
+import java.time.Instant
 import uz.abumme.harfgame.backend.routes.authRoutes
 import uz.abumme.harfgame.backend.routes.suggestionRoutes
 import uz.abumme.harfgame.backend.routes.syncRoutes
@@ -26,9 +30,13 @@ import uz.abumme.harfgame.backend.service.AuthServerService
 import uz.abumme.harfgame.backend.service.SuggestionServerService
 import uz.abumme.harfgame.backend.service.SyncServerService
 import uz.abumme.harfgame.backend.service.WordPackServerService
+import uz.abumme.harfgame.backend.telegram.HttpTelegramApi
 import uz.abumme.harfgame.backend.telegram.TelegramBot
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -44,35 +52,38 @@ fun main() {
     runBlocking { wordPackService.seed() } // idempotent: seeds version 1 if absent
     val suggestionService = SuggestionServerService(wordPackService)
     val telegramBot = telegramBotFromEnv(suggestionService)
+    val reviewWorker = SuggestionReviewWorker(
+        suggestions = suggestionService,
+        lookup = WiktionaryLookup(enabled = wordLookupEnabled(System.getenv("WORD_LOOKUP_ENABLED"))),
+        telegram = telegramBot,
+    )
+    val dailyReports = DailyReportScheduler(suggestionService, wordPackService, telegramBot)
 
-    // Long-poll for editor decisions in the background. Supervised: restart on unexpected failure so
-    // a transient crash doesn't silently stop reviews (suggestions keep storing regardless).
+    // Background work, each loop supervised so a transient failure delays it instead of stopping it.
+    // The review worker runs even without a bot: verified words still reach the pack.
+    val background = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    background.superviseForever(REVIEW_INTERVAL_MILLIS) { reviewWorker.runOnce() }
     if (telegramBot.enabled) {
-        CoroutineScope(Dispatchers.IO).launch {
-            while (isActive) {
-                runCatching { telegramBot.runPolling() }
-                    .onFailure { it.printStackTrace() }
-                delay(5000)
-            }
-        }
+        background.superviseForever(POLL_RESTART_MILLIS) { telegramBot.runPolling() } // long-polls until it fails
+        background.superviseForever(REPORT_INTERVAL_MILLIS) { dailyReports.sendDue(Instant.now()) }
     }
 
     embeddedServer(Netty, port = (System.getenv("PORT") ?: "8080").toInt(), host = "0.0.0.0") {
         module(
             wordPackService = wordPackService,
             suggestionService = suggestionService,
-            telegramBot = telegramBot,
         )
     }.start(wait = true)
 }
 
+/** The editor bot from `TELEGRAM_*` env; a blank or missing token leaves it disabled. */
 private fun telegramBotFromEnv(suggestionService: SuggestionServerService) = TelegramBot(
-    botToken = System.getenv("TELEGRAM_BOT_TOKEN") ?: "",
     editorChatId = System.getenv("TELEGRAM_EDITOR_CHAT_ID") ?: "",
     editorIds = (System.getenv("TELEGRAM_EDITOR_IDS") ?: "")
         .split(",").mapNotNull { it.trim().toLongOrNull() }.toSet(),
     topics = parseTelegramTopics(System.getenv("TELEGRAM_TOPICS")),
     suggestions = suggestionService,
+    api = System.getenv("TELEGRAM_BOT_TOKEN")?.takeIf { it.isNotBlank() }?.let { HttpTelegramApi(it) },
 )
 
 /** Parse "en=123,ru=456,uz-latn=789" into a lang -> topic (message_thread_id) map. */
@@ -82,6 +93,30 @@ internal fun parseTelegramTopics(raw: String?): Map<String, Int> =
         val threadId = id.toIntOrNull() ?: return@mapNotNull null
         if (lang.isEmpty()) null else lang to threadId
     }.toMap()
+
+private const val REVIEW_INTERVAL_MILLIS = 5_000L
+private const val POLL_RESTART_MILLIS = 5_000L
+private const val REPORT_INTERVAL_MILLIS = 60_000L
+
+/** `WORD_LOOKUP_ENABLED`: automatic dictionary verification is on unless the value is "false". */
+internal fun wordLookupEnabled(raw: String?): Boolean = raw?.trim()?.equals("false", ignoreCase = true) != true
+
+/**
+ * Runs [block] now and again every [intervalMillis] until the scope is cancelled. A failure is logged and the
+ * loop carries on after the interval, so one bad run never stops background work.
+ */
+internal fun CoroutineScope.superviseForever(intervalMillis: Long, block: suspend () -> Unit): Job = launch {
+    while (isActive) {
+        try {
+            block()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        delay(intervalMillis)
+    }
+}
 
 fun Application.module(
     jwtService: JwtService = JwtService(),
@@ -97,14 +132,6 @@ fun Application.module(
     syncService: SyncServerService = SyncServerService(),
     wordPackService: WordPackServerService = WordPackServerService(),
     suggestionService: SuggestionServerService = SuggestionServerService(wordPackService),
-    telegramBot: TelegramBot = TelegramBot(
-        botToken = System.getenv("TELEGRAM_BOT_TOKEN") ?: "",
-        editorChatId = System.getenv("TELEGRAM_EDITOR_CHAT_ID") ?: "",
-        editorIds = (System.getenv("TELEGRAM_EDITOR_IDS") ?: "")
-            .split(",").mapNotNull { it.trim().toLongOrNull() }.toSet(),
-        topics = parseTelegramTopics(System.getenv("TELEGRAM_TOPICS")),
-        suggestions = suggestionService,
-    ),
 ) {
     install(ContentNegotiation) {
         json(Json {
@@ -153,6 +180,6 @@ fun Application.module(
         authRoutes(authService)
         syncRoutes(syncService)
         wordPackRoutes(wordPackService)
-        suggestionRoutes(suggestionService, telegramBot)
+        suggestionRoutes(suggestionService)
     }
 }
