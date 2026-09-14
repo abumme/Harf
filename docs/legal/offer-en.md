@@ -1,6 +1,6 @@
 # Public Offer for the Sale of Digital Content in the «Harf» Application
 
-**Revision date:** 2026-09-06
+**Revision date:** 2026-09-14
 **Territory:** Republic of Uzbekistan and other countries where the application is distributed via Google Play
 
 
@@ -60,6 +60,8 @@
 6.3. The User undertakes to use the Content only for personal, non-commercial purposes and may not copy, distribute, modify, or resell the Content.
 
 6.4. The license is granted for the term of the exclusive rights unless another term is specified for particular Content.
+
+6.5. The word lists the Application uses to check guesses include material from Wiktionary (https://www.wiktionary.org/), written by Wiktionary contributors and extracted with Wiktextract via kaikki.org, available under the Creative Commons Attribution-ShareAlike 4.0 license (CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/). That material remains under that license, and the restrictions of clause 6.3 do not apply to it.
 
 ## 7. Liability and Limitations
 
