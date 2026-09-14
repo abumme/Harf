@@ -70,6 +70,7 @@ delivery confirmed (or bot disabled) → review_state = POSTED; otherwise stay Q
 - `review_state` varchar(16) nullable — `QUEUED` | `POSTED`. NULL marks rows created before this change (already posted inline); the worker never selects them, so nothing is re-posted.
 - `lookup_attempts` integer nullable — NULL treated as 0.
 - `decided_via` varchar(16) nullable — `AUTO` | `EDITOR`. NULL on older decided rows is counted as editor.
+- `auto_form` varchar(16) nullable — `DICTIONARY` | `INFLECTED`, written by an automatic acceptance so an announcement retried after a Telegram failure still names the form without a second lookup (added during implementation: the announcement is sent after the pack changes, so the form must outlive the tick that found it).
 
 New `suggestion_reports(lang varchar(16), day date, sent_at timestamp)`, primary key `(lang, day)`.
 
@@ -111,7 +112,7 @@ for lang in word_packs:
 
 - One idempotent check covers the normal send, retry after a Telegram failure, and catch-up after downtime, with no separate code paths. Reports land by ~00:01.
 - Send-then-record: a crash between the two yields a duplicate report at worst, never a missing one.
-- Each group lists at most 150 words, then `…и ещё N`; 3 × 150 × ~8 chars stays under Telegram's 4096-character limit.
+- Each group lists words until a per-group length budget (~1,200 characters) is spent, then `…и ещё N`, so three groups stay under Telegram's 4096-character limit even for 24-character suggestions. (A fixed 150-word cap, the first plan, would not: 3 × 150 × 26 characters is far over the limit.)
 - Pure helpers `reportDay(now)` and `renderReport(lang, day, summary): String?` (null when quiet) carry the date and formatting logic.
 
 *Alternatives rejected*: sleeping until the next midnight (needs separate retry and catch-up paths); per-language puzzle timezones (one editor clock chosen).

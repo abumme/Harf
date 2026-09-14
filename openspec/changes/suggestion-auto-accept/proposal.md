@@ -24,7 +24,7 @@ The bundled vocab is small (en 663 guesses, ru 152, kk 36, uz ~27), so most sugg
 ## Impact
 
 - **Backend** (`:backend`) only: Wiktionary lookup (JDK HTTP client, no new dependency; outbound HTTPS to `en.wiktionary.org`), a background review worker, a daily report scheduler, `TelegramBot` (confirmed sends, new message kinds, callback and polling fixes), `SuggestionServerService` (queue, atomic decide, daily summary), `SuggestionRoutes` (no inline notify), `Application` wiring.
-- **Schema**: nullable `review_state`, `lookup_attempts`, `decided_via` on `word_suggestions`; new `suggestion_reports` table. Additive, applied by the existing startup migration.
+- **Schema**: nullable `review_state`, `lookup_attempts`, `decided_via`, `auto_form` on `word_suggestions`; new `suggestion_reports` table. Additive, applied by the existing startup migration.
 - **Config**: optional `WORD_LOOKUP_ENABLED` (default on) in `.env.example`. Existing `TELEGRAM_*` variables unchanged.
 - **No** `:sharedData` or `:sharedUI` changes; the API contract and response are unchanged, so no client release is needed.
 - **Tests**: backend unit and integration tests; no screenshot golden impact.
