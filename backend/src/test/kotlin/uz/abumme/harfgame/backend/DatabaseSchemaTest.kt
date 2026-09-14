@@ -15,6 +15,8 @@ class DatabaseSchemaTest {
             assertTrue(OAuthIdentitiesTable.exists())
             assertTrue(RefreshTokensTable.exists())
             assertTrue(UserStatsTable.exists())
+            assertTrue(WordSuggestionsTable.exists())
+            assertTrue(SuggestionReportsTable.exists())
         }
     }
 }

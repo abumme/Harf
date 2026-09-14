@@ -11,14 +11,14 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
 import uz.abumme.harfgame.backend.service.SuggestOutcome
 import uz.abumme.harfgame.backend.service.SuggestionServerService
-import uz.abumme.harfgame.backend.telegram.TelegramBot
 import uz.abumme.harfgame.data.api.ApiErrorResponse
 import uz.abumme.harfgame.data.api.ApiRoutes
 import uz.abumme.harfgame.data.suggestion.SuggestWordRequest
 import uz.abumme.harfgame.data.suggestion.SuggestWordResponse
 import uz.abumme.harfgame.data.suggestion.SuggestionStatus
 
-fun Route.suggestionRoutes(service: SuggestionServerService, telegram: TelegramBot) {
+/** Stores a suggestion for the review worker; nothing reaches Telegram while the player waits. */
+fun Route.suggestionRoutes(service: SuggestionServerService) {
     authenticate("auth-jwt") {
         post(ApiRoutes.SUGGESTIONS) {
             val userId = call.principal<JWTPrincipal>()?.payload?.subject
@@ -28,11 +28,7 @@ fun Route.suggestionRoutes(service: SuggestionServerService, telegram: TelegramB
             }
             val request = call.receive<SuggestWordRequest>()
             when (val outcome = service.suggest(userId, request.lang, request.word)) {
-                is SuggestOutcome.Stored -> {
-                    telegram.notifyPending(outcome.id, outcome.lang, outcome.word, outcome.author)
-                    call.respond(HttpStatusCode.Accepted, SuggestWordResponse(SuggestionStatus.PENDING.name))
-                }
-                SuggestOutcome.DuplicatePending ->
+                is SuggestOutcome.Stored, SuggestOutcome.DuplicatePending ->
                     call.respond(HttpStatusCode.Accepted, SuggestWordResponse(SuggestionStatus.PENDING.name))
                 is SuggestOutcome.Rejected ->
                     call.respond(HttpStatusCode.BadRequest, ApiErrorResponse("rejected", outcome.reason))

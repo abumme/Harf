@@ -223,6 +223,13 @@ After `publish-image`, the `deploy` job in `.github/workflows/ci.yml` SSHes into
 5. if it never comes up, puts the previous image back and fails the run, so a bad build can't leave
    production crash-looping.
 
+That automatic rollback can't cross a schema change. A new image adds its tables and columns as it
+starts, before the health check. The previous image then sees those columns as unmapped, its startup
+guard refuses to drop them, and it won't start either: the run ends with `Rollback is unhealthy too`.
+Roll forward instead (fix and redeploy, or switch the new feature off in `.env`), or drop the added
+columns by hand before starting the older image. The OpenSpec design of the change that added them
+lists the exact SQL under its Migration Plan.
+
 It re-runs compose with the project, directory and files the running container was started with,
 so it works wherever you set the stack up. It only *updates* a running stack; the first start is
 still §5.
@@ -269,6 +276,8 @@ credential: anyone who can push a workflow to this repo can use it.
   docker tag ghcr.io/abumme/harf-backend:sha-<short> ghcr.io/abumme/harf-backend:latest
   docker compose -f docker-compose.prod.yml up -d backend
   ```
+  An image older than a schema change won't start until that change's columns are dropped by hand
+  (see the note under the deploy steps above).
 
 ## Notes
 

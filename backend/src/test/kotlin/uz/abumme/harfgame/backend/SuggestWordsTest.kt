@@ -11,31 +11,30 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.testApplication
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.int
-import kotlinx.serialization.json.jsonPrimitive
 import org.jetbrains.exposed.v1.core.eq
-import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import uz.abumme.harfgame.backend.db.DatabaseFactory
 import uz.abumme.harfgame.backend.db.UsersTable
-import uz.abumme.harfgame.backend.db.WordPacksTable
 import uz.abumme.harfgame.backend.db.WordSuggestionsTable
 import uz.abumme.harfgame.backend.service.DecideOutcome
+import uz.abumme.harfgame.backend.service.DecidedVia
 import uz.abumme.harfgame.backend.service.SuggestOutcome
 import uz.abumme.harfgame.backend.service.SuggestionServerService
 import uz.abumme.harfgame.backend.service.WordPackServerService
-import uz.abumme.harfgame.backend.telegram.TelegramBot
 import uz.abumme.harfgame.data.api.ApiRoutes
 import uz.abumme.harfgame.data.auth.AnonymousAuthResponse
 import uz.abumme.harfgame.data.suggestion.SuggestWordRequest
 import uz.abumme.harfgame.data.suggestion.SuggestWordResponse
 import uz.abumme.harfgame.data.suggestion.SuggestionStatus
 import java.time.Instant
-import java.util.UUID
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -44,55 +43,10 @@ import kotlin.test.assertTrue
 
 class SuggestWordsTest {
 
-    private val jsonc = Json
-
     @BeforeTest
-    fun setup() {
-        val db = DatabaseFactory.init()
-        transaction(db) {
-            WordSuggestionsTable.deleteAll()
-            WordPacksTable.deleteAll()
-            UsersTable.deleteAll()
-            UsersTable.insert { it[id] = "u1"; it[createdAt] = Instant.now() }
-        }
-    }
+    fun setup() = resetSuggestionData()
 
     private fun svc(cap: Int = 10) = SuggestionServerService(WordPackServerService(), dailyCap = cap)
-
-    private fun insertPack(lang: String, version: String, guesses: List<String>) {
-        transaction(DatabaseFactory.init()) {
-            WordPacksTable.insert {
-                it[WordPacksTable.lang] = lang
-                it[WordPacksTable.version] = version
-                it[effectiveFrom] = 0L
-                it[anchorEpochDay] = 0L
-                it[answers] = jsonc.encodeToString(listOf<String>())
-                it[WordPacksTable.guesses] = jsonc.encodeToString(guesses)
-                it[schedule] = jsonc.encodeToString(listOf<String>())
-                it[updatedAt] = Instant.now()
-            }
-        }
-    }
-
-    private fun insertPending(lang: String, word: String, author: String? = "u1"): String {
-        val id = UUID.randomUUID().toString()
-        transaction(DatabaseFactory.init()) {
-            WordSuggestionsTable.insert {
-                it[WordSuggestionsTable.id] = id
-                it[WordSuggestionsTable.lang] = lang
-                it[WordSuggestionsTable.word] = word
-                it[suggestedBy] = author
-                it[status] = SuggestionStatus.PENDING.name
-                it[createdAt] = Instant.now()
-            }
-        }
-        return id
-    }
-
-    private fun statusOf(id: String): String = transaction(DatabaseFactory.init()) {
-        WordSuggestionsTable.selectAll().where { WordSuggestionsTable.id eq id }
-            .single()[WordSuggestionsTable.status]
-    }
 
     // ---- validation matrix (2.3) ----
 
@@ -193,65 +147,54 @@ class SuggestWordsTest {
         assertEquals(DecideOutcome.NotFound, svc().decide("nope", accept = true, editor = "42"))
     }
 
-    // ---- Telegram editor authorization (3.6) ----
-
     @Test
-    fun nonEditorCallbackChangesNothing() = runBlocking {
-        val service = svc()
+    fun concurrentDecisionsApplyOnce() = runBlocking {
         insertPack("en", "1", listOf("x"))
         val id = insertPending("en", "hello")
-        val bot = TelegramBot(botToken = "", editorChatId = "", editorIds = setOf(42L), suggestions = service)
-        val reply = bot.onCallback(fromId = 999L, data = "accept:$id")
-        assertEquals("Недостаточно прав", reply)
-        assertEquals(SuggestionStatus.PENDING.name, statusOf(id))
-    }
-
-    @Test
-    fun editorCallbackAcceptsSuggestion() = runBlocking {
         val service = svc()
-        insertPack("en", "1", listOf("x"))
-        val id = insertPending("en", "hello")
-        val bot = TelegramBot(botToken = "", editorChatId = "", editorIds = setOf(42L), suggestions = service)
-        val reply = bot.onCallback(fromId = 42L, data = "accept:$id")
-        assertTrue(reply.contains("Принято"))
-        assertEquals(SuggestionStatus.ACCEPTED.name, statusOf(id))
-    }
-
-    // ---- Telegram forum topics ----
-
-    @Test
-    fun suggestionRoutedToLanguageTopic() {
-        val bot = TelegramBot(
-            botToken = "", editorChatId = "chat", editorIds = setOf(42L),
-            suggestions = svc(), topics = mapOf("uz-latn" to 7),
-        )
-        val mapped = bot.suggestionMessage("id1", "uz-latn", "salom", author = "Ada")
-        assertEquals(7, mapped["message_thread_id"]?.jsonPrimitive?.int)
-
-        val unmapped = bot.suggestionMessage("id2", "en", "hello", author = "Ada")
-        assertEquals(null, unmapped["message_thread_id"])
-    }
-
-    @Test
-    fun suggestionMessageIncludesAuthor() {
-        val bot = TelegramBot(botToken = "", editorChatId = "chat", editorIds = emptySet(), suggestions = svc())
-        val text = bot.suggestionMessage("id", "en", "hello", author = "Grace")["text"]!!.jsonPrimitive.content
-        assertTrue(text.contains("Grace"))
-    }
-
-    @Test
-    fun storedAuthorIsDisplayNameElseAnonymous() = runBlocking {
-        // No display name -> "Аноним" fallback.
-        val anon = svc().suggest("u1", "en", "hello")
-        assertTrue(anon is SuggestOutcome.Stored && anon.author == "Аноним")
-
-        // With a display name -> the name.
-        transaction(DatabaseFactory.init()) {
-            UsersTable.deleteAll()
-            UsersTable.insert { it[id] = "u2"; it[createdAt] = Instant.now(); it[name] = "Grace" }
+        val gate = CompletableDeferred<Unit>()
+        val decisions = (1..6).map { n ->
+            async(Dispatchers.IO) { gate.await(); service.decide(id, accept = n % 2 == 0, editor = "$n") }
         }
-        val named = svc().suggest("u2", "en", "world")
-        assertTrue(named is SuggestOutcome.Stored && named.author == "Grace")
+        gate.complete(Unit)
+        val outcomes = decisions.awaitAll()
+
+        assertEquals(1, outcomes.count { it is DecideOutcome.Applied })
+        assertEquals(5, outcomes.count { it == DecideOutcome.AlreadyDecided })
+        // The pack agrees with the one decision that took effect.
+        val accepted = statusOf(id) == SuggestionStatus.ACCEPTED.name
+        assertEquals(accepted, "hello" in WordPackServerService().getPack("en")!!.guesses)
+    }
+
+    @Test
+    fun decideRecordsDecisionSource() = runBlocking {
+        insertPack("en", "1", listOf("x"))
+        val auto = insertPending("en", "hello")
+        val manual = insertPending("en", "world")
+        svc().decide(auto, accept = true, editor = "wiktionary", via = DecidedVia.AUTO)
+        svc().decide(manual, accept = true, editor = "42")
+        assertEquals("AUTO", suggestionColumn(auto, WordSuggestionsTable.decidedVia))
+        assertEquals("EDITOR", suggestionColumn(manual, WordSuggestionsTable.decidedVia))
+    }
+
+    // Telegram bot behaviour (routing, messages, decision taps, polling) lives in telegram/TelegramBotTest.
+
+    @Test
+    fun storedSuggestionIsQueuedForReview() = runBlocking {
+        val out = svc().suggest("u1", "en", "hello") as SuggestOutcome.Stored
+        assertEquals("QUEUED", suggestionColumn(out.id, WordSuggestionsTable.reviewState))
+    }
+
+    @Test
+    fun authorLabelIsDisplayNameElseAnonymous() = runBlocking {
+        transaction(DatabaseFactory.init()) {
+            UsersTable.insert { it[id] = "u2"; it[createdAt] = Instant.now(); it[name] = "Grace" }
+            UsersTable.insert { it[id] = "u3"; it[createdAt] = Instant.now(); it[name] = "  " }
+        }
+        assertEquals("Grace", svc().authorLabel("u2"))
+        assertEquals("Аноним", svc().authorLabel("u1")) // no display name
+        assertEquals("Аноним", svc().authorLabel("u3")) // blank display name
+        assertEquals("Аноним", svc().authorLabel(null)) // author account deleted
     }
 
     @Test
@@ -280,10 +223,11 @@ class SuggestWordsTest {
         assertEquals(HttpStatusCode.Accepted, resp.status)
         assertEquals(SuggestionStatus.PENDING.name, resp.body<SuggestWordResponse>().status)
 
-        val stored = transaction(DatabaseFactory.init()) {
-            WordSuggestionsTable.selectAll().where { WordSuggestionsTable.word eq "world" }.count()
+        // One row, queued: the review worker — not this request — takes it to Telegram.
+        val reviewState = transaction(DatabaseFactory.init()) {
+            WordSuggestionsTable.selectAll().where { WordSuggestionsTable.word eq "world" }.single()[WordSuggestionsTable.reviewState]
         }
-        assertEquals(1, stored)
+        assertEquals("QUEUED", reviewState)
     }
 
     @Test
