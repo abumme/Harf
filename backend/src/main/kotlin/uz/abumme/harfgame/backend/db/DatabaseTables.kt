@@ -2,6 +2,7 @@ package uz.abumme.harfgame.backend.db
 
 import org.jetbrains.exposed.v1.core.ReferenceOption
 import org.jetbrains.exposed.v1.core.Table
+import org.jetbrains.exposed.v1.javatime.date
 import org.jetbrains.exposed.v1.javatime.timestamp
 
 object UsersTable : Table("users") {
@@ -57,16 +58,37 @@ object WordSuggestionsTable : Table("word_suggestions") {
         .references(UsersTable.id, onDelete = ReferenceOption.SET_NULL).nullable()
     val status = varchar("status", 16)
     val createdAt = timestamp("created_at")
-    /** Telegram editor who decided (id/username); null while pending. */
+    /** Who decided: the Telegram editor's id, or "wiktionary" for an automatic acceptance; null while pending. */
     val decidedBy = varchar("decided_by", 64).nullable()
     val decidedAt = timestamp("decided_at").nullable()
+    /**
+     * Background review progress: QUEUED until Telegram confirms the suggestion's message, then POSTED.
+     * NULL on rows that predate the review worker (they were posted inline), so the worker never selects them.
+     */
+    val reviewState = varchar("review_state", 16).nullable()
+    /** Failed dictionary lookups so far; NULL counts as zero. */
+    val lookupAttempts = integer("lookup_attempts").nullable()
+    /** AUTO (dictionary verification) or EDITOR; NULL on decisions made before automatic acceptance existed. */
+    val decidedVia = varchar("decided_via", 16).nullable()
+    /** Word form (DICTIONARY | INFLECTED) found by an automatic acceptance, so a retried announcement can name it. */
+    val autoForm = varchar("auto_form", 16).nullable()
 
     override val primaryKey = PrimaryKey(id)
 
     init {
         index("idx_suggestion_lang_word_status", false, lang, word, status)
         index("idx_suggestion_author_created", false, suggestedBy, createdAt)
+        index("idx_suggestion_review_state", false, reviewState)
     }
+}
+
+/** One row per language and Asia/Tashkent day whose report was delivered (or skipped as quiet), so it is sent once. */
+object SuggestionReportsTable : Table("suggestion_reports") {
+    val lang = varchar("lang", 16)
+    val day = date("day")
+    val sentAt = timestamp("sent_at")
+
+    override val primaryKey = PrimaryKey(lang, day)
 }
 
 object WordPacksTable : Table("word_packs") {

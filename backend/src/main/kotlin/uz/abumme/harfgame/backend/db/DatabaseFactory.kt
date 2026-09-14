@@ -51,6 +51,7 @@ object DatabaseFactory {
                 UserStatsTable,
                 WordPacksTable,
                 WordSuggestionsTable,
+                SuggestionReportsTable,
                 withLogs = false,
             )
             // MigrationUtils can emit destructive DROPs for columns/tables absent from the model
@@ -68,6 +69,7 @@ object DatabaseFactory {
         return db
     }
 
-    suspend fun <T> dbQuery(block: suspend () -> T): T =
-        newSuspendedTransaction(Dispatchers.IO, database) { block() }
+    /** Runs [block] in a transaction; [transactionIsolation] (a `java.sql.Connection` level) overrides the pool default. */
+    suspend fun <T> dbQuery(transactionIsolation: Int? = null, block: suspend () -> T): T =
+        newSuspendedTransaction(Dispatchers.IO, database, transactionIsolation = transactionIsolation) { block() }
 }
