@@ -20,6 +20,8 @@ import uz.abumme.harfgame.data.wordpack.WordPackSchedule
  */
 class WordPackServerService(
     private val anchorDay: Long = WordPackSchedule.ANCHOR_EPOCH_DAY,
+    /** Raw lines of a bundled word-pack file by name; the resources on the classpath by default. */
+    private val resourceLines: (name: String) -> List<String> = ::bundledWordPackLines,
 ) {
     private val json = Json
 
@@ -54,13 +56,43 @@ class WordPackServerService(
         val normalized = word.trim()
         if (guesses.any { it.equals(normalized, ignoreCase = true) }) return@dbQuery false
         val newGuesses = guesses + normalized
-        val newVersion = (row[WordPacksTable.version].toIntOrNull()?.plus(1) ?: 2).toString()
+        val newVersion = nextVersion(row[WordPacksTable.version])
         WordPacksTable.update({ WordPacksTable.lang eq lang }) {
             it[WordPacksTable.guesses] = json.encodeToString(newGuesses)
             it[WordPacksTable.version] = newVersion
             it[WordPacksTable.updatedAt] = java.time.Instant.ofEpochMilli(System.currentTimeMillis())
         }
         true
+    }
+
+    /**
+     * Append-only merge of the bundled guess dictionaries into the stored packs. Every word of a language's
+     * `<lang>_guess.txt` or `<lang>_answers.txt` that its stored pack lacks (compared case-insensitively, as
+     * [addGuess] does) is appended, and the version advances once. Words are never removed and answers,
+     * schedule and effectiveFrom are never touched, so words accepted after the build survive and past days stay
+     * unchanged. Languages without a stored pack are left to [seed]. Returns how many words each changed language gained.
+     */
+    suspend fun mergeGuesses(): Map<String, Int> {
+        val added = LinkedHashMap<String, Int>()
+        for (lang in languages()) {
+            val bundled = readLines("${lang}_guess.txt") + readLines("${lang}_answers.txt")
+            if (bundled.isEmpty()) continue
+            DatabaseFactory.dbQuery {
+                val row = WordPacksTable.selectAll().where { WordPacksTable.lang eq lang }.single()
+                val guesses: List<String> = json.decodeFromString(row[WordPacksTable.guesses])
+                val known = guesses.mapTo(HashSet()) { it.lowercase() }
+                val missing = bundled.filter { known.add(it.lowercase()) }
+                if (missing.isNotEmpty()) {
+                    WordPacksTable.update({ WordPacksTable.lang eq lang }) {
+                        it[WordPacksTable.guesses] = json.encodeToString(guesses + missing)
+                        it[WordPacksTable.version] = nextVersion(row[WordPacksTable.version])
+                        it[WordPacksTable.updatedAt] = java.time.Instant.ofEpochMilli(System.currentTimeMillis())
+                    }
+                    added[lang] = missing.size
+                }
+            }
+        }
+        return added
     }
 
     /** Insert version 1 for every language if absent. Idempotent: existing rows are left untouched. */
@@ -98,10 +130,14 @@ class WordPackServerService(
         }
     }
 
-    private fun readLines(name: String): List<String> {
-        val stream = javaClass.getResourceAsStream("/wordpacks/$name") ?: return emptyList()
-        return stream.bufferedReader().useLines { lines ->
-            lines.map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }.toList()
-        }
-    }
+    private fun readLines(name: String): List<String> =
+        resourceLines(name).map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }
+
+    private fun nextVersion(current: String): String = (current.toIntOrNull()?.plus(1) ?: 2).toString()
+}
+
+/** Raw lines of a bundled word-pack resource (`resources/wordpacks/<name>`); empty when the file is absent. */
+private fun bundledWordPackLines(name: String): List<String> {
+    val stream = WordPackServerService::class.java.getResourceAsStream("/wordpacks/$name") ?: return emptyList()
+    return stream.bufferedReader().useLines { it.toList() }
 }

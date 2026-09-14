@@ -29,17 +29,24 @@ internal fun resetSuggestionData() {
     }
 }
 
-internal fun insertPack(lang: String, version: String, guesses: List<String>) {
+internal fun insertPack(
+    lang: String,
+    version: String,
+    guesses: List<String>,
+    answers: List<String> = emptyList(),
+    schedule: List<String> = emptyList(),
+    effectiveFrom: Long = 0L,
+) {
     transaction(DatabaseFactory.init()) {
         WordPacksTable.insert {
             it[WordPacksTable.lang] = lang
             it[WordPacksTable.version] = version
-            it[effectiveFrom] = 0L
-            it[anchorEpochDay] = 0L
-            it[answers] = Json.encodeToString(listOf<String>())
+            it[WordPacksTable.effectiveFrom] = effectiveFrom
+            it[WordPacksTable.anchorEpochDay] = 0L
+            it[WordPacksTable.answers] = Json.encodeToString(answers)
             it[WordPacksTable.guesses] = Json.encodeToString(guesses)
-            it[schedule] = Json.encodeToString(listOf<String>())
-            it[updatedAt] = Instant.now()
+            it[WordPacksTable.schedule] = Json.encodeToString(schedule)
+            it[WordPacksTable.updatedAt] = Instant.now()
         }
     }
 }
