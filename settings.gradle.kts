@@ -43,5 +43,6 @@ if (!providers.gradleProperty("backendOnly").isPresent) {
     include(":androidApp")
     include(":desktopApp")
     include(":webApp")
+    include(":tools:wordlists") // word-list builder: needs :sharedUI's tokenizer
 }
 
