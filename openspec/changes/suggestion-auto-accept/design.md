@@ -123,7 +123,7 @@ for lang in word_packs:
 - [Wiktionary renames categories] → acceptance categories renamed ⇒ words fall to REVIEW (safe direction); blocking categories renamed ⇒ flagged words could be auto-accepted → fixture tests pin today's names; kill switch.
 - [Wikimedia throttles or blocks the User-Agent] → UNAVAILABLE ⇒ bounded retries ⇒ editors; volume is small and sequential.
 - [Offensive words Wiktionary does not flag] → the existing blocklist still runs before verification.
-- [Rollback strands QUEUED rows] → the previous build only posts inline, so suggestions queued under the new build stay unposted until it is redeployed. Acceptable; they remain stored.
+- [Rolling back the image needs manual SQL] → the previous image refuses to start until the added columns are dropped (Migration Plan step 4), and suggestions queued under the new build stay unposted afterwards → roll forward with the kill switch instead whenever possible.
 - [Duplicate report after a crash between send and record] → rare and harmless.
 - [Worker backlog under a burst] → 20 rows per 5 s tick drains it; only editor latency grows.
 - [Egress from the Oracle box to `en.wiktionary.org` blocked] → lookups report UNAVAILABLE and everything goes to editors; verify with the post-deploy smoke test.
@@ -133,7 +133,13 @@ for lang in word_packs:
 1. Deploy through CI as usual. Startup migration adds the nullable columns and `suggestion_reports`; existing rows keep `review_state = NULL` and are never re-posted.
 2. Document `WORD_LOOKUP_ENABLED` (default on) in `.env.example`; the box's `.env` needs no edit unless disabling.
 3. Smoke test on the real bot: a real word → 🤖 announcement in its topic; a junk word → decision buttons; a non-editor tap leaves the buttons; the next 00:00 Asia/Tashkent report arrives.
-4. Rollback: redeploy the previous image; it ignores the new nullable columns and table. Suggestions queued meanwhile are posted once the new build returns.
+4. Rollback: prefer rolling forward with `WORD_LOOKUP_ENABLED=false`. The previous image will **not** start against the migrated schema: its startup migration treats the added columns as unmapped and its guard refuses the resulting DROPs (verified 2026-09-14 by running the pre-change schema code against a migrated database). To roll back anyway, run by hand before redeploying it:
+   ```sql
+   DROP INDEX IF EXISTS idx_suggestion_review_state;
+   ALTER TABLE word_suggestions
+       DROP COLUMN review_state, DROP COLUMN lookup_attempts, DROP COLUMN decided_via, DROP COLUMN auto_form;
+   ```
+   `suggestion_reports` is outside the old schema diff and can stay. This discards review progress and the auto/editor distinction; suggestions still queued stay PENDING and unposted under the old build, which only posts inline.
 
 ## Open Questions
 
