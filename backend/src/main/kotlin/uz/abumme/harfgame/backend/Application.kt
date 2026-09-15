@@ -49,7 +49,12 @@ fun main() {
     ServerConfig.requireSecureProductionConfig()
     DatabaseFactory.init()
     val wordPackService = WordPackServerService()
-    runBlocking { wordPackService.seed() } // idempotent: seeds version 1 if absent
+    runBlocking {
+        wordPackService.seed() // idempotent: seeds version 1 if absent
+        // Append-only: deployed guess dictionaries reach stored packs, one version bump per changed language.
+        // Runs before the background loops, so it can't race the review worker's addGuess.
+        wordPackService.mergeGuesses().forEach { (lang, count) -> println("Word pack $lang: merged $count new guesses") }
+    }
     val suggestionService = SuggestionServerService(wordPackService)
     val telegramBot = telegramBotFromEnv(suggestionService)
     val reviewWorker = SuggestionReviewWorker(

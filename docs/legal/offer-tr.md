@@ -1,6 +1,6 @@
 # «Harf» Uygulamasında Dijital İçerik Satışı Sözleşmesinin Kurulmasına İlişkin Kamu Teklifi
 
-**Revizyon tarihi:** 2026-09-06
+**Revizyon tarihi:** 2026-09-14
 **Geçerlilik bölgesi:** Özbekistan Cumhuriyeti ve uygulamanın Google Play üzerinden dağıtıldığı diğer ülkeler
 
 ## 1. Genel Hükümler
@@ -59,6 +59,8 @@
 6.3. Kullanıcı İçeriği yalnızca kişisel, ticari olmayan amaçlarla kullanmayı taahhüt eder ve İçeriği kopyalayamaz, dağıtamaz, değiştiremez veya yeniden satamaz.
 
 6.4. Lisans, belirli bir İçerik için başka bir süre belirtilmedikçe, münhasır hakların süresi boyunca verilir.
+
+6.5. Uygulamanın girilen kelimeleri kontrol etmek için kullandığı sözlükler, Vikisözlük (Wiktionary, https://www.wiktionary.org/) katkıcıları tarafından oluşturulmuş, kaikki.org üzerinden Wiktextract ile çıkarılmış ve Creative Commons Atıf-AynıLisanslaPaylaş 4.0 lisansı (CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/) altında sunulan materyaller içerir. Bu materyaller söz konusu lisansa tabi kalır ve 6.3. maddedeki kısıtlamalar bunlara uygulanmaz.
 
 ## 7. Sorumluluk ve Sınırlamalar
 

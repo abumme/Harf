@@ -116,3 +116,6 @@ xcuserdata/
 
 # Local release build outputs
 androidApp/release/
+
+# Word-list builder: downloaded kaikki.org dumps (multi-GB, never committed)
+tools/wordlists/cache/

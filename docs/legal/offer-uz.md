@@ -1,6 +1,6 @@
 # «Harf» ilovasida raqamli kontent oldi-sotdi shartnomasini tuzish to'g'risidagi ommaviy oferta
 
-**Tahrir sanasi:** 2026-09-06
+**Tahrir sanasi:** 2026-09-14
 **Amal qilish hududi:** O'zbekiston Respublikasi va ilova Google Play orqali tarqatiladigan boshqa davlatlar
 
 
@@ -60,6 +60,8 @@
 6.3. Foydalanuvchi Kontentdan faqat shaxsiy notijorat maqsadlarida foydalanish majburiyatini oladi va Kontentni nusxalash, tarqatish, o'zgartirish yoki qayta sotishga haqli emas.
 
 6.4. Litsenziya, agar aniq Kontent uchun boshqa muddat ko'rsatilmagan bo'lsa, istisno huquqlar amal qilish muddatiga beriladi.
+
+6.5. Ilova kiritilgan so'zlarni tekshirishda foydalanadigan lug'atlar Wiktionary (https://www.wiktionary.org/) materiallarini o'z ichiga oladi: ular Wiktionary ishtirokchilari tomonidan yaratilgan, kaikki.org orqali Wiktextract yordamida olingan va Creative Commons «Mualliflikni ko'rsatish — Shartlarni saqlash» 4.0 litsenziyasi (CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/) asosida tarqatiladi. Ushbu materiallar ko'rsatilgan litsenziya ostida qoladi va 6.3-bandning cheklovlari ularga nisbatan qo'llanilmaydi.
 
 ## 7. Javobgarlik va cheklovlar
 
