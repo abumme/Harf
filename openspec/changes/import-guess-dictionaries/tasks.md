@@ -16,11 +16,11 @@
 
 - [x] 3.1 Implement `WordPackServerService.mergeGuesses()` test-first against the test database: resource words missing from a stored pack are added with exactly one version advance; a second run changes nothing and keeps the version; stored words absent from the resources (accepted suggestions) are kept; answers, schedule and `effectiveFrom` are unchanged; dedupe is case-insensitive like `addGuess`. Tests green.
 - [x] 3.2 Call `mergeGuesses()` in `main()` right after `seed()` and before the background loops start; verify the backend compiles and the full backend suite passes.
-- [ ] 3.3 Add a backend test asserting each language's backend and bundled guess files are identical, skipping when the client tree is absent; verify it passes locally and in CI's backend job.
+- [x] 3.3 Add a backend test asserting each language's backend and bundled guess files are identical, skipping when the client tree is absent; verify it passes locally and in CI's backend job.
 
 ## 4. Client verification
 
-- [ ] 4.1 Verify the largest regenerated pack (expected en) on Android, iOS, desktop and web: fetch, cache, restart offline, and play a round, recording load time and cache success per platform. If any platform fails, stop and revise the design before merging.
+- [ ] 4.1 Verify the largest regenerated pack (expected en) on Android, iOS, desktop and web: fetch, cache, restart offline, and play a round, recording load time and cache success per platform. If any platform fails, stop and revise the design before merging. Result 2026-09-15 (no platform failed): desktop passed end to end — en 23,011 guesses fetched and cached in 0.9 s, loaded offline after a restart in 63 ms, `zesty` and `книги` accepted; Android (API 36 emulator, local debug build) synced and cached both packs (697 KB KSafe store) and relaunched offline without a crash, no round played through the UI; web not verifiable here (common tests don't compile for JS/Wasm, Compose UI tests need an executable binary, and the backend has no CORS); iOS needs a Mac.
 
 ## 5. Attribution and verification
 
