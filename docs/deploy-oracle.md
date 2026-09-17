@@ -1,7 +1,9 @@
 # Deploy the Harf backend to Oracle Cloud (free tier, Ubuntu)
 
 Runs Postgres + the Ktor backend in Docker, both bound to `127.0.0.1`. The host's Caddy terminates
-TLS and reverse-proxies `https://<domain>` → `127.0.0.1:8081`.
+TLS and reverse-proxies `https://<domain>` → `127.0.0.1:8081`. The backend image also carries the
+staff admin panel (`adminWeb/`, exported statically at image build time) and serves it at
+`https://api.lazydevs.uz/harf/admin/` — no separate service and no Caddy change (§14).
 
 **Check the shape's architecture first — `uname -m`.** The published image is built for
 **`linux/amd64`** (Oracle AMD shapes). On an Ampere shape (`aarch64`) that image won't run; either
@@ -44,6 +46,18 @@ sed -i "s|JWT_SECRET=CHANGE_ME|JWT_SECRET=$(openssl rand -base64 48)|" .env
 sed -i "s|CHANGE_ME_strong_db_password|$(openssl rand -base64 24)|" .env
 nano .env   # confirm GOOGLE_CLIENT_IDS is your Web client id
 ```
+
+In the same `.env`, the staff admin panel needs (see `.env.example` for details):
+
+| Variable | Production value |
+|---|---|
+| `ADMIN_COOKIE_PATH` | `/harf` — the staff cookies are never sent to the other apps on `api.lazydevs.uz` |
+| `TRUST_PROXY_HEADERS` | `true` — the login rate limit keys on the client address Caddy reports |
+| `ADMIN_BOOTSTRAP_USERNAME`, `ADMIN_BOOTSTRAP_PASSWORD` | the first ADMIN (e.g. `openssl rand -base64 24` for the password); **remove both after the first sign-in** (§14) |
+| `ADMIN_DEV_ORIGIN` | leave empty — local development only, ignored when `HARF_ENV=production` |
+| `DAILY_HISTORY_START` | the public launch date, e.g. `2026-10-01`: days before it never count as used by the daily-word calendar. Empty while testing: each calendar counts from its first run (§14) |
+
+`ADMIN_WEB_DIR` is set inside the image; don't set it in `.env`.
 
 Only ever run this on a **fresh** box. Regenerating `JWT_SECRET` on an existing deployment logs
 every user out, and a new `POSTGRES_PASSWORD` won't match the password already baked into the
@@ -107,7 +121,9 @@ The image architecture must match the shape (§12).
 
 **Compiling on the box instead** (`up -d --build`) needs ~2 GB of RAM. It's fine on a 6 GB+ Ampere
 shape and is the one route that needs no registry at all, but on the 1 GB micro it will thrash swap
-for the better part of an hour and may still be OOM-killed. Prefer the pull.
+for the better part of an hour and may still be OOM-killed. It also runs the staff panel's export
+stage: a ~2 GB Playwright image, a Kotlin/JS build and a headless Chromium snapshotting every page,
+which is slow and memory-hungry on its own. Prefer the pull.
 
 Tables are created automatically on first start. Health check:
 ```bash
@@ -147,7 +163,11 @@ retry before assuming something's broken. `sudo journalctl -u caddy -n 30` shows
 
 ```bash
 curl https://api.lazydevs.uz/harf/    # -> "Harf Backend is running", valid TLS
+curl -sI https://api.lazydevs.uz/harf/admin/staff | grep -iE '^HTTP|content-security-policy|x-frame-options'
+#   -> HTTP/2 200 plus the panel's CSP and "x-frame-options: DENY"
 ```
+Then open `https://api.lazydevs.uz/harf/admin/` in a browser: the Russian login page loads (§14 for
+the first sign-in). A `404` there means the running image predates the panel.
 
 ## 9. Point the app at it
 
@@ -173,7 +193,8 @@ docker compose -f docker-compose.prod.yml up -d
 docker image prune -f          # drop the superseded image
 ```
 
-Recompiling instead (only on a shape with ~2 GB spare):
+Recompiling instead (only on a shape with ~2 GB spare; this also runs the Chromium-based panel
+export, §5):
 ```bash
 cd ~/harf && git pull && docker compose -f docker-compose.prod.yml up -d --build
 ```
@@ -228,7 +249,10 @@ starts, before the health check. The previous image then sees those columns as u
 guard refuses to drop them, and it won't start either: the run ends with `Rollback is unhealthy too`.
 Roll forward instead (fix and redeploy, or switch the new feature off in `.env`), or drop the added
 columns by hand before starting the older image. The OpenSpec design of the change that added them
-lists the exact SQL under its Migration Plan.
+lists the exact SQL under its Migration Plan. New *tables* are different: an older image's schema check
+only looks at the tables it knows, so rolling back past the staff panel (tables `staff`,
+`staff_languages`, `staff_sessions`, `staff_audit_log`) needs no SQL — they just sit unused, and the
+older image serves no panel.
 
 It re-runs compose with the project, directory and files the running container was started with,
 so it works wherever you set the stack up. It only *updates* a running stack; the first start is
@@ -279,8 +303,117 @@ credential: anyone who can push a workflow to this repo can use it.
   An image older than a schema change won't start until that change's columns are dropped by hand
   (see the note under the deploy steps above).
 
+## 14. Staff admin panel
+
+`https://api.lazydevs.uz/harf/admin/` is the staff panel (ADMIN and WORDER accounts, separate from
+players). The backend serves the exported panel from the image (`ADMIN_WEB_DIR=/app/admin-web`) at
+`/admin`; Caddy's existing `handle_path /harf/*` block covers it, so there is nothing to add to the
+Caddyfile.
+
+**First ADMIN.** With `ADMIN_BOOTSTRAP_USERNAME` and `ADMIN_BOOTSTRAP_PASSWORD` in `.env` (§3), the
+backend creates that ADMIN at startup while no active ADMIN exists. The log says
+`Bootstrapped ADMIN '<name>'`; a password outside 12–128 characters logs an error and creates
+nothing (the player API starts regardless). Then:
+
+1. `docker compose -f docker-compose.prod.yml up -d` so the container picks up the new `.env`;
+2. sign in at `https://api.lazydevs.uz/harf/admin/`, create the staff accounts you need;
+3. remove both `ADMIN_BOOTSTRAP_*` lines from `.env` and `up -d` again. While an active ADMIN exists
+   and they are still set, every start logs a warning to remove them.
+
+**Recovery** when no ADMIN can sign in any more: put the bootstrap variables back, naming the account
+to recover (or a new username), and restart. The variables act only while no *active* ADMIN exists;
+then the server makes that account an active ADMIN with the given password, clears its lock and ends
+its sessions, and the audit log records `STAFF_BOOTSTRAPPED` by the system. Remove the variables again
+afterwards.
+
+- Every ADMIN disabled: the variables alone are enough.
+- The only active ADMIN lost their password: that account is still active, so the variables are
+  ignored. Mark it disabled first, then restart with the variables naming it:
+  ```bash
+  docker exec harf-postgres psql -U harf -d harf -c "UPDATE staff SET status = 'DISABLED' WHERE username = '<name>'"
+  ```
+- One ADMIN among several lost their password: another ADMIN resets it in the panel.
+
+**Checks after a deploy that changes the panel:** the session cookie `harf_admin_session` shows
+`Path=/harf`, `Secure`, `HttpOnly`, `SameSite=Strict` in the browser's dev tools, and the console shows
+no Content-Security-Policy violations.
+
+### Word catalog: first deploy
+
+The word catalog moves every language's vocabulary out of the `word_packs` JSON into the `words` table
+and adds four columns to `word_suggestions`. `word_packs` stays the published snapshot.
+
+1. **Before deploying**, back up the packs and suggestions on the box:
+   ```bash
+   docker exec harf-postgres pg_dump -U harf -t word_packs -t word_suggestions harf > ~/word_packs_pre_catalog.sql
+   ```
+   Keep it until the checks below pass and a staff edit has reached a device; it is the last pack and
+   suggestion state from before the catalog.
+2. Deploy as usual (§13). At startup the log shows one `Word catalog <lang>: carried over N words from pack
+   version V …` line per language (a one-time import; it never runs again for a language whose catalog has
+   rows) and then only `merged N new bundled words` lines for languages the image's dictionaries extend.
+3. **Verify:** `curl -s https://api.lazydevs.uz/harf/api/v1/wordpacks/en -o /dev/null -D - | grep -i etag`
+   shows the same version as before the deploy (the carry-over publishes nothing); the panel's **Слова**
+   page lists about 23,000 English words; `curl -s -o /dev/null -D - -H 'Accept-Encoding: gzip'
+   https://api.lazydevs.uz/harf/api/v1/wordpacks/en | grep -i content-encoding` shows `gzip` (a GET: the
+   pack route does not answer HEAD).
+
+**Link the Telegram editors to staff accounts**, then retire the legacy allowlist:
+
+1. For each Telegram user id in `TELEGRAM_EDITOR_IDS`, create or edit a staff account in the panel
+   (**Сотрудники**): set its **Telegram ID** and its languages (an ADMIN decides in every language).
+2. Have each editor tap Accept or Reject on a pending suggestion in their language: the message shows the
+   outcome, and the panel's **Предложения → История** names the staff member.
+3. Remove `TELEGRAM_EDITOR_IDS` from `.env` and `docker compose -f docker-compose.prod.yml up -d`. While it
+   is set, every start logs `WARNING: TELEGRAM_EDITOR_IDS is set`.
+
+**Rollback** (prefer rolling forward): the previous image refuses to start while `word_suggestions` has
+columns it does not model. Drop them, then redeploy the previous tag:
+```bash
+docker exec harf-postgres psql -U harf -d harf -c "ALTER TABLE word_suggestions DROP COLUMN telegram_chat_id, DROP COLUMN telegram_message_id, DROP COLUMN telegram_text, DROP COLUMN review_reason"
+```
+`words` can stay (the old image ignores it) and clients keep the last published pack. The old image's
+startup merge is append-only, so bundled words staff removed come back until the catalog is redeployed.
+
+### Daily-word calendar: first deploy
+
+The calendar makes the server own the word of the day: ADMINs pick words for days from the day after tomorrow in the
+panel (**Календарь**, **Пул слов дня**), every other day is filled automatically without repeating words, and the
+packs' schedule is rebuilt from it. It adds the tables `lexeme_pairs`, `daily_words`, `calendar_notices` and
+`calendar_state` (nothing is dropped or rewritten).
+
+1. Set `DAILY_HISTORY_START` in `.env` to the public launch date, or leave it empty while testing (§3). Changing it
+   later can change future automatic picks, never a past day, today or tomorrow.
+2. **Before deploying**, note today's and tomorrow's word per language:
+   ```bash
+   for l in en ru kk uz-latn uz-cyrl; do curl -s https://api.lazydevs.uz/harf/api/v1/wordpacks/$l > ~/pack_pre_calendar_$l.json; done
+   ```
+3. Deploy as usual (§13). At startup, once per calendar, the log shows
+   `Daily calendar <en|kk|ru|uz>: imported N legacy days, M eligible words (…), R repeats scheduled`: the stored schedule
+   through tomorrow became history, today's answers became the answer pool (Uzbek: the pairs of `uz_lexemes.tsv`), and
+   the next 60 days were filled. Later starts log nothing for these calendars. Every minute the server extends each
+   calendar as days pass, so every pack's version advances about once a day.
+4. **Verify:** today's and tomorrow's words are unchanged — the pack's `anchorEpochDay` stays `20454` (2026-01-01), so
+   the word of a day is `schedule[day - 20454]`:
+   ```bash
+   for l in en ru kk uz-latn uz-cyrl; do curl -s https://api.lazydevs.uz/harf/api/v1/wordpacks/$l | jq -r --arg d $(( $(date -u +%s) / 86400 )) '.schedule[($d|tonumber) - .anchorEpochDay:($d|tonumber) - .anchorEpochDay + 2] | join(", ")'; done
+   ```
+   (compare with the same expression on `~/pack_pre_calendar_<lang>.json`; around midnight use each language's own day).
+   The panel's **Календарь** shows 60 days ahead per calendar; signed in as a WORDER, `/harf/api/v1/admin/calendar/en`
+   answers `403` and the navigation has no calendar entries. Pick a word for the day after tomorrow and check it appears
+   in `GET /api/v1/wordpacks/<lang>` with a new version.
+
+**Rollback:** redeploy the previous image; nothing to drop. It ignores the new tables and keeps serving the last
+published schedule, which it never changes.
+
+**Before a store release**, refresh the calendar snapshot the app bundles for offline fresh installs:
+`./gradlew :sharedUI:refreshCalendarSnapshot` (production by default; `-Pharf.apiBaseUrl=…` for another server), review
+and commit `sharedUI/src/commonMain/composeResources/files/<lang>_calendar.json`, or run the **Refresh calendar
+snapshot** workflow, which opens a pull request with them.
+
 ## Notes
 
 - Backend and Postgres listen on `127.0.0.1` only; the sole public entry is Caddy (80/443).
-- `HARF_ENV=production` makes the server refuse to start without `JWT_SECRET` — intentional.
+- `HARF_ENV=production` makes the server refuse to start without `JWT_SECRET` — intentional. It also
+  makes the staff cookies `Secure` and disables the development-only CORS for the panel's dev server.
 - Rotate `JWT_SECRET` only when you intend to invalidate all existing sessions.
