@@ -2,13 +2,15 @@ package uz.abumme.harfgame.data
 
 import uz.abumme.harfgame.data.stats.ResultRecord
 import uz.abumme.harfgame.data.stats.Streaks
+import uz.abumme.harfgame.data.stats.toDto
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class StreaksTest {
 
-    private fun won(lang: String, day: Long, attempts: Int = 3) = ResultRecord(lang, day, true, attempts)
-    private fun lost(lang: String, day: Long) = ResultRecord(lang, day, false, 6)
+    // The app's local records, mapped the way its stats screen hands them to the shared rules.
+    private fun won(lang: String, day: Long, attempts: Int = 3) = ResultRecord(lang, day, true, attempts).toDto()
+    private fun lost(lang: String, day: Long) = ResultRecord(lang, day, false, 6).toDto()
 
     @Test
     fun consecutive_solves_increase_streak() {

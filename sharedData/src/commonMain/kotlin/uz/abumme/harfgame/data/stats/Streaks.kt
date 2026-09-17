@@ -1,5 +1,7 @@
 package uz.abumme.harfgame.data.stats
 
+import uz.abumme.harfgame.data.sync.ResultRecordDto
+
 data class StreakStats(val current: Int, val best: Int)
 
 data class PlayerStats(
@@ -16,6 +18,9 @@ data class PlayerStats(
 /**
  * Pure replay of the result log. Streaks and stats are computed per language, never stored
  * as a mutable counter, so the value is always consistent with history.
+ *
+ * Shared by the app's stats screen (which maps its local records with `toDto()`) and the server's player detail in the
+ * staff panel, so both show the same numbers for the same records.
  */
 object Streaks {
 
@@ -24,7 +29,7 @@ object Streaks {
      * day for the language; the current streak lapses to 0 once the most recent won day is neither
      * today nor yesterday (a missed daily breaks the streak).
      */
-    fun streak(records: List<ResultRecord>, language: String, today: Long): StreakStats {
+    fun streak(records: List<ResultRecordDto>, language: String, today: Long): StreakStats {
         val days = records.filter { it.language == language && it.won }
             .map { it.puzzleDay }
             .distinct()
@@ -53,7 +58,7 @@ object Streaks {
         return StreakStats(current, best)
     }
 
-    fun stats(records: List<ResultRecord>, language: String): PlayerStats {
+    fun stats(records: List<ResultRecordDto>, language: String): PlayerStats {
         val forLang = records.filter { it.language == language }
         if (forLang.isEmpty()) return PlayerStats.EMPTY
         val wins = forLang.filter { it.won }

@@ -5,6 +5,7 @@ import kotlinx.coroutines.test.runTest
 import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.data.stats.ResultRecord
 import uz.abumme.harfgame.data.stats.Streaks
+import uz.abumme.harfgame.data.stats.toDto
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -18,7 +19,7 @@ class StatsIntegrationTest {
         listOf(1L, 2L, 3L).forEach { log.record(ResultRecord(lang, it, won = true, attempts = 3)) }
         log.record(ResultRecord(lang, 4L, won = false, attempts = 6))
 
-        val records = log.all()
+        val records = log.all().map { it.toDto() }
         val streak = Streaks.streak(records, lang, today = 4L)
         assertEquals(3, streak.current, "trailing run of solved days 1-3, still live on day 4")
         assertEquals(3, streak.best)
