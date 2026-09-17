@@ -34,15 +34,25 @@ dependencyResolutionManagement {
     }
 }
 include(":sharedData")
-include(":backend")
 
 // Client modules pull in the Android SDK / KMP native toolchains. A backend-only build
 // (server or Docker image, JDK only) skips them with `-PbackendOnly`.
-if (!providers.gradleProperty("backendOnly").isPresent) {
+// `-PadminWebOnly` builds just the staff panel and its shared contract (CI job, Docker export stage):
+// no backend, no Android SDK.
+val backendOnly = providers.gradleProperty("backendOnly").isPresent
+val adminWebOnly = providers.gradleProperty("adminWebOnly").isPresent
+
+if (!adminWebOnly) {
+    include(":backend")
+}
+if (!backendOnly && !adminWebOnly) {
     include(":sharedUI")
     include(":androidApp")
     include(":desktopApp")
     include(":webApp")
-    include(":tools:wordlists") // word-list builder: needs :sharedUI's tokenizer
+    include(":tools:wordlists") // word-list builder: uses :sharedData's tokenizer
+}
+if (!backendOnly) {
+    include(":adminWeb") // Kobweb staff panel, exported statically and served by the backend at /admin
 }
 
