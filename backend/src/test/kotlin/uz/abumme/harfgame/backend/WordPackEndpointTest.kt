@@ -4,6 +4,7 @@ import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
+import io.ktor.client.statement.readRawBytes
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -15,9 +16,13 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import uz.abumme.harfgame.backend.db.DatabaseFactory
 import uz.abumme.harfgame.backend.db.WordPacksTable
+import uz.abumme.harfgame.backend.db.WordsTable
 import uz.abumme.harfgame.backend.service.WordPackServerService
 import uz.abumme.harfgame.data.api.ApiRoutes
 import uz.abumme.harfgame.data.wordpack.WordPackDto
+import java.util.zip.GZIPInputStream
+import kotlin.test.assertContentEquals
+import kotlin.test.assertNull
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -31,7 +36,11 @@ class WordPackEndpointTest {
     @BeforeTest
     fun setup() {
         val db = DatabaseFactory.init()
-        transaction(db) { WordPacksTable.deleteAll() }
+        transaction(db) {
+            clearDailyCalendars()
+            WordsTable.deleteAll()
+            WordPacksTable.deleteAll()
+        }
     }
 
     @Test
@@ -80,5 +89,35 @@ class WordPackEndpointTest {
         // 404 for an unserved language
         val missing = client.get(ApiRoutes.wordpack("xx"))
         assertEquals(HttpStatusCode.NotFound, missing.status)
+    }
+
+    @Test
+    fun packIsCompressedOnlyWhenTheClientAcceptsIt() = testApplication {
+        runBlocking { WordPackServerService().seed() }
+        application { module() }
+        val plain = client.get(ApiRoutes.wordpack("en"))
+        assertEquals(HttpStatusCode.OK, plain.status)
+        assertNull(plain.headers[HttpHeaders.ContentEncoding])
+        val plainBody = plain.readRawBytes()
+
+        val gzipped = client.get(ApiRoutes.wordpack("en")) { header(HttpHeaders.AcceptEncoding, "gzip") }
+        assertEquals(HttpStatusCode.OK, gzipped.status)
+        assertEquals("gzip", gzipped.headers[HttpHeaders.ContentEncoding])
+        assertEquals("1", gzipped.headers[HttpHeaders.ETag])
+        val compressed = gzipped.readRawBytes()
+        val decoded = GZIPInputStream(compressed.inputStream()).readBytes()
+        assertContentEquals(plainBody, decoded)
+        assertTrue(compressed.size * 2 < plainBody.size, "gzip ${compressed.size} vs ${plainBody.size} bytes")
+        assertEquals(json.decodeFromString<WordPackDto>(plainBody.decodeToString()), json.decodeFromString<WordPackDto>(decoded.decodeToString()))
+
+        val deflated = client.get(ApiRoutes.wordpack("en")) { header(HttpHeaders.AcceptEncoding, "deflate") }
+        assertEquals("deflate", deflated.headers[HttpHeaders.ContentEncoding])
+
+        // A conditional request still answers not-modified, compressed or not.
+        val notModified = client.get(ApiRoutes.wordpack("en")) {
+            header(HttpHeaders.AcceptEncoding, "gzip")
+            header(HttpHeaders.IfNoneMatch, "1")
+        }
+        assertEquals(HttpStatusCode.NotModified, notModified.status)
     }
 }

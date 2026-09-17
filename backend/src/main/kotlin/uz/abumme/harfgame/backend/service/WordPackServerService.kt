@@ -5,7 +5,6 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.select
 import org.jetbrains.exposed.v1.jdbc.selectAll
-import org.jetbrains.exposed.v1.jdbc.update
 import uz.abumme.harfgame.backend.db.DatabaseFactory
 import uz.abumme.harfgame.backend.db.WordPacksTable
 import uz.abumme.harfgame.data.wordpack.WordPackDto
@@ -17,6 +16,9 @@ import uz.abumme.harfgame.data.wordpack.WordPackSchedule
  * [WordPackSchedule] generator — so a fresh offline client (which runs the same generator on the
  * bundled vocab) agrees with a client synced to version 1. Future versions only append to the
  * schedule, keeping past days immutable.
+ *
+ * After seeding, a pack is the published snapshot of the word catalog: every later version is written by
+ * [uz.abumme.harfgame.backend.admin.words.PackPublisher], never by appending to the stored lists.
  */
 class WordPackServerService(
     private val anchorDay: Long = WordPackSchedule.ANCHOR_EPOCH_DAY,
@@ -45,55 +47,14 @@ class WordPackServerService(
     }
 
     /**
-     * Append an accepted [word] to [lang]'s guesses and bump the pack version so clients pick it up
-     * on their next pull. Answers/schedule/effectiveFrom are untouched, keeping past days immutable.
-     * Idempotent per word: a word already present only bumps nothing. Returns true if the pack changed.
+     * The words of [lang]'s deployed dictionaries (`<lang>_guess.txt`, then `<lang>_answers.txt`), trimmed, without
+     * blank lines or `#` comments. The word catalog merges them at startup.
      */
-    suspend fun addGuess(lang: String, word: String): Boolean = DatabaseFactory.dbQuery {
-        val row = WordPacksTable.selectAll().where { WordPacksTable.lang eq lang }.singleOrNull()
-            ?: return@dbQuery false
-        val guesses: List<String> = json.decodeFromString(row[WordPacksTable.guesses])
-        val normalized = word.trim()
-        if (guesses.any { it.equals(normalized, ignoreCase = true) }) return@dbQuery false
-        val newGuesses = guesses + normalized
-        val newVersion = nextVersion(row[WordPacksTable.version])
-        WordPacksTable.update({ WordPacksTable.lang eq lang }) {
-            it[WordPacksTable.guesses] = json.encodeToString(newGuesses)
-            it[WordPacksTable.version] = newVersion
-            it[WordPacksTable.updatedAt] = java.time.Instant.ofEpochMilli(System.currentTimeMillis())
-        }
-        true
-    }
+    fun bundledWords(lang: String): List<String> = readLines("${lang}_guess.txt") + readLines("${lang}_answers.txt")
 
-    /**
-     * Append-only merge of the bundled guess dictionaries into the stored packs. Every word of a language's
-     * `<lang>_guess.txt` or `<lang>_answers.txt` that its stored pack lacks (compared case-insensitively, as
-     * [addGuess] does) is appended, and the version advances once. Words are never removed and answers,
-     * schedule and effectiveFrom are never touched, so words accepted after the build survive and past days stay
-     * unchanged. Languages without a stored pack are left to [seed]. Returns how many words each changed language gained.
-     */
-    suspend fun mergeGuesses(): Map<String, Int> {
-        val added = LinkedHashMap<String, Int>()
-        for (lang in languages()) {
-            val bundled = readLines("${lang}_guess.txt") + readLines("${lang}_answers.txt")
-            if (bundled.isEmpty()) continue
-            DatabaseFactory.dbQuery {
-                val row = WordPacksTable.selectAll().where { WordPacksTable.lang eq lang }.single()
-                val guesses: List<String> = json.decodeFromString(row[WordPacksTable.guesses])
-                val known = guesses.mapTo(HashSet()) { it.lowercase() }
-                val missing = bundled.filter { known.add(it.lowercase()) }
-                if (missing.isNotEmpty()) {
-                    WordPacksTable.update({ WordPacksTable.lang eq lang }) {
-                        it[WordPacksTable.guesses] = json.encodeToString(guesses + missing)
-                        it[WordPacksTable.version] = nextVersion(row[WordPacksTable.version])
-                        it[WordPacksTable.updatedAt] = java.time.Instant.ofEpochMilli(System.currentTimeMillis())
-                    }
-                    added[lang] = missing.size
-                }
-            }
-        }
-        return added
-    }
+    /** The deployed Uzbek lexemes (`uz_lexemes.tsv`): a Latin and a Cyrillic spelling of one word each. */
+    fun bundledLexemes(): List<Pair<String, String>> =
+        readLines("uz_lexemes.tsv").map { it.split('\t') }.filter { it.size == 2 }.map { it[0].trim() to it[1].trim() }
 
     /** Insert version 1 for every language if absent. Idempotent: existing rows are left untouched. */
     suspend fun seed() {
@@ -132,8 +93,6 @@ class WordPackServerService(
 
     private fun readLines(name: String): List<String> =
         resourceLines(name).map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }
-
-    private fun nextVersion(current: String): String = (current.toIntOrNull()?.plus(1) ?: 2).toString()
 }
 
 /** Raw lines of a bundled word-pack resource (`resources/wordpacks/<name>`); empty when the file is absent. */

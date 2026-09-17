@@ -39,21 +39,17 @@ object DatabaseFactory {
         dataSource = ds
         val db = Database.connect(ds)
         database = db
+        migrate(db)
+        return db
+    }
 
+    /** Applies the additive schema diff for [tables]; a no-op on an up-to-date database. */
+    internal fun migrate(db: Database) {
         transaction(db) {
             // Bring the schema in line with the table definitions. Postgres runs DDL
             // transactionally, so applying the whole diff in one transaction is atomic — any failure
             // rolls back, which is exactly the hazard the deprecated createMissingTablesAndColumns had.
-            val statements = MigrationUtils.statementsRequiredForDatabaseMigration(
-                UsersTable,
-                OAuthIdentitiesTable,
-                RefreshTokensTable,
-                UserStatsTable,
-                WordPacksTable,
-                WordSuggestionsTable,
-                SuggestionReportsTable,
-                withLogs = false,
-            )
+            val statements = pendingMigrationStatements()
             // MigrationUtils can emit destructive DROPs for columns/tables absent from the model
             // (e.g. after a rename). Refuse to auto-run those — apply them by hand after review.
             // ponytail: schema-diff, not versioned. Adopt Flyway when migrations need review,
@@ -66,8 +62,44 @@ object DatabaseFactory {
             // Table.exists() report false for tables that now exist.
             db.dialectMetadata.resetCaches()
         }
-        return db
     }
+
+    /** Every table the startup migration keeps in line with its definition. */
+    internal val tables = arrayOf(
+        UsersTable,
+        OAuthIdentitiesTable,
+        RefreshTokensTable,
+        UserStatsTable,
+        WordPacksTable,
+        WordSuggestionsTable,
+        SuggestionReportsTable,
+        StaffTable,
+        StaffLanguagesTable,
+        StaffSessionsTable,
+        StaffAuditLogTable,
+        WordsTable,
+        LexemePairsTable,
+        DailyWordsTable,
+        CalendarNoticesTable,
+        CalendarStateTable,
+        GameResultsTable,
+        AnalyticsMetaTable,
+        AccountEventsDailyTable,
+        AnalyticsRollupDaysTable,
+        AnalyticsLangDayTable,
+        AnalyticsGlobalDayTable,
+        AnalyticsCohortDayTable,
+        AnalyticsWordDayTable,
+        AnalyticsAccountsDayTable,
+        AnalyticsSuggestionsDayTable,
+        AnalyticsContentDayTable,
+        AnalyticsPoolDayTable,
+        AnalyticsStaffDayTable,
+    )
+
+    /** The DDL the database still needs to match [tables]; empty once migrated. Must run inside a transaction. */
+    internal fun pendingMigrationStatements(): List<String> =
+        MigrationUtils.statementsRequiredForDatabaseMigration(*tables, withLogs = false)
 
     /** Runs [block] in a transaction; [transactionIsolation] (a `java.sql.Connection` level) overrides the pool default. */
     suspend fun <T> dbQuery(transactionIsolation: Int? = null, block: suspend () -> T): T =

@@ -7,7 +7,14 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import org.jetbrains.exposed.v1.core.eq
+import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.update
+import uz.abumme.harfgame.backend.db.DatabaseFactory
 import uz.abumme.harfgame.backend.db.WordSuggestionsTable
+import uz.abumme.harfgame.backend.db.WordsTable
+import uz.abumme.harfgame.backend.wordRow
+import uz.abumme.harfgame.data.admin.words.WordStatus
 import uz.abumme.harfgame.backend.dictionary.LookupResult
 import uz.abumme.harfgame.backend.dictionary.ReviewReason
 import uz.abumme.harfgame.backend.dictionary.WiktionaryLookup
@@ -22,6 +29,7 @@ import uz.abumme.harfgame.backend.statusOf
 import uz.abumme.harfgame.backend.suggestionColumn
 import uz.abumme.harfgame.backend.telegram.FakeTelegramApi
 import uz.abumme.harfgame.backend.telegram.TelegramApi
+import uz.abumme.harfgame.backend.telegram.EditorDirectory
 import uz.abumme.harfgame.backend.telegram.TelegramBot
 import uz.abumme.harfgame.data.suggestion.SuggestionStatus
 import kotlin.test.BeforeTest
@@ -51,7 +59,7 @@ class SuggestionReviewWorkerTest {
     private fun worker(lookup: WordLookup, api: TelegramApi? = telegram) = SuggestionReviewWorker(
         suggestions = service,
         lookup = lookup,
-        telegram = TelegramBot(editorChatId = "chat", editorIds = setOf(42L), suggestions = service, api = api),
+        telegram = TelegramBot(editorChatId = "chat", editors = EditorDirectory(setOf(42L)), suggestions = service, api = api),
     )
 
     private fun queue(lang: String, word: String) = insertSuggestion(lang, word, reviewState = "QUEUED")
@@ -192,5 +200,83 @@ class SuggestionReviewWorkerTest {
 
         assertEquals(SuggestionStatus.ACCEPTED.name, statusOf(accepted))
         assertEquals("POSTED", reviewStateOf(accepted))
+    }
+
+    // ---- the word catalog (word-catalog 4.3, 5.2) ----
+
+    @Test
+    fun aWordStaffRemovedGoesToEditorsEvenWhenTheDictionaryVerifiesIt() = runBlocking {
+        insertPack("ru", "1", listOf("книги"))
+        transaction(DatabaseFactory.init()) {
+            WordsTable.update({ WordsTable.text eq "книги" }) { it[status] = WordStatus.REMOVED.name }
+        }
+        val id = queue("ru", "книги")
+        val lookup = FakeLookup(LookupResult.Auto(WordForm.INFLECTED))
+
+        worker(lookup).runOnce()
+
+        assertEquals(SuggestionStatus.PENDING.name, statusOf(id))
+        assertEquals(emptyList(), lookup.lookedUp)
+        val message = telegram.sent("sendMessage").single()
+        assertTrue(message.hasControls())
+        assertTrue("удалено редакторами" in message.text(), message.text())
+        assertEquals("REMOVED_BY_STAFF", suggestionColumn(id, WordSuggestionsTable.reviewReason))
+        assertEquals(WordStatus.REMOVED.name, wordRow("ru", "книги")!![WordsTable.status])
+        assertEquals("1", WordPackServerService().getPack("ru")!!.version)
+    }
+
+    @Test
+    fun aDecisionMessageIsRecordedWithItsReason() = runBlocking {
+        val id = queue("en", "zqxta")
+        telegram.respond = { method, _ ->
+            if (method == "sendMessage") buildJsonObject {
+                put("message_id", 555)
+                put("chat", buildJsonObject { put("id", -1001234567890); put("type", "supergroup") })
+            } else null
+        }
+
+        worker(FakeLookup(LookupResult.Review(ReviewReason.PROPER_NOUN))).runOnce()
+
+        val sent = telegram.sent("sendMessage").single()
+        assertEquals("-1001234567890", suggestionColumn(id, WordSuggestionsTable.telegramChatId))
+        assertEquals(555L, suggestionColumn(id, WordSuggestionsTable.telegramMessageId))
+        assertEquals(sent.text(), suggestionColumn(id, WordSuggestionsTable.telegramText))
+        assertEquals("PROPER_NOUN", suggestionColumn(id, WordSuggestionsTable.reviewReason))
+    }
+
+    @Test
+    fun withoutABotTheReasonIsStillRecorded() = runBlocking {
+        val id = queue("en", "zqxta")
+
+        worker(FakeLookup(LookupResult.Review(ReviewReason.NOT_FOUND)), api = null).runOnce()
+
+        assertEquals("POSTED", reviewStateOf(id))
+        assertEquals("NOT_FOUND", suggestionColumn(id, WordSuggestionsTable.reviewReason))
+        assertNull(suggestionColumn(id, WordSuggestionsTable.telegramMessageId))
+    }
+
+    @Test
+    fun aQueuedLegacyWordThatIsNotPlayableGoesToEditorsWithoutALookup() = runBlocking {
+        val id = queue("en", "cat")
+        val lookup = FakeLookup(LookupResult.Auto(WordForm.DICTIONARY))
+
+        worker(lookup).runOnce()
+
+        assertEquals(emptyList(), lookup.lookedUp)
+        assertEquals(SuggestionStatus.PENDING.name, statusOf(id))
+        assertEquals("NOT_PLAYABLE", suggestionColumn(id, WordSuggestionsTable.reviewReason))
+        assertTrue("правила языка" in telegram.sent("sendMessage").single().text())
+    }
+
+    @Test
+    fun aQueuedSuggestionDecidedByStaffIsNotAnnounced() = runBlocking {
+        insertPack("en", "1", listOf("x"))
+        val id = queue("en", "crane")
+        service.decide(id, accept = true, editor = "staff:someone")
+
+        worker(FakeLookup(LookupResult.Auto(WordForm.DICTIONARY))).runOnce()
+
+        assertEquals(emptyList(), telegram.calls)
+        assertEquals("POSTED", reviewStateOf(id))
     }
 }

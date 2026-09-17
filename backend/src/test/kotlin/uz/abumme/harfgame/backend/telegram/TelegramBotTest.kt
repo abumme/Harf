@@ -17,7 +17,15 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.long
 import kotlinx.serialization.json.put
+import uz.abumme.harfgame.backend.admin.auditRows
+import uz.abumme.harfgame.backend.admin.insertStaff
+import uz.abumme.harfgame.backend.db.StaffAuditLogTable
+import uz.abumme.harfgame.backend.db.WordSuggestionsTable
 import uz.abumme.harfgame.backend.dictionary.ReviewReason
+import uz.abumme.harfgame.backend.suggestionColumn
+import uz.abumme.harfgame.data.admin.Role
+import uz.abumme.harfgame.data.admin.audit.AuditActions
+import uz.abumme.harfgame.data.admin.staff.StaffStatus
 import uz.abumme.harfgame.backend.dictionary.WordForm
 import uz.abumme.harfgame.backend.insertPack
 import uz.abumme.harfgame.backend.insertPending
@@ -44,7 +52,7 @@ class TelegramBotTest {
 
     private fun bot(api: TelegramApi? = this.api) = TelegramBot(
         editorChatId = "-1001234567890",
-        editorIds = setOf(42L),
+        editors = EditorDirectory(setOf(42L)),
         suggestions = SuggestionServerService(WordPackServerService()),
         topics = mapOf("ru" to 3, "uz-latn" to 7),
         api = api,
@@ -98,7 +106,7 @@ class TelegramBotTest {
     @Test
     fun disabledBotHasNothingToDeliver() = runBlocking {
         assertTrue(bot(api = null).announceAutoAccepted("en", "crane", WordForm.DICTIONARY, "Ada"))
-        assertTrue(bot(api = null).sendForReview("s1", "en", "crane", "Ada", ReviewReason.NOT_FOUND))
+        assertEquals(ReviewPost.Disabled, bot(api = null).sendForReview("s1", "en", "crane", "Ada", ReviewReason.NOT_FOUND))
         assertTrue(bot(api = null).sendReport("en", "📊"))
     }
 
@@ -230,6 +238,112 @@ class TelegramBotTest {
         assertTrue("Уже обработано" in api.sent("editMessageText").single().text())
     }
 
+    // ---- staff editors (word-catalog 5.1) ----
+
+    private fun refusedWithoutChange(id: String) {
+        assertEquals("Недостаточно прав", api.sent("answerCallbackQuery").single()["text"]!!.jsonPrimitive.content)
+        assertEquals(emptyList(), api.sent("editMessageText"))
+        assertEquals(SuggestionStatus.PENDING.name, statusOf(id))
+    }
+
+    @Test
+    fun linkedWorderDecidesInTheirLanguage() = runBlocking {
+        insertPack("en", "1", listOf("x"))
+        val staffId = insertStaff("aziz", Role.WORDER, languages = listOf("en"), telegramUserId = 777L)
+        val id = insertPending("en", "hello")
+
+        bot().handleCallback(callback(fromId = 777L, data = "accept:$id"))
+
+        assertEquals(SuggestionStatus.ACCEPTED.name, statusOf(id))
+        assertEquals("staff:$staffId", suggestionColumn(id, WordSuggestionsTable.decidedBy))
+        assertTrue("Принято — @ada" in api.sent("editMessageText").single().text())
+        val decided = auditRows().single { it[StaffAuditLogTable.action] == AuditActions.SUGGESTION_DECIDED }
+        assertEquals("TELEGRAM", decided[StaffAuditLogTable.actorKind])
+        assertEquals(staffId, decided[StaffAuditLogTable.actorStaffId])
+    }
+
+    @Test
+    fun linkedAdminDecidesInAnyLanguage() = runBlocking {
+        insertPack("kk", "1", listOf("кітап"))
+        val staffId = insertStaff("boss", Role.ADMIN, telegramUserId = 778L)
+        val id = insertPending("kk", "қалам")
+
+        bot().handleCallback(callback(fromId = 778L, data = "reject:$id"))
+
+        assertEquals(SuggestionStatus.REJECTED.name, statusOf(id))
+        assertEquals("staff:$staffId", suggestionColumn(id, WordSuggestionsTable.decidedBy))
+    }
+
+    @Test
+    fun linkedWorderOutOfScopeIsRefused() = runBlocking {
+        insertPack("en", "1", listOf("x"))
+        insertStaff("aziz", Role.WORDER, languages = listOf("ru"), telegramUserId = 777L)
+        val id = insertPending("en", "hello")
+
+        bot().handleCallback(callback(fromId = 777L, data = "accept:$id"))
+
+        refusedWithoutChange(id)
+    }
+
+    @Test
+    fun disabledStaffIsRefused() = runBlocking {
+        insertPack("en", "1", listOf("x"))
+        insertStaff("aziz", Role.ADMIN, status = StaffStatus.DISABLED, telegramUserId = 777L)
+        val id = insertPending("en", "hello")
+
+        bot().handleCallback(callback(fromId = 777L, data = "accept:$id"))
+
+        refusedWithoutChange(id)
+    }
+
+    @Test
+    fun legacyEditorDecidesInAnyLanguage() = runBlocking {
+        insertPack("kk", "1", listOf("кітап"))
+        val id = insertPending("kk", "қалам")
+
+        bot().handleCallback(callback(fromId = 42L, data = "accept:$id"))
+
+        assertEquals(SuggestionStatus.ACCEPTED.name, statusOf(id))
+        assertEquals("42", suggestionColumn(id, WordSuggestionsTable.decidedBy))
+        assertTrue("қалам" in WordPackServerService().getPack("kk")!!.guesses)
+    }
+
+    @Test
+    fun unknownTelegramUserIsRefused() = runBlocking {
+        insertPack("en", "1", listOf("x"))
+        insertStaff("aziz", Role.WORDER, languages = listOf("en"), telegramUserId = 777L)
+        val id = insertPending("en", "hello")
+
+        bot().handleCallback(callback(fromId = 12345L, data = "accept:$id"))
+
+        refusedWithoutChange(id)
+    }
+
+    @Test
+    fun anInvalidLegacyWordIsReportedAndLeftPending() = runBlocking {
+        insertPack("en", "1", listOf("x"))
+        val id = insertPending("en", "cat")
+
+        bot().handleCallback(callback(fromId = 42L, data = "accept:$id"))
+
+        assertEquals("Слово не прошло проверку", api.sent("answerCallbackQuery").single()["text"]!!.jsonPrimitive.content)
+        assertEquals(emptyList(), api.sent("editMessageText"))
+        assertEquals(SuggestionStatus.PENDING.name, statusOf(id))
+    }
+
+    @Test
+    fun aTapDecisionForgetsTheRecordedMessageOnceItShowsTheOutcome() = runBlocking {
+        insertPack("en", "1", listOf("x"))
+        val id = insertPending("en", "hello")
+        SuggestionServerService(WordPackServerService())
+            .markPosted(id, ReviewReason.NOT_FOUND, PostedMessage("-1001234567890", 77, "Новое слово: hello (en)\nОт: Аноним"))
+
+        bot().handleCallback(callback(fromId = 42L, data = "accept:$id"))
+
+        assertNull(suggestionColumn(id, WordSuggestionsTable.telegramMessageId))
+        assertNull(suggestionColumn(id, WordSuggestionsTable.telegramText))
+    }
+
     // ---- polling (3.4) ----
 
     @Test
@@ -265,7 +379,8 @@ class TelegramBotTest {
                     offsets += body["offset"]!!.jsonPrimitive.long
                     if (offsets.size > 1) throw CancellationException("done")
                     buildJsonArray {
-                        add(buildJsonObject { put("update_id", 500); put("callback_query", callback(fromId = 999L, data = "accept:x")) })
+                        // Malformed data: answered without a database round trip, which virtual time cannot wait for.
+                        add(buildJsonObject { put("update_id", 500); put("callback_query", callback(fromId = 999L, data = "noop")) })
                     }
                 }
                 else -> JsonPrimitive(true)

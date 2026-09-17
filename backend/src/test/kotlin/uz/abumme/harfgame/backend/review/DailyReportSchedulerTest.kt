@@ -18,6 +18,7 @@ import uz.abumme.harfgame.backend.resetSuggestionData
 import uz.abumme.harfgame.backend.service.SuggestionServerService
 import uz.abumme.harfgame.backend.service.WordPackServerService
 import uz.abumme.harfgame.backend.telegram.FakeTelegramApi
+import uz.abumme.harfgame.backend.telegram.EditorDirectory
 import uz.abumme.harfgame.backend.telegram.TelegramBot
 import uz.abumme.harfgame.data.suggestion.SuggestionStatus
 import java.time.Instant
@@ -40,7 +41,7 @@ class DailyReportSchedulerTest {
         suggestions = service,
         wordPacks = WordPackServerService(),
         telegram = TelegramBot(
-            editorChatId = "chat", editorIds = setOf(42L), suggestions = service, topics = mapOf("ru" to 3), api = telegram,
+            editorChatId = "chat", editors = EditorDirectory(setOf(42L)), suggestions = service, topics = mapOf("ru" to 3), api = telegram,
         ),
     )
 

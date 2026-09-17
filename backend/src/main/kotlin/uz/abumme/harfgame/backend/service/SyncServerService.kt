@@ -7,6 +7,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
+import uz.abumme.harfgame.backend.admin.analytics.GameResultRecorder
 import uz.abumme.harfgame.backend.db.DatabaseFactory
 import uz.abumme.harfgame.backend.db.UserStatsTable
 import uz.abumme.harfgame.data.sync.ResultRecordDto
@@ -20,8 +21,15 @@ sealed interface UploadStatsResult {
 
 class SyncServerService(
     private val json: Json = Json { ignoreUnknownKeys = true },
+    /** Analytics: every accepted upload's records also become game results. */
+    private val gameResults: GameResultRecorder = GameResultRecorder(),
 ) {
 
+    /**
+     * Last-write-wins reconciliation of the stored snapshot. Unless the upload is rejected, its records are then also
+     * recorded as game results in a separate transaction (an older snapshot still contributes results the stored one
+     * lacks); that recording never changes the outcome.
+     */
     suspend fun uploadStats(userId: String, incoming: UserStatsDto): UploadStatsResult {
         val nowMillis = System.currentTimeMillis()
         // Reject snapshots more than 5 minutes ahead of server time
@@ -33,7 +41,7 @@ class SyncServerService(
 
         val javaInstant = java.time.Instant.ofEpochMilli(incoming.updatedAt.toEpochMilliseconds())
 
-        return DatabaseFactory.dbQuery {
+        val result: UploadStatsResult = DatabaseFactory.dbQuery {
             val existing = UserStatsTable
                 .selectAll()
                 .where { UserStatsTable.userId eq userId }
@@ -59,6 +67,8 @@ class SyncServerService(
                 }
             }
         }
+        gameResults.recordUpload(userId, incoming.records)
+        return result
     }
 
     suspend fun getStats(userId: String): UserStatsDto {

@@ -16,17 +16,34 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
 import kotlinx.serialization.json.put
+import uz.abumme.harfgame.backend.admin.audit.AuditActor
 import uz.abumme.harfgame.backend.dictionary.ReviewReason
 import uz.abumme.harfgame.backend.dictionary.WiktionaryClassifier
 import uz.abumme.harfgame.backend.dictionary.WordForm
 import uz.abumme.harfgame.backend.service.DecideOutcome
 import uz.abumme.harfgame.backend.service.SuggestionServerService
 
+/** A message Telegram confirmed: where it went and its exact text (Telegram offers no way to read it back). */
+data class PostedMessage(val chatId: String, val messageId: Long, val text: String)
+
+/** The result of posting a suggestion for review. */
+sealed interface ReviewPost {
+    /** Telegram confirmed the decision message; [message] is null only if its answer lacked the message id. */
+    data class Posted(val message: PostedMessage?) : ReviewPost
+
+    /** The bot is disabled: nothing was sent and there is nothing to retry. */
+    data object Disabled : ReviewPost
+
+    /** Telegram did not confirm; try again later. */
+    data object NotConfirmed : ReviewPost
+}
+
 /**
  * Editor-facing Telegram bot. Posts suggestions awaiting a decision (with accept/reject controls),
  * announcements of automatically accepted words, and daily reports — each into the language's forum topic
- * when [topics] maps one, else the chat root — and applies decision taps from allowlisted [editorIds] only.
- * Send methods return true once Telegram confirms the message.
+ * when [topics] maps one, else the chat root — and applies decision taps from authorized [editors] only:
+ * active staff linked to the tapping Telegram user within their languages, or the legacy allowlist.
+ * Send methods report whether Telegram confirmed the message.
  *
  * A null [api] disables the bot: sends deliver nothing and report success (there is nothing to retry) and
  * [runPolling] returns immediately, so dev/test/CI run without a token.
@@ -34,7 +51,7 @@ import uz.abumme.harfgame.backend.service.SuggestionServerService
  */
 class TelegramBot(
     private val editorChatId: String,
-    private val editorIds: Set<Long>,
+    private val editors: EditorDirectory,
     private val suggestions: SuggestionServerService,
     /** Per-language forum topic (message_thread_id) to post into; langs absent post to the chat root. */
     private val topics: Map<String, Int> = emptyMap(),
@@ -43,9 +60,10 @@ class TelegramBot(
     val enabled: Boolean = api != null
 
     /** Post a suggestion awaiting editors with accept/reject controls, noting [reason] when it adds anything. */
-    suspend fun sendForReview(id: String, lang: String, word: String, author: String, reason: ReviewReason): Boolean {
+    suspend fun sendForReview(id: String, lang: String, word: String, author: String, reason: ReviewReason): ReviewPost {
+        val api = api ?: return ReviewPost.Disabled
         val text = listOfNotNull("Новое слово: $word ($lang)", "От: $author", reviewNote(reason)).joinToString("\n")
-        return deliver(message(lang, text) {
+        val body = message(lang, text) {
             put("reply_markup", buildJsonObject {
                 put("inline_keyboard", buildJsonArray {
                     add(buildJsonArray {
@@ -54,7 +72,13 @@ class TelegramBot(
                     })
                 })
             })
-        })
+        }
+        val result = api.tryCall("sendMessage", body) ?: return ReviewPost.NotConfirmed
+        // The Message Telegram returns; its chat id is numeric even when the configured chat is an @username.
+        val sent = result as? JsonObject
+        val messageId = sent?.get("message_id")?.jsonPrimitive?.longOrNull
+        val chatId = sent?.get("chat")?.jsonObject?.get("id")?.jsonPrimitive?.contentOrNull ?: editorChatId
+        return ReviewPost.Posted(messageId?.let { PostedMessage(chatId, it, text) })
     }
 
     /** Announce a word accepted by dictionary verification. Informational: no decision controls. */
@@ -71,6 +95,19 @@ class TelegramBot(
 
     /** Send an already rendered daily report to the language's topic. */
     suspend fun sendReport(lang: String, text: String): Boolean = deliver(message(lang, text))
+
+    /**
+     * Replace a decision [message]'s controls with [outcome], keeping its text (a panel decision). Best-effort: returns
+     * whether Telegram confirmed the edit, false when the bot is disabled; never throws except on cancellation.
+     */
+    suspend fun replaceControls(message: PostedMessage, outcome: String): Boolean {
+        val api = api ?: return false
+        return api.tryCall("editMessageText", buildJsonObject {
+            put("chat_id", message.chatId.toLongOrNull()?.let { JsonPrimitive(it) } ?: JsonPrimitive(message.chatId))
+            put("message_id", message.messageId)
+            put("text", "${message.text}\n\n$outcome")
+        }) != null
+    }
 
     /**
      * Handle one tap on a decision control. The tapper always gets a popup answer; the message is edited
@@ -102,11 +139,21 @@ class TelegramBot(
         val messageId = message["message_id"] ?: return
         val original = message["text"]?.jsonPrimitive?.contentOrNull.orEmpty()
         // No reply_markup: the edit removes the controls.
-        api.tryCall("editMessageText", buildJsonObject {
+        val edited = api.tryCall("editMessageText", buildJsonObject {
             put("chat_id", chatId)
             put("message_id", messageId)
             put("text", "$original\n\n$outcome")
-        })
+        }) != null
+        // The message now shows its outcome: a later panel decision must not overwrite it.
+        if (edited && reply.suggestionId != null) {
+            try {
+                suggestions.clearTelegramMessage(reply.suggestionId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
     }
 
     /** Long-poll getUpdates and handle decision taps until cancelled. No-op if disabled. */
@@ -133,10 +180,10 @@ class TelegramBot(
         }
     }
 
-    private data class TapReply(val popup: String, val outcome: String? = null)
+    private data class TapReply(val popup: String, val outcome: String? = null, val suggestionId: String? = null)
 
-    private suspend fun decideFromTap(fromId: Long, editor: String, data: String): TapReply {
-        if (fromId !in editorIds) return TapReply("Недостаточно прав")
+    /** Parses the tap, loads the suggestion to learn its language, authorizes the tapper there, then decides. */
+    private suspend fun decideFromTap(fromId: Long, editorLabel: String, data: String): TapReply {
         val id = data.substringAfter(':', missingDelimiterValue = "")
         val accept = when (data.substringBefore(':', missingDelimiterValue = "")) {
             "accept" -> true
@@ -144,12 +191,19 @@ class TelegramBot(
             else -> return TapReply("Некорректно")
         }
         if (id.isEmpty()) return TapReply("Некорректно")
-        return when (val result = suggestions.decide(id, accept, fromId.toString())) {
+        val suggestion = suggestions.find(id) ?: return TapReply("Не найдено")
+        val (decidedBy, actor) = when (val editor = editors.authorize(fromId, suggestion.lang)) {
+            null -> return TapReply("Недостаточно прав")
+            is Editor.Staff -> "staff:${editor.staffId}" to AuditActor.Telegram(editor.staffId)
+            is Editor.Legacy -> fromId.toString() to AuditActor.Telegram(null)
+        }
+        return when (val result = suggestions.decide(id, accept, decidedBy, actor = actor)) {
             is DecideOutcome.Applied ->
-                if (result.accepted) TapReply("✅ Принято: ${result.word}", "✅ Принято — $editor")
-                else TapReply("❌ Отклонено: ${result.word}", "❌ Отклонено — $editor")
-            DecideOutcome.AlreadyDecided -> TapReply("Уже обработано", "ℹ️ Уже обработано")
+                if (result.accepted) TapReply("✅ Принято: ${result.word}", "✅ Принято — $editorLabel", id)
+                else TapReply("❌ Отклонено: ${result.word}", "❌ Отклонено — $editorLabel", id)
+            DecideOutcome.AlreadyDecided -> TapReply("Уже обработано", "ℹ️ Уже обработано", id)
             DecideOutcome.NotFound -> TapReply("Не найдено")
+            is DecideOutcome.Invalid -> TapReply("Слово не прошло проверку")
         }
     }
 
@@ -166,6 +220,8 @@ class TelegramBot(
         ReviewReason.MISSPELLING -> "⚠️ Wiktionary: ошибочное написание"
         ReviewReason.VULGAR -> "⚠️ Wiktionary: грубое или оскорбительное слово"
         ReviewReason.UNVERIFIED -> "⚠️ Словарь недоступен — проверьте вручную"
+        ReviewReason.REMOVED_BY_STAFF -> "⚠️ Слово ранее удалено редакторами"
+        ReviewReason.NOT_PLAYABLE -> "⚠️ Слово не проходит правила языка — его можно только отклонить"
     }
 
     private fun message(lang: String, text: String, extra: JsonObjectBuilder.() -> Unit = {}): JsonObject =
