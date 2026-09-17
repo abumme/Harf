@@ -25,6 +25,12 @@ hikaricp = "6.2.1"
 google-api-client = "2.7.2"
 nimbus-jose-jwt = "9.48"
 logback = "1.5.17"
+bouncycastle = "1.86"
+# Admin web panel (:adminWeb). Kobweb 0.25.1 is built against Kotlin 2.4.10, Compose HTML 1.11.1 and
+# Compose runtime 1.12.0 (its COMPATIBILITY.md); bump them together.
+kobweb = "0.25.1"
+compose-html = "1.11.1"
+compose-runtime-kobweb = "1.12.0"
 
 [libraries]
 
@@ -89,6 +95,17 @@ hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
 google-api-client = { module = "com.google.api-client:google-api-client", version.ref = "google-api-client" }
 nimbus-jose-jwt = { module = "com.nimbusds:nimbus-jose-jwt", version.ref = "nimbus-jose-jwt" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+bouncycastle-prov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+ktor-server-rate-limit = { module = "io.ktor:ktor-server-rate-limit", version.ref = "ktor" }
+ktor-server-forwarded-header = { module = "io.ktor:ktor-server-forwarded-header", version.ref = "ktor" }
+ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
+ktor-server-conditional-headers = { module = "io.ktor:ktor-server-conditional-headers", version.ref = "ktor" }
+ktor-server-compression = { module = "io.ktor:ktor-server-compression", version.ref = "ktor" }
+kobweb-core = { module = "com.varabyte.kobweb:kobweb-core", version.ref = "kobweb" }
+kobweb-silk = { module = "com.varabyte.kobweb:kobweb-silk", version.ref = "kobweb" }
+silk-icons-lucide = { module = "com.varabyte.kobwebx:silk-icons-lucide", version.ref = "kobweb" }
+compose-html-core = { module = "org.jetbrains.compose.html:html-core", version.ref = "compose-html" }
+compose-runtime-kobweb = { module = "androidx.compose.runtime:runtime", version.ref = "compose-runtime-kobweb" }
 
 [plugins]
 
@@ -102,3 +119,4 @@ kotlinx-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", vers
 buildConfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildConfig" }
 composeHotReload = { id = "org.jetbrains.compose.hot-reload" }
 roborazzi = { id = "io.github.takahirom.roborazzi", version.ref = "roborazzi" }
+kobweb-application = { id = "com.varabyte.kobweb.application", version.ref = "kobweb" }
