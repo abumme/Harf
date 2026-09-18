@@ -120,8 +120,7 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
         loaded = Loaded(puzzle, config, pack, restore)
     }
 
-    val data = loaded
-    if (data == null) return
+    val data = loaded ?: return
     val (puzzle, config, pack, restore) = data
 
     val vm = viewModel(key = script) {

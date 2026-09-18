@@ -9,8 +9,9 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import uz.abumme.harfgame.data.api.ApiResult
@@ -178,5 +179,53 @@ class ClientNetworkAdapterTest {
         val session = sessionStore.get()
         assertNull(session.accessToken)
         assertNull(session.refreshToken)
+    }
+
+    @Test
+    fun testConcurrentRefreshTokenCallsDirectlyOnAuthService() = runTest {
+        val sessionStore = SessionStore(KSafe())
+        sessionStore.saveSession(
+            userId = "user-1",
+            accessToken = "expired-access",
+            refreshToken = "refresh-old"
+        )
+
+        var refreshCallCount = 0
+        val mockEngine = MockEngine { request ->
+            if (request.url.encodedPath == ApiRoutes.AUTH_REFRESH) {
+                refreshCallCount++
+                val resp = RefreshResponse(
+                    tokens = TokenPairDto(
+                        accessToken = "access-new",
+                        refreshToken = "refresh-new"
+                    )
+                )
+                respond(
+                    content = json.encodeToString(resp),
+                    status = HttpStatusCode.OK,
+                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                )
+            } else {
+                error("Unexpected route")
+            }
+        }
+
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) { json(json) }
+        }
+
+        val authService = KtorAuthService(httpClient, baseUrl = "http://test", sessionStore = sessionStore)
+
+        val (r1, r2) = kotlinx.coroutines.coroutineScope {
+            val a = async { authService.refreshToken(RefreshRequest("refresh-old")) }
+            val b = async { authService.refreshToken(RefreshRequest("refresh-old")) }
+            a.await() to b.await()
+        }
+
+        assertTrue(r1 is ApiResult.Success)
+        assertTrue(r2 is ApiResult.Success)
+        assertEquals(1, refreshCallCount, "Concurrent refresh calls must only hit network once")
+        assertEquals("access-new", sessionStore.get().accessToken)
+        assertEquals("refresh-new", sessionStore.get().refreshToken)
     }
 }
