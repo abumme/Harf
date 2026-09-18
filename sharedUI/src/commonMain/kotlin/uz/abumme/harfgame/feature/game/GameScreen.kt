@@ -273,6 +273,7 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing)
+            .background(colors.paper)
             .padding(16.dp)
             .focusRequester(focusRequester)
             .onPreviewKeyEvent { ev ->
