@@ -26,9 +26,9 @@ All file/line references are leads from the changelog scan — confirm each agai
 - [x] 3.4 Compile verified: JVM, JS, WasmJs, Android (Windows) + iOS (`:sharedUI:compileKotlinIosSimulatorArm64` BUILD SUCCESSFUL on macOS). Ktor engine-defaults resolves on all targets.
 
 ### buildConfig expect/actual key split
-- [ ] 3.5 In `sharedUI/build.gradle.kts`, replace the two common RC key fields with one `expect`-ed field actual-ized per source set (buildConfig 6.0 `KotlinSourceSet.buildConfig` overloads)
-- [ ] 3.6 Update `PlatformModule.android.kt` / `PlatformModule.ios.kt` to read the single actual constant
-- [ ] 3.7 Confirm blank-key ⇒ purchases Unavailable (no crash) still holds; build android + ios
+- [x] 3.5 Replaced the two common RC key fields with one `REVENUECAT_KEY` — `expect("")` in common (blank default), per-source-set `actual` in androidMain/iosMain via buildConfig 6.1 `sourceSets.named(...)`. Added `-Xexpect-actual-classes` opt-in for the now-expect/actual BuildConfig object.
+- [x] 3.6 `PlatformModule.android.kt` / `PlatformModule.ios.kt` now read `BuildConfig.REVENUECAT_KEY`.
+- [x] 3.7 Blank-key ⇒ Unavailable preserved (common default `""`; generated android actual is `""` with no local key). Compiled clean on JVM, Android, WasmJs, Js, iOS; `:sharedUI:jvmTest` green.
 
 ### nimbus JWKS modernization
 - [x] 3.8 Replace `RemoteJWKSet(url)` with `JWKSourceBuilder.create(url).build()` in `AppleOAuthVerifier`. NOTE: `GoogleOAuthVerifier` uses google-api-client's `GoogleIdTokenVerifier`, not nimbus — no nimbus change applies there (gets 2.9.x truststore fix automatically, Tier 3).
@@ -39,8 +39,8 @@ All file/line references are leads from the changelog scan — confirm each agai
 
 - [x] 4.1 Added `kotlin.incremental.native=true` to `gradle.properties`. Speedup verifiable only with a Native/iOS build (macOS).
 - [ ] 4.2 Migrate the `androidApp` release block to the AGP 9.3 `optimization { }` DSL; verify minify + resource shrink still work
-- [ ] 4.3 Adopt the Ktor typesafe JWT auth DSL (`jwt<Principal> { }` + `authenticateWith` + typed `call.principal`) in the backend auth routes; remove untyped principal casts; run `:backend:test`
-- [ ] 4.4 Move non-secret KSafe keys (palette, onboarded, entitlement mirror) to a `KSafePlain` view with a one-time read-old-encrypted → write-plain migration; keep secrets encrypted; run sharedUI tests
+- [~] 4.3 SKIPPED (verified API, declined on cost/benefit). Ktor 3.6's typed `jwt<T>("name") {}` requires `authenticateWith(schemeObject)` — it does **not** work with the existing string-name `authenticate("auth-jwt")`. Adopting it would thread the scheme object through all four route functions (SyncRoutes/AuthRoutes/SuggestionRoutes/wordPackRoutes), coupling them to `Application`'s auth setup, and spread an experimental opt-in annotation. The current `call.principal<JWTPrincipal>()?.payload?.subject` is decoupled via string name, non-experimental, and correct. Marginal cast-removal doesn't justify the coupling + experimental churn. Reconsider once the API stabilizes.
+- [~] 4.4 SKIPPED (verified mechanism, declined on verifiability). KSafe 3.2 has no `KSafePlain` type — plain storage is the `KSafeWriteMode.Plain` / boolean overload of get/putDirect (default = encrypted). A safe idempotent migration is writable (re-read each key encrypted → rewrite plain, gated by a plain migration flag). BUT its actual purpose — preserving pre-existing *encrypted* values across the switch on Android/iOS — cannot be verified on this JVM/macOS box: desktop KSafe has no hardware keystore, so plain vs encrypted reads are indistinguishable and `:sharedUI:jvmTest` would not exercise the real migration path. Benefit (synchronous first-frame palette read) is already mitigated by the off-main async seed in `AppSettings.init`. Not shipping an unverifiable prefs-storage migration (data-stranding risk called out in design.md). Do on a device with a pre-populated encrypted store, or accept the async seed.
 - [x] 4.5 Bundled fonts are GolosText / PT Serif / Lora — all ParaType/Cyrillic-complete families, so Uzbek Cyrillic is already covered; no per-glyph workaround exists to remove. Compose 1.12 web Noto fallback is free automatic insurance. No change needed.
 - [x] 4.6 Added `addDataSourceProperty("reWriteBatchedInserts", "true")` to the HikariConfig in `DatabaseFactory.kt` (works regardless of env-provided URL). Compiles; runtime speedup exercised by the seed path against a real Postgres.
 
