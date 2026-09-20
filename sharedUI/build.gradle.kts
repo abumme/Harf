@@ -14,6 +14,10 @@ plugins {
 }
 
 kotlin {
+    // The generated BuildConfig is now an expect/actual object (single RevenueCat key); opt in
+    // to silence the Beta warning across all targets.
+    compilerOptions { freeCompilerArgs.add("-Xexpect-actual-classes") }
+
     android {
         namespace = "uz.abumme.harfgame"
         compileSdk = 37
@@ -183,8 +187,16 @@ fun googleServerClientId(): String =
 
 buildConfig {
     packageName("uz.abumme.harfgame")
-    buildConfigField("String", "REVENUECAT_ANDROID_KEY", "\"${rcReleaseKey("revenuecat.androidKey", "goog_")}\"")
-    buildConfigField("String", "REVENUECAT_IOS_KEY", "\"${rcReleaseKey("revenuecat.iosKey", "appl_")}\"")
+    // Single expect-ed RevenueCat key: blank default (⇒ purchases Unavailable) for every
+    // non-store target (desktop/web/jvm); android & ios provide the real store key as `actual`.
+    buildConfigField("REVENUECAT_KEY", expect(""))
     buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl()}\"")
     buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"${googleServerClientId()}\"")
+
+    sourceSets.named("androidMain") {
+        buildConfigField("REVENUECAT_KEY", rcReleaseKey("revenuecat.androidKey", "goog_"))
+    }
+    sourceSets.named("iosMain") {
+        buildConfigField("REVENUECAT_KEY", rcReleaseKey("revenuecat.iosKey", "appl_"))
+    }
 }
