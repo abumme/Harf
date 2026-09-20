@@ -34,6 +34,9 @@ object DatabaseFactory {
             maximumPoolSize = maxPoolSize
             isAutoCommit = false
             transactionIsolation = "TRANSACTION_REPEATABLE_READ"
+            // pgjdbc 42.7.13 merges up to 32768 rows per round-trip when batched inserts are
+            // rewritten into a single multi-row INSERT — speeds the bundled word-pack seed.
+            addDataSourceProperty("reWriteBatchedInserts", "true")
             validate()
         }
         val ds = HikariDataSource(config)

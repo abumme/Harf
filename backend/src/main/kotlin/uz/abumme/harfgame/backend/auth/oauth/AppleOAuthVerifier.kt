@@ -2,7 +2,7 @@ package uz.abumme.harfgame.backend.auth.oauth
 
 import com.nimbusds.jose.JWSAlgorithm
 import com.nimbusds.jose.jwk.source.JWKSource
-import com.nimbusds.jose.jwk.source.RemoteJWKSet
+import com.nimbusds.jose.jwk.source.JWKSourceBuilder
 import com.nimbusds.jose.proc.JWSVerificationKeySelector
 import com.nimbusds.jose.proc.SecurityContext
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor
@@ -11,7 +11,6 @@ import com.nimbusds.jwt.proc.DefaultJWTProcessor
 import uz.abumme.harfgame.data.auth.OAuthProvider
 import java.net.URI
 import java.security.MessageDigest
-import java.util.Date
 
 /**
  * Verifies Sign in with Apple identity tokens: signature (Apple JWKS), issuer, expiry, required
@@ -27,7 +26,10 @@ class AppleOAuthVerifier(
 
     private val jwtProcessor: ConfigurableJWTProcessor<SecurityContext> by lazy {
         val processor = DefaultJWTProcessor<SecurityContext>()
-        val keySource = customJwkSource ?: RemoteJWKSet(URI(jwksUri).toURL())
+        // JWKSourceBuilder (nimbus 10.x) replaces the deprecated RemoteJWKSet and adds caching,
+        // refresh-ahead and outage tolerance, so a transient Apple JWKS fetch failure no longer
+        // fails every login.
+        val keySource = customJwkSource ?: JWKSourceBuilder.create<SecurityContext>(URI(jwksUri).toURL()).build()
         val keySelector = JWSVerificationKeySelector(
             setOf(JWSAlgorithm.RS256),
             keySource
@@ -44,7 +46,8 @@ class AppleOAuthVerifier(
         return try {
             val claims = jwtProcessor.process(idToken, null)
             if (claims.issuer != "https://appleid.apple.com") return null
-            if (claims.expirationTime != null && claims.expirationTime.before(Date())) return null
+            // Expiry is enforced by DefaultJWTClaimsVerifier ("exp" is a required claim above), so
+            // no manual expirationTime re-check is needed.
 
             // Audience must be explicitly allow-listed for this app; an unconfigured allowlist
             // rejects everything rather than accepting an unscoped token.
