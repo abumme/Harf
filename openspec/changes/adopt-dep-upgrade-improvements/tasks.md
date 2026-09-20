@@ -4,8 +4,8 @@ All file/line references are leads from the changelog scan — confirm each agai
 
 ## 1. Mandatory (unblock iOS build)
 
-- [ ] 1.1 Remove `PurchasesHybridCommon` + `PurchasesHybridCommonUI` from `iosApp/iosApp.xcodeproj`: Package Dependencies, Frameworks build phase, and the `XCRemoteSwiftPackageReference` block
-- [ ] 1.2 Build the iOS app and confirm RevenueCat links via Gradle (kn-core/kn-ui) with no double-link/version-mismatch error
+- [x] 1.1 Removed `PurchasesHybridCommon` + `PurchasesHybridCommonUI` from `iosApp/iosApp.xcodeproj`: PBXBuildFile, Frameworks phase, packageProductDependencies, packageReferences, `XCRemoteSwiftPackageReference` + `XCSwiftPackageProductDependency` blocks; also cleared the stale `Package.resolved` pins. `plutil -lint` OK.
+- [x] 1.2 `xcodebuild -scheme iosApp -sdk iphonesimulator` → **BUILD SUCCEEDED**. RevenueCat links via Gradle (SharedUI.framework), no double-link/version-mismatch. Only benign warning: bundled libicu built for iOS-sim 18.5 vs linked 16.2 min (unrelated).
 - [ ] 1.3 Dashboard-only: confirm the lifetime product is configured **non-consumable** so `restore()` keeps working under Play Billing 8
 
 ## 2. Verification-only sweep (cheap, de-risk the bumped build)
@@ -23,7 +23,7 @@ All file/line references are leads from the changelog scan — confirm each agai
 - [x] 3.1 Verified `ktor-client-engine-defaults` 3.6.0 (KTOR-9795) covers all targets incl. js/wasmJs (Maven Central + Ktor docs). Web previously wired NO engine — defaults also fixes that.
 - [x] 3.2 Added `ktor-client-engine-defaults` to `commonMain` (catalog entry + dep); removed OkHttp (androidMain + jvmMain) and Darwin (iosMain) engine deps
 - [x] 3.3 Web is covered by defaults — no separate web engine wired (js/wasmJs had none before)
-- [~] 3.4 Compile verified: JVM, JS, WasmJs, Android all BUILD SUCCESSFUL. **iOS compile not verifiable on this Windows box — must confirm on macOS.**
+- [x] 3.4 Compile verified: JVM, JS, WasmJs, Android (Windows) + iOS (`:sharedUI:compileKotlinIosSimulatorArm64` BUILD SUCCESSFUL on macOS). Ktor engine-defaults resolves on all targets.
 
 ### buildConfig expect/actual key split
 - [ ] 3.5 In `sharedUI/build.gradle.kts`, replace the two common RC key fields with one `expect`-ed field actual-ized per source set (buildConfig 6.0 `KotlinSourceSet.buildConfig` overloads)
@@ -33,7 +33,7 @@ All file/line references are leads from the changelog scan — confirm each agai
 ### nimbus JWKS modernization
 - [x] 3.8 Replace `RemoteJWKSet(url)` with `JWKSourceBuilder.create(url).build()` in `AppleOAuthVerifier`. NOTE: `GoogleOAuthVerifier` uses google-api-client's `GoogleIdTokenVerifier`, not nimbus — no nimbus change applies there (gets 2.9.x truststore fix automatically, Tier 3).
 - [x] 3.9 Delete the manual `exp` re-check in `AppleOAuthVerifier` (DefaultJWTClaimsVerifier enforces `exp`, which is in the required-claims set)
-- [~] 3.10 Run `:backend:test` — compiles clean with nimbus 10.10; `OAuthVerificationTest` (2 tests) passes. Full suite needs a Postgres instance (83 DB tests failed on local `ConnectException`); CI runs against Postgres.
+- [x] 3.10 Ran `:backend:test` against a real Postgres 16 (docker, harf/harf_password) → **BUILD SUCCESSFUL**, full suite green (nimbus 10.10 / Hikari 7.1 / pgjdbc batched-inserts all exercised).
 
 ## 4. Tier 2 — considered improvements (each independently landable)
 
