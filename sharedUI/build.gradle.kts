@@ -56,6 +56,9 @@ kotlin {
             api(libs.compose.material3)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.ktor.client.core)
+            // Ktor 3.6.0 curated multiplatform engine facade: supplies a client engine for every
+            // target (incl. js/wasmJs) from commonMain, so no per-platform engine dependency is needed.
+            implementation(libs.ktor.client.engine.defaults)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.client.serialization)
             implementation(libs.ktor.serialization.json)
@@ -85,7 +88,6 @@ kotlin {
 
         androidMain.dependencies {
             implementation(libs.kotlinx.coroutines.android)
-            implementation(libs.ktor.client.okhttp)
             implementation(libs.koin.android)
             // Native Google sign-in (Credential Manager + Google ID token)
             implementation(libs.androidx.credentials)
@@ -98,13 +100,9 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
-            implementation(libs.ktor.client.okhttp)
             implementation(libs.kotlinx.datetime)
         }
 
-        iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
-        }
 
     }
 
