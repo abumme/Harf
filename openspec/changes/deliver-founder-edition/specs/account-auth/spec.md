@@ -9,22 +9,18 @@
 ## ADDED Requirements
 
 ### Requirement: Cross-platform provider availability
-The system SHALL offer Google and Apple sign-in on Android, iOS, JVM desktop, and web when the respective provider is configured. The client SHALL use a supported native or browser-based flow for each provider on its platform. An unavailable provider SHALL be reported clearly rather than silently failing, and the free daily game SHALL remain usable.
+The system SHALL offer Google sign-in on Android, iOS, JVM desktop, and web, and Apple sign-in natively on iOS, when the respective provider is configured. Apple sign-in on Android, JVM desktop, and web is a later phase and SHALL be treated as an unconfigured provider until it ships. The client SHALL use a supported native or browser-based flow for each available provider on its platform. An unavailable provider SHALL be reported clearly rather than silently failing, and the free daily game SHALL remain usable.
 
-#### Scenario: Apple sign-in available on desktop
-- **WHEN** a configured JVM desktop client offers account sign-in
-- **THEN** the player can choose Apple and complete a browser-based sign-in to the same Harf account used on iOS
+#### Scenario: Google sign-in available on every platform
+- **WHEN** a configured Android, iOS, JVM desktop, or web client offers account sign-in
+- **THEN** the player can choose Google and reach the corresponding existing Harf account
 
-#### Scenario: Apple sign-in available on Android
-- **WHEN** a configured Android client offers account sign-in
-- **THEN** the player can choose Apple and complete sign-in to the same Harf account used on iOS
-
-#### Scenario: Both providers available on web
-- **WHEN** a configured web client offers account sign-in
-- **THEN** the player can sign in with either Google or Apple and reach the corresponding existing Harf account
+#### Scenario: Apple sign-in available on iOS
+- **WHEN** a configured iOS client offers account sign-in
+- **THEN** the player can choose Apple and complete native sign-in to the same Harf account
 
 #### Scenario: Provider configuration is missing
-- **WHEN** a provider has not been configured for a client deployment
+- **WHEN** a provider has not been configured for a client deployment, including Apple on Android, desktop, or web in this release
 - **THEN** the client explains that sign-in method is unavailable and still allows free daily play
 
 ### Requirement: A player can link both providers to one Harf account

@@ -3,7 +3,7 @@
 ## ADDED Requirements
 
 ### Requirement: Founder offer describes the delivered bundle
-The Founder offer shown before purchase SHALL accurately state that it is a one-time lifetime unlock for the full published puzzle archive, hard mode, and the Founder badge, with cosmetic themes sold separately. User-visible offer text SHALL be localized for the supported app languages and consistent across in-app, hosted paywall, legal offer, and store listing surfaces.
+The Founder offer shown before purchase SHALL accurately state that it is a one-time lifetime unlock for the full published puzzle archive, hard mode, and the Founder badge, with cosmetic themes sold separately. User-visible offer text SHALL be localized for the supported app languages and consistent across the custom in-app paywall, legal offer, and store listing surfaces.
 
 #### Scenario: Mobile buyer sees complete terms
 - **WHEN** a mobile player views the Founder offer before purchase
