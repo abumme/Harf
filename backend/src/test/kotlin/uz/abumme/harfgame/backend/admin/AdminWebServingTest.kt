@@ -76,7 +76,7 @@ class AdminWebServingTest {
         // Never a file outside the site.
         assertEquals("<html>index</html>", client.get("/admin/../secret.txt").bodyAsText())
         assertEquals("<html>index</html>", client.get("/admin/%2E%2E/secret.txt").bodyAsText())
-        assertEquals(File(site, "index.html"), resolvePanelFile(site.canonicalFile, "../secret.txt"))
+        assertEquals(File(site, "index.html").canonicalFile, resolvePanelFile(site.canonicalFile, "../secret.txt"))
     }
 
     @Test
