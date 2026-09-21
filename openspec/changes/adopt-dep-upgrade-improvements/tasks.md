@@ -6,7 +6,7 @@ All file/line references are leads from the changelog scan — confirm each agai
 
 - [x] 1.1 Removed `PurchasesHybridCommon` + `PurchasesHybridCommonUI` from `iosApp/iosApp.xcodeproj`: PBXBuildFile, Frameworks phase, packageProductDependencies, packageReferences, `XCRemoteSwiftPackageReference` + `XCSwiftPackageProductDependency` blocks; also cleared the stale `Package.resolved` pins. `plutil -lint` OK.
 - [x] 1.2 `xcodebuild -scheme iosApp -sdk iphonesimulator` → **BUILD SUCCEEDED**. RevenueCat links via Gradle (SharedUI.framework), no double-link/version-mismatch. Only benign warning: bundled libicu built for iOS-sim 18.5 vs linked 16.2 min (unrelated).
-- [ ] 1.3 Dashboard-only: confirm the lifetime product is configured **non-consumable** so `restore()` keeps working under Play Billing 8
+- [x] 1.3 Dashboard-only. Confirmed with the owner: the Play Console lifetime product is not yet created and will be created as **non-consumable** (2026-09-21), so `restore()` keeps working under Play Billing 8. No code impact.
 
 ## 2. Verification-only sweep (cheap, de-risk the bumped build)
 
