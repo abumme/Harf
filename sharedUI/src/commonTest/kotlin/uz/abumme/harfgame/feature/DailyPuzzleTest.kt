@@ -5,7 +5,7 @@ import uz.abumme.harfgame.engine.WordPackRepository
 import uz.abumme.harfgame.feature.daily.DailyPuzzleProvider
 import uz.abumme.harfgame.lang.LanguageRegistry
 import uz.abumme.harfgame.lang.UzbekDailyWords
-import kotlinx.datetime.Instant
+import kotlin.time.Instant
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals

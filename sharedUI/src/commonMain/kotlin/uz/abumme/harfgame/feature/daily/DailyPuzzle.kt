@@ -50,7 +50,7 @@ class DailyPuzzleProvider(
             WordPackSchedule.answerFor(pack.schedule, pack.anchorEpochDay, day)
         } else {
             require(pack.answers.isNotEmpty()) { "Empty answer pack: $languageId" }
-            pack.answers[day.mod(pack.answers.size).toInt()]
+            pack.answers[day.mod(pack.answers.size)]
         }
         return DailyPuzzle(languageId, day, answer)
     }

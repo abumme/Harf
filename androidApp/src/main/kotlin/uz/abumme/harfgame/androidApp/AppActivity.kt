@@ -1,6 +1,8 @@
 package uz.abumme.harfgame.androidApp
 
 import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,11 +23,17 @@ class AppActivity : ComponentActivity() {
     }
 }
 
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
 @Composable
 private fun ThemeChanged(isDark: Boolean) {
     val view = LocalView.current
     LaunchedEffect(isDark) {
-        val window = (view.context as Activity).window
+        val window = view.context.findActivity()?.window ?: return@LaunchedEffect
         WindowInsetsControllerCompat(window, window.decorView).apply {
             // light bars = dark icons; on a light (paper) background we want dark icons
             isAppearanceLightStatusBars = !isDark

@@ -12,6 +12,7 @@ import uz.abumme.harfgame.BuildConfig
 import uz.abumme.harfgame.billing.PurchaseController
 import uz.abumme.harfgame.billing.RevenueCatPurchaseController
 import uz.abumme.harfgame.data.auth.AndroidGoogleOAuthClient
+import uz.abumme.harfgame.data.auth.CurrentActivityProvider
 import uz.abumme.harfgame.data.auth.NoOpOAuthClient
 import uz.abumme.harfgame.data.auth.OAuthClient
 import uz.abumme.harfgame.feature.share.Sharer
@@ -41,8 +42,13 @@ private class AndroidSharer(private val context: Context) : Sharer {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, text)
         }
-        context.startActivity(
-            Intent.createChooser(send, null).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) },
-        )
+        val activity = CurrentActivityProvider.current()
+        if (activity != null) {
+            activity.startActivity(Intent.createChooser(send, null))
+        } else {
+            context.startActivity(
+                Intent.createChooser(send, null).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) },
+            )
+        }
     }
 }

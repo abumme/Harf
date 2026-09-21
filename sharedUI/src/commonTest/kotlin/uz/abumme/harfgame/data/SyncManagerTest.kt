@@ -13,8 +13,7 @@ import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.Instant
-import kotlinx.serialization.encodeToString
+import kotlin.time.Instant
 import kotlinx.serialization.json.Json
 import uz.abumme.harfgame.data.api.ApiResult
 import uz.abumme.harfgame.data.api.ApiRoutes
@@ -25,13 +24,13 @@ import uz.abumme.harfgame.data.network.KtorSyncService
 import uz.abumme.harfgame.data.service.AuthService
 import uz.abumme.harfgame.data.service.SuggestionService
 import uz.abumme.harfgame.data.service.SyncService
-import uz.abumme.harfgame.data.suggestion.SuggestWordRequest
-import uz.abumme.harfgame.data.suggestion.SuggestWordResponse
 import uz.abumme.harfgame.data.stats.PendingUploadStore
 import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.data.stats.ResultRecord
 import uz.abumme.harfgame.data.stats.RoundStore
 import uz.abumme.harfgame.data.stats.SyncManager
+import uz.abumme.harfgame.data.suggestion.SuggestWordRequest
+import uz.abumme.harfgame.data.suggestion.SuggestWordResponse
 import uz.abumme.harfgame.data.sync.ResultRecordDto
 import uz.abumme.harfgame.data.sync.UserStatsDto
 import uz.abumme.harfgame.lang.LanguageRegistry

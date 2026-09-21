@@ -3,8 +3,9 @@ package uz.abumme.harfgame.backend.db
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.jdbc.Database
-import org.jetbrains.exposed.v1.jdbc.transactions.experimental.newSuspendedTransaction
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import org.jetbrains.exposed.v1.migration.jdbc.MigrationUtils
 
@@ -103,5 +104,7 @@ object DatabaseFactory {
 
     /** Runs [block] in a transaction; [transactionIsolation] (a `java.sql.Connection` level) overrides the pool default. */
     suspend fun <T> dbQuery(transactionIsolation: Int? = null, block: suspend () -> T): T =
-        newSuspendedTransaction(Dispatchers.IO, database, transactionIsolation = transactionIsolation) { block() }
+        withContext(Dispatchers.IO) {
+            suspendTransaction(db = database, transactionIsolation = transactionIsolation) { block() }
+        }
 }

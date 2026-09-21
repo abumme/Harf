@@ -23,6 +23,8 @@ class KtorAuthService(
     private val sessionStore: SessionStore,
 ) : AuthService {
 
+    private val refreshMutex = Mutex()
+
     override suspend fun createAnonymousAccount(): ApiResult<AnonymousAuthResponse> {
         return try {
             val response = httpClient.post("$baseUrl${ApiRoutes.AUTH_ANONYMOUS}")
@@ -70,8 +72,16 @@ class KtorAuthService(
         }
     }
 
-    override suspend fun refreshToken(request: RefreshRequest): ApiResult<RefreshResponse> {
-        return try {
+    override suspend fun refreshToken(request: RefreshRequest): ApiResult<RefreshResponse> = refreshMutex.withLock {
+        val current = sessionStore.get()
+        val currentRefresh = current.refreshToken
+        val currentAccess = current.accessToken
+        if (currentRefresh != null && currentRefresh != request.refreshToken && currentAccess != null) {
+            return@withLock ApiResult.Success(
+                RefreshResponse(TokenPairDto(currentAccess, currentRefresh))
+            )
+        }
+        try {
             val response = httpClient.post("$baseUrl${ApiRoutes.AUTH_REFRESH}") {
                 contentType(ContentType.Application.Json)
                 setBody(request)
@@ -153,10 +163,6 @@ class KtorSyncService(
     private val authService: AuthService,
 ) : SyncService {
 
-    // Serializes token refreshes so concurrent stats calls hitting the same expired access token
-    // rotate the refresh token exactly once (avoids tripping server-side reuse detection).
-    private val refreshMutex = Mutex()
-
     override suspend fun getStats(token: String): ApiResult<UserStatsDto> {
         return executeWithAuthRetry { currentToken ->
             val response = httpClient.get("$baseUrl${ApiRoutes.SYNC_STATS}") {
@@ -219,15 +225,15 @@ class KtorSyncService(
      * caller already refreshed while this one waited on the mutex, the newer token is returned
      * without a second rotation.
      */
-    private suspend fun refreshOnce(usedAccessToken: String): String? = refreshMutex.withLock {
+    private suspend fun refreshOnce(usedAccessToken: String): String? {
         val current = sessionStore.get()
         val currentAccess = current.accessToken
         if (currentAccess != null && currentAccess != usedAccessToken) {
-            return@withLock currentAccess
+            return currentAccess
         }
-        val refreshToken = current.refreshToken ?: return@withLock null
+        val refreshToken = current.refreshToken ?: return null
         val result = authService.refreshToken(RefreshRequest(refreshToken))
-        (result as? ApiResult.Success)?.data?.tokens?.accessToken
+        return (result as? ApiResult.Success)?.data?.tokens?.accessToken
     }
 
     /** Decode a server error body, falling back to a status-derived code when the body is empty. */
