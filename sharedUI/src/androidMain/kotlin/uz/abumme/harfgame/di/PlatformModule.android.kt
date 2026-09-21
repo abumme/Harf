@@ -22,7 +22,7 @@ import uz.abumme.harfgame.games.GamesServices
 actual val platformModule: Module = module {
     single { KSafe(androidApplication()) }
     single<Sharer> { AndroidSharer(androidApplication()) }
-    single<PurchaseController> { RevenueCatPurchaseController(BuildConfig.REVENUECAT_ANDROID_KEY) }
+    single<PurchaseController> { RevenueCatPurchaseController(BuildConfig.REVENUECAT_KEY) }
     single<OAuthClient> {
         val serverClientId = BuildConfig.GOOGLE_SERVER_CLIENT_ID
         if (serverClientId.isNotBlank()) AndroidGoogleOAuthClient(serverClientId)

@@ -2,6 +2,7 @@ package uz.abumme.harfgame.games
 
 import uz.abumme.harfgame.data.stats.ResultRecord
 import uz.abumme.harfgame.data.stats.Streaks
+import uz.abumme.harfgame.data.stats.toDto
 
 /**
  * Aggregate player progress that maps to Play Games leaderboards/achievements. Computed from the
@@ -19,7 +20,8 @@ data class GamesProgress(
 
     companion object {
         fun from(records: List<ResultRecord>, languages: Collection<String>): GamesProgress {
-            val bestStreak = languages.maxOfOrNull { Streaks.streak(records, it, today = 0L).best } ?: 0
+            val synced = records.map { it.toDto() }
+            val bestStreak = languages.maxOfOrNull { Streaks.streak(synced, it, today = 0L).best } ?: 0
             val wins = records.filter { it.won }
             return GamesProgress(
                 bestStreak = bestStreak,

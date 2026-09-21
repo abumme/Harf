@@ -1,0 +1,17 @@
+site:
+  title: "Harf — панель"
+  # Public URL: https://api.lazydevs.uz/harf/admin/ (Caddy strips /harf, the backend serves the export at /admin).
+  basePath: "harf/admin"
+
+server:
+  files:
+    dev:
+      contentRoot: "build/processedResources/js/main/public"
+      script: "build/kotlin-webpack/js/developmentExecutable/adminWeb.js"
+      api: "build/libs/adminWeb.jar"
+    prod:
+      script: "build/kotlin-webpack/js/productionExecutable/adminWeb.js"
+      siteRoot: ".kobweb/site"
+
+  # Dev and export server; kept away from the backend's 8080.
+  port: 8090

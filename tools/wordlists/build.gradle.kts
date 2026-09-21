@@ -12,8 +12,8 @@ kotlin {
 }
 
 dependencies {
-    // The app's own Normalizer / Tokenizer / LaunchLanguages, so generated words tokenize exactly as in play.
-    implementation(project(":sharedUI"))
+    // The app's own Normalizer / Tokenizer / LaunchLanguages (shared with the server), so generated words tokenize exactly as in play.
+    implementation(project(":sharedData"))
     implementation(libs.kotlinx.serialization.json)
 
     testImplementation(kotlin("test"))

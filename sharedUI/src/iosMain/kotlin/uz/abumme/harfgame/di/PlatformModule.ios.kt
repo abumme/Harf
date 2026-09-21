@@ -18,7 +18,7 @@ import uz.abumme.harfgame.games.NoOpGamesServices
 actual val platformModule: Module = module {
     single { KSafe() }
     single<Sharer> { IosSharer() }
-    single<PurchaseController> { RevenueCatPurchaseController(BuildConfig.REVENUECAT_IOS_KEY) }
+    single<PurchaseController> { RevenueCatPurchaseController(BuildConfig.REVENUECAT_KEY) }
     single<OAuthClient> { IosAppleOAuthClient() }
     single<GamesServices> { NoOpGamesServices() }
 }

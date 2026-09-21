@@ -9,6 +9,7 @@
 - [ ] 2.2 Build `docs/legal/offer.html` — same structure/style for the Public Offer. Verify: opens in a browser, renders the offer, no `{{` tokens.
 - [ ] 2.3 Add the in-page language toggle to both pages: default from `navigator.language` when it is uz/ru/en, else `ru`; switching updates all legal text without changing URL. Verify: manually toggle each language on both pages and confirm full-text swap; load with a non-uz/ru/en browser locale and confirm it falls back to ru.
 - [ ] 2.4 Confirm HTML text matches the filled source markdown for each document and locale. Verify: spot-diff each locale's HTML against its `.md`; identifiers (name/email/date/URLs) are identical.
+  - Note from `player-accounts` (applied before these pages exist): it changed `docs/legal/privacy-{en,ru,uz,kk,tr}.md` — §2.2 now says the display name confirmed at sign-in is stored, new §2.7 covers word suggestions, new §5.3 covers authorized administrator access, and §6.1 adds deletion by an administrator at the user's request. Render those updated sources, and re-check the four passages in every locale's HTML.
 
 ## 3. Hosting handoff (lazydevs.uz landing repo)
 

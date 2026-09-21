@@ -7,11 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		50D2343F7B4844AF4C73266B /* PurchasesHybridCommon in Frameworks */ = {isa = PBXBuildFile; productRef = 21C74EB96EEAF1DA8A53AF28 /* PurchasesHybridCommon */; };
 		A93A953B29CC810C00F8E227 /* iosApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A93A953A29CC810C00F8E227 /* iosApp.swift */; };
 		A93A953F29CC810D00F8E227 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A93A953E29CC810D00F8E227 /* Assets.xcassets */; };
 		A93A954229CC810D00F8E227 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A93A954129CC810D00F8E227 /* Preview Assets.xcassets */; };
-		B6A502CE03C0E7B64F350A7E /* PurchasesHybridCommonUI in Frameworks */ = {isa = PBXBuildFile; productRef = 94615D975C37936585EFC57F /* PurchasesHybridCommonUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,8 +24,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				50D2343F7B4844AF4C73266B /* PurchasesHybridCommon in Frameworks */,
-				B6A502CE03C0E7B64F350A7E /* PurchasesHybridCommonUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -93,10 +89,6 @@
 			dependencies = (
 			);
 			name = iosApp;
-			packageProductDependencies = (
-				21C74EB96EEAF1DA8A53AF28 /* PurchasesHybridCommon */,
-				94615D975C37936585EFC57F /* PurchasesHybridCommonUI */,
-			);
 			productName = iosApp;
 			productReference = A93A953729CC810C00F8E227 /* Harf Game.app */;
 			productType = "com.apple.product-type.application";
@@ -124,9 +116,6 @@
 				Base,
 			);
 			mainGroup = A93A952E29CC810C00F8E227;
-			packageReferences = (
-				F131B52A4569FF2695FC3082 /* XCRemoteSwiftPackageReference "purchases-hybrid-common" */,
-			);
 			productRefGroup = A93A953829CC810C00F8E227 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -366,30 +355,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		F131B52A4569FF2695FC3082 /* XCRemoteSwiftPackageReference "purchases-hybrid-common" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/RevenueCat/purchases-hybrid-common";
-			requirement = {
-				kind = exactVersion;
-				version = 17.10.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		21C74EB96EEAF1DA8A53AF28 /* PurchasesHybridCommon */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = F131B52A4569FF2695FC3082 /* XCRemoteSwiftPackageReference "purchases-hybrid-common" */;
-			productName = PurchasesHybridCommon;
-		};
-		94615D975C37936585EFC57F /* PurchasesHybridCommonUI */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = F131B52A4569FF2695FC3082 /* XCRemoteSwiftPackageReference "purchases-hybrid-common" */;
-			productName = PurchasesHybridCommonUI;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A93A952F29CC810C00F8E227 /* Project object */;
 }

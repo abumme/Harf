@@ -1,6 +1,6 @@
 # «Harf» Uygulaması Gizlilik Politikası
 
-**Revizyon tarihi:** 2026-09-06
+**Revizyon tarihi:** 2026-09-17
 
 ## 1. Genel Hükümler
 
@@ -16,7 +16,7 @@
 
 2.1. **Hesap tanımlayıcısı.** Uygulama anonim bir hesap tanımlayıcısı (rastgele UUID) oluşturur. İçinde ad, telefon veya başka doğrudan tanımlayıcılar bulunmaz.
 
-2.2. **Google veya Apple ile oturum açma (isteğe bağlı).** Kullanıcı Google veya Apple ile oturum açarsa, sunucuda yalnızca sağlayıcı tanımlayıcısı (provider + subject id) saklanır; bu, sonraki girişlerde hesabı ilişkilendirir. **Ad, e-posta adresi ve profil fotoğrafı sunucuda saklanmaz.**
+2.2. **Google veya Apple ile oturum açma (isteğe bağlı).** Kullanıcı Google veya Apple ile oturum açarsa, sunucuda sonraki girişlerde hesabı ilişkilendiren sağlayıcı tanımlayıcısı (provider + subject id) ve Kullanıcının oturum açarken onayladığı görünen ad saklanır. **E-posta adresi ve profil fotoğrafı sunucuda saklanmaz.**
 
 2.3. **Oyun istatistikleri.** İlerlemeyi cihazlar arasında eşitlemek için şunlar saklanır: oyun dili, günlük bulmaca numarası, turun kazanılıp kazanılmadığı, deneme sayısı ve güncelleme zamanı.
 
@@ -26,11 +26,14 @@
 
 2.6. Uygulama konum, kişiler, mikrofon veya kamera verilerini **toplamaz** ve reklam göstermez.
 
+2.7. **Kelime önerileri (isteğe bağlı).** Kullanıcı sözlüğe bir kelime eklenmesini önerirse, sunucuda kelime, dili, gönderilme zamanı ve öneri hakkındaki karar (kabul edildi veya reddedildi) saklanır. Öneri, hesap silinene kadar hesapla ilişkilidir; hesap silindikten sonra öneri hesapla herhangi bir bağlantısı olmadan saklanır.
+
 ## 3. İşleme Amaçları
 
 - Oyun ilerlemesini kaydetmek ve cihazlar arasında eşitlemek.
 - Ücretli ek içeriklere erişim sağlamak.
 - Hesap oturumu ve oturum güvenliğini sağlamak.
+- Uygulamanın nasıl kullanıldığını anlamak ve geliştirmek amacıyla oyun istatistiklerini, tek tek kullanıcıları tanımlamadan, toplu hâlde analiz etmek.
 
 ## 4. Üçüncü Taraflar
 
@@ -46,11 +49,13 @@
 
 5.1. Oturum belirteçleri sunucuda yalnızca karma (hash) olarak saklanır. Uygulama ile sunucu arasındaki veriler güvenli bir bağlantı (HTTPS) üzerinden iletilir.
 
-5.2. Sunucu verileri, Kullanıcının hesabı var olduğu sürece saklanır.
+5.2. Sunucu verileri, Kullanıcının hesabı var olduğu sürece saklanır. Kimseyi tanımlamayan toplu istatistikler, hesap silindikten sonra da saklanabilir.
+
+5.3. Uygulamanın yetkili yöneticileri hesap verilerine (hesap tanımlayıcısı, oturum açma sağlayıcısı türü, görünen ad, oyun istatistikleri ve kelime önerileri) yalnızca destek, moderasyon ve kötüye kullanımın önlenmesi amacıyla erişebilir; yönetici erişimi yönetici hesaplarıyla sınırlıdır ve yöneticilerin işlemleri kayıt altına alınır.
 
 ## 6. Kullanıcı Hakları
 
-6.1. **Hesap silme.** Kullanıcı hesabını Uygulama içinde silebilir; silindiğinde ilişkili sunucu verileri (oturum tanımlayıcıları, istatistikler, belirteçler) art arda (cascade) silinir.
+6.1. **Hesap silme.** Kullanıcı hesabını Uygulama içinde silebilir; silindiğinde ilişkili sunucu verileri (oturum tanımlayıcıları, istatistikler, belirteçler) art arda (cascade) silinir. Hesap silme işlemi, Kullanıcının talebi üzerine bir yönetici tarafından da yapılabilir.
 
 6.2. Kullanıcı, verilerinin işlenmesi hakkında bilgi almak için lazydevscat@gmail.com adresine başvurabilir.
 

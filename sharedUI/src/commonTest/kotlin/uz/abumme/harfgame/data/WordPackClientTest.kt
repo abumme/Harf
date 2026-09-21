@@ -14,6 +14,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import uz.abumme.harfgame.data.api.ApiRoutes
+import uz.abumme.harfgame.data.wordpack.CalendarSnapshotDto
 import uz.abumme.harfgame.data.wordpack.WordPackCache
 import uz.abumme.harfgame.data.wordpack.WordPackDto
 import uz.abumme.harfgame.data.wordpack.WordPackSchedule
@@ -87,10 +88,12 @@ class WordPackClientTest {
         val ksafe = KSafe()
         val cache = WordPackCache(ksafe)
 
-        // valid cache overrides bundle (schedule of 3, not the ~800-entry bundled baseline)
+        // valid cache overrides bundle (schedule of 3, not the ~800-entry bundled baseline) and the build's snapshot
         cache.put(validEnPack("1"))
         val fromCache = WordPackRepository(registry, cache).load("en")
         assertEquals(3, fromCache.schedule.size, "uses the cached schedule")
+        val cacheOverSnapshot = WordPackRepository(registry, cache, snapshots = { snapshotJson(scheduleDays = 5) }).load("en")
+        assertEquals(3, cacheOverSnapshot.schedule.size, "a cached server pack beats the calendar snapshot")
 
         // invalid cache (answer too long) → falls back to the bundle
         val badKsafe = KSafe()
@@ -102,6 +105,49 @@ class WordPackClientTest {
         // empty cache offline → bundle
         val bundled = WordPackRepository(registry, WordPackCache(KSafe())).load("en")
         assertTrue(bundled.schedule.isNotEmpty(), "bundled baseline yields a schedule offline")
+    }
+
+    /** A calendar snapshot for English as the refresh task writes it. */
+    private fun snapshotJson(scheduleDays: Int, answer: String = "crane", lang: String = "en") = json.encodeToString(
+        CalendarSnapshotDto(
+            lang = lang,
+            version = "42",
+            anchorEpochDay = WordPackSchedule.ANCHOR_EPOCH_DAY,
+            answers = listOf(answer, "bread"),
+            schedule = List(scheduleDays) { if (it % 2 == 0) answer else "bread" },
+        ),
+    )
+
+    @Test
+    fun aValidCalendarSnapshotBeatsTheGeneratedBaseline() = runTest {
+        val pack = WordPackRepository(registry, snapshots = { snapshotJson(scheduleDays = 7) }).load("en")
+        assertEquals(7, pack.schedule.size, "the snapshot's schedule")
+        assertEquals(WordPackSchedule.ANCHOR_EPOCH_DAY, pack.anchorEpochDay)
+        val tokenizer = registry.tokenizer("en")!!
+        assertTrue(pack.isValidGuess(tokenizer.tokenize("apple")!!), "the bundled guess dictionary still applies")
+        assertTrue(pack.isValidGuess(tokenizer.tokenize("crane")!!), "snapshot words are guesses")
+        assertEquals(emptyList(), WordPackRepository(registry, snapshots = { snapshotJson(scheduleDays = 7) }).validate("en"))
+    }
+
+    @Test
+    fun aMissingOrInvalidCalendarSnapshotFallsBackToTheBaseline() = runTest {
+        val baseline = WordPackRepository(registry, snapshots = { null }).load("en")
+        assertTrue(baseline.schedule.size > 7, "no snapshot: the generated baseline")
+
+        val sources: List<suspend (String) -> String?> = listOf(
+            { snapshotJson(scheduleDays = 7, answer = "waytoolongword") }, // fails the integrity check
+            { "not json" },
+            { snapshotJson(scheduleDays = 7, lang = "ru") }, // another language's file
+            { throw IllegalStateException("missing resource") },
+        )
+        for (source in sources) {
+            val pack = WordPackRepository(registry, snapshots = source).load("en")
+            assertEquals(baseline.schedule, pack.schedule)
+        }
+        // An invalid committed snapshot fails the bundled-files check; a missing one does not.
+        val problems = WordPackRepository(registry, snapshots = { snapshotJson(scheduleDays = 7, answer = "waytoolongword") }).validate("en")
+        assertTrue(problems.any { it.startsWith("calendar snapshot") }, problems.toString())
+        assertEquals(emptyList(), WordPackRepository(registry, snapshots = { null }).validate("en"))
     }
 
     @Test

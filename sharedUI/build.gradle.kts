@@ -14,6 +14,10 @@ plugins {
 }
 
 kotlin {
+    // The generated BuildConfig is now an expect/actual object (single RevenueCat key); opt in
+    // to silence the Beta warning across all targets.
+    compilerOptions { freeCompilerArgs.add("-Xexpect-actual-classes") }
+
     android {
         namespace = "uz.abumme.harfgame"
         compileSdk = 37
@@ -56,6 +60,9 @@ kotlin {
             api(libs.compose.material3)
             implementation(libs.kotlinx.coroutines.core)
             implementation(libs.ktor.client.core)
+            // Ktor 3.6.0 curated multiplatform engine facade: supplies a client engine for every
+            // target (incl. js/wasmJs) from commonMain, so no per-platform engine dependency is needed.
+            implementation(libs.ktor.client.engine.defaults)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.client.serialization)
             implementation(libs.ktor.serialization.json)
@@ -85,7 +92,6 @@ kotlin {
 
         androidMain.dependencies {
             implementation(libs.kotlinx.coroutines.android)
-            implementation(libs.ktor.client.okhttp)
             implementation(libs.koin.android)
             // Native Google sign-in (Credential Manager + Google ID token)
             implementation(libs.androidx.credentials)
@@ -98,13 +104,9 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines.swing)
-            implementation(libs.ktor.client.okhttp)
             implementation(libs.kotlinx.datetime)
         }
 
-        iosMain.dependencies {
-            implementation(libs.ktor.client.darwin)
-        }
 
     }
 
@@ -185,8 +187,43 @@ fun googleServerClientId(): String =
 
 buildConfig {
     packageName("uz.abumme.harfgame")
-    buildConfigField("String", "REVENUECAT_ANDROID_KEY", "\"${rcReleaseKey("revenuecat.androidKey", "goog_")}\"")
-    buildConfigField("String", "REVENUECAT_IOS_KEY", "\"${rcReleaseKey("revenuecat.iosKey", "appl_")}\"")
+    // Single expect-ed RevenueCat key: blank default (⇒ purchases Unavailable) for every
+    // non-store target (desktop/web/jvm); android & ios provide the real store key as `actual`.
+    buildConfigField("REVENUECAT_KEY", expect(""))
     buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl()}\"")
     buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"${googleServerClientId()}\"")
+
+    sourceSets.named("androidMain") {
+        buildConfigField("REVENUECAT_KEY", rcReleaseKey("revenuecat.androidKey", "goog_"))
+    }
+    sourceSets.named("iosMain") {
+        buildConfigField("REVENUECAT_KEY", rcReleaseKey("revenuecat.iosKey", "appl_"))
+    }
+}
+
+// Release step (daily-word-calendar): `./gradlew :sharedUI:refreshCalendarSnapshot` writes the published calendar of every
+// launch language to composeResources/files/<lang>_calendar.json, so an offline fresh install of the release plays the
+// server's words. It reads `harf.apiBaseUrl` (production by default) and fails, writing nothing, when a pack would be
+// refused by the app. `-PcalendarSnapshotDir=<dir>` writes elsewhere (e.g. to try it against a local backend).
+val calendarSnapshotTool: Configuration by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+        attribute(org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.attribute, org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.jvm)
+    }
+}
+dependencies {
+    calendarSnapshotTool(project(":tools:wordlists"))
+}
+tasks.register<JavaExec>("refreshCalendarSnapshot") {
+    group = "harf"
+    description = "Refreshes the bundled daily-word calendar snapshots from the published word packs"
+    val resources = layout.projectDirectory.dir("src/commonMain/composeResources/files").asFile
+    val output = providers.gradleProperty("calendarSnapshotDir").map { file(it) }.getOrElse(resources)
+    classpath = calendarSnapshotTool
+    mainClass.set("uz.abumme.harfgame.tools.wordlists.CalendarSnapshotRefreshKt")
+    args(apiBaseUrl(), output.absolutePath, resources.absolutePath)
+    // The output is the network's answer: never up to date.
+    outputs.upToDateWhen { false }
 }
