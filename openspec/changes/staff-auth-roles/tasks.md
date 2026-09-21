@@ -243,7 +243,7 @@
 
 ## 9. CI, image and configuration (CI & deploy)
 
-- [ ] 9.1 **Add the `admin-web` job** to `.github/workflows/ci.yml`.
+- [x] 9.1 **Add the `admin-web` job** to `.github/workflows/ci.yml`.
   - Java 17 and Gradle setup.
   - A Playwright browser cache keyed by `./gradlew -q -PadminWebOnly :adminWeb:kobwebBrowserCacheId`.
   - `-PadminWebOnly :adminWeb:jsTest`, then the export.
