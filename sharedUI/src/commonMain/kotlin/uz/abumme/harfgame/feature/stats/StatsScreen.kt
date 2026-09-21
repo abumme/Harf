@@ -39,6 +39,7 @@ import uz.abumme.harfgame.data.stats.PlayerStats
 import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.data.stats.StreakStats
 import uz.abumme.harfgame.data.stats.Streaks
+import uz.abumme.harfgame.data.stats.toDto
 import uz.abumme.harfgame.feature.daily.DailyPuzzleProvider
 import uz.abumme.harfgame.lang.LanguageRegistry
 import uz.abumme.harfgame.theme.LocalHarfColors
@@ -64,7 +65,8 @@ class StatsViewModel(
 ) : BaseViewModel<StatsState, StatsNoAction, StatsNoEvent>(StatsState()) {
     init {
         viewModelScope.launch {
-            val records = resultLog.all()
+            // The shared rules (also the staff panel's player detail) read the synced record shape.
+            val records = resultLog.all().map { it.toDto() }
             val now = Clock.System.now()
             setState {
                 copy(entries = registry.ids.sorted().map { id ->

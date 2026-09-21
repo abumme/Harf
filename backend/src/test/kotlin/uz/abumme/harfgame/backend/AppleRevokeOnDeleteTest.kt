@@ -15,9 +15,6 @@ import io.ktor.server.testing.testApplication
 import kotlinx.serialization.json.Json
 import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import uz.abumme.harfgame.backend.auth.oauth.AppleTokenRevoker
-import uz.abumme.harfgame.backend.auth.oauth.OAuthIdentityResult
-import uz.abumme.harfgame.backend.auth.oauth.OAuthVerifier
 import uz.abumme.harfgame.backend.db.DatabaseFactory
 import uz.abumme.harfgame.backend.db.UsersTable
 import uz.abumme.harfgame.backend.security.JwtService
@@ -33,16 +30,6 @@ import kotlin.test.assertTrue
 
 class AppleRevokeOnDeleteTest {
 
-    private class RecordingRevoker : AppleTokenRevoker {
-        val revoked = mutableListOf<String>()
-        override suspend fun revoke(providerSubject: String) { revoked += providerSubject }
-    }
-
-    private class FixedVerifier(private val subject: String) : OAuthVerifier {
-        override suspend fun verify(idToken: String, expectedNonce: String?) =
-            OAuthIdentityResult(OAuthProvider.APPLE, subject)
-    }
-
     @BeforeTest
     fun setup() {
         val db = DatabaseFactory.init()
@@ -51,10 +38,10 @@ class AppleRevokeOnDeleteTest {
 
     @Test
     fun deletingAnAppleLinkedAccountRevokesAppleTokens() = testApplication {
-        val revoker = RecordingRevoker()
+        val revoker = RecordingAppleRevoker()
         val authService = AuthServerService(
             JwtService(),
-            verifiers = mapOf(OAuthProvider.APPLE to FixedVerifier("apple-sub-1")),
+            verifiers = mapOf(OAuthProvider.APPLE to FixedOAuthVerifier(OAuthProvider.APPLE, "apple-sub-1")),
             appleRevoker = revoker,
         )
         application { module(authService = authService) }

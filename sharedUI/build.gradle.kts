@@ -200,3 +200,30 @@ buildConfig {
         buildConfigField("REVENUECAT_KEY", rcReleaseKey("revenuecat.iosKey", "appl_"))
     }
 }
+
+// Release step (daily-word-calendar): `./gradlew :sharedUI:refreshCalendarSnapshot` writes the published calendar of every
+// launch language to composeResources/files/<lang>_calendar.json, so an offline fresh install of the release plays the
+// server's words. It reads `harf.apiBaseUrl` (production by default) and fails, writing nothing, when a pack would be
+// refused by the app. `-PcalendarSnapshotDir=<dir>` writes elsewhere (e.g. to try it against a local backend).
+val calendarSnapshotTool: Configuration by configurations.creating {
+    isCanBeConsumed = false
+    isCanBeResolved = true
+    attributes {
+        attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage.JAVA_RUNTIME))
+        attribute(org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.attribute, org.jetbrains.kotlin.gradle.plugin.KotlinPlatformType.jvm)
+    }
+}
+dependencies {
+    calendarSnapshotTool(project(":tools:wordlists"))
+}
+tasks.register<JavaExec>("refreshCalendarSnapshot") {
+    group = "harf"
+    description = "Refreshes the bundled daily-word calendar snapshots from the published word packs"
+    val resources = layout.projectDirectory.dir("src/commonMain/composeResources/files").asFile
+    val output = providers.gradleProperty("calendarSnapshotDir").map { file(it) }.getOrElse(resources)
+    classpath = calendarSnapshotTool
+    mainClass.set("uz.abumme.harfgame.tools.wordlists.CalendarSnapshotRefreshKt")
+    args(apiBaseUrl(), output.absolutePath, resources.absolutePath)
+    // The output is the network's answer: never up to date.
+    outputs.upToDateWhen { false }
+}

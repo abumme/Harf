@@ -3,28 +3,13 @@ package uz.abumme.harfgame.tools.wordlists
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+// The transliteration rules themselves are covered by :sharedData's UzbekTransliterationTest.
 class UzbekCyrillicTest {
 
     @Test
-    fun transliteratesByTheOfficialCorrespondence() {
-        val cases = listOf(
-            "kitob" to "китоб",
-            "shahar" to "шаҳар", // sh → ш, h → ҳ
-            "chiroq" to "чироқ", // ch → ч, q → қ
-            "xalq" to "халқ", // x → х (distinct from h → ҳ)
-            "oʻrdak" to "ўрдак",
-            "gʻalla" to "ғалла",
-            "yangi" to "янги", // ya → я, ng → нг
-            "yuz" to "юз",
-            "dunyo" to "дунё",
-            "tayyor" to "тайёр", // y before a consonant → й, then yo → ё
-            "oyoq" to "оёқ",
-            "yer" to "ер", // word-initial ye → е
-            "poyezd" to "поезд", // ye after a vowel → е
-            "ekin" to "экин", // word-initial e → э
-            "poeziya" to "поэзия", // e after a vowel → э
-        )
-        for ((latin, cyrillic) in cases) assertEquals(cyrillic, UzbekCyrillic.transliterate(latin), latin)
+    fun usesTheSharedTransliteration() {
+        assertEquals("шаҳар", UzbekCyrillic.transliterate("shahar"))
+        assertEquals("йўл", UzbekCyrillic.transliterate("yoʻl"))
     }
 
     @Test

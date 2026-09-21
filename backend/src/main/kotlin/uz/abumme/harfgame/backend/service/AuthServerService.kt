@@ -3,11 +3,13 @@ package uz.abumme.harfgame.backend.service
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.isNotNull
+import org.jetbrains.exposed.v1.core.isNull
 import org.jetbrains.exposed.v1.core.less
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
+import uz.abumme.harfgame.backend.admin.analytics.AccountEvents
 import uz.abumme.harfgame.backend.auth.oauth.AppleTokenRevoker
 import uz.abumme.harfgame.backend.auth.oauth.NoOpAppleTokenRevoker
 import uz.abumme.harfgame.backend.auth.oauth.OAuthVerifier
@@ -23,12 +25,15 @@ import uz.abumme.harfgame.data.auth.LinkAccountResponse
 import uz.abumme.harfgame.data.auth.OAuthProvider
 import uz.abumme.harfgame.data.auth.RefreshResponse
 import uz.abumme.harfgame.data.auth.TokenPairDto
+import java.time.Clock
 import java.util.UUID
 
 class AuthServerService(
     val jwtService: JwtService,
     val verifiers: Map<OAuthProvider, OAuthVerifier> = emptyMap(),
     val appleRevoker: AppleTokenRevoker = NoOpAppleTokenRevoker,
+    /** Dates the analytics account events (deletion counts, link times). */
+    val clock: Clock = Clock.systemUTC(),
 ) {
 
     suspend fun createAnonymousAccount(): AnonymousAuthResponse {
@@ -177,6 +182,7 @@ class AuthServerService(
                     it[userId] = currentUserId
                     it[provider] = providerName
                     it[providerSubject] = subject
+                    it[linkedAt] = clock.instant()
                 }
                 targetUserId = currentUserId
             } else {
@@ -239,16 +245,29 @@ class AuthServerService(
         }
     }
 
-    suspend fun logout(userId: String) {
+    /**
+     * Revokes every refresh token of [userId] that is not revoked yet and returns how many. [inTransaction] runs inside
+     * the same transaction with that count (the staff panel records its audit entry there; throwing rolls back).
+     */
+    suspend fun logout(userId: String, inTransaction: (revoked: Int) -> Unit = {}): Int {
         val nowInstant = java.time.Instant.ofEpochMilli(System.currentTimeMillis())
-        DatabaseFactory.dbQuery {
-            RefreshTokensTable.update({ RefreshTokensTable.userId eq userId }) {
+        return DatabaseFactory.dbQuery {
+            val revoked = RefreshTokensTable.update({ (RefreshTokensTable.userId eq userId) and RefreshTokensTable.revokedAt.isNull() }) {
                 it[revokedAt] = nowInstant
             }
+            inTransaction(revoked)
+            revoked
         }
     }
 
-    suspend fun deleteAccount(userId: String): Boolean {
+    /**
+     * Deletes the account: Apple tokens are revoked first, then the `users` row goes, cascading to identities, refresh
+     * tokens and stats and clearing the author of its suggestions. This is the one deletion path, for the player's own
+     * request and an ADMIN's alike. [inTransaction] runs inside the delete's transaction only when a row was deleted
+     * (the staff panel records its audit entry there, so entry and deletion commit together). A deletion is also
+     * counted for analytics in the same transaction, without any identity; merge-link's orphan cleanup is not.
+     */
+    suspend fun deleteAccount(userId: String, inTransaction: () -> Unit = {}): Boolean {
         // Revoke Apple tokens for any linked Apple identity before removing the account (TN3194).
         val appleSubjects = DatabaseFactory.dbQuery {
             OAuthIdentitiesTable
@@ -262,8 +281,12 @@ class AuthServerService(
         for (subject in appleSubjects) appleRevoker.revoke(subject)
 
         return DatabaseFactory.dbQuery {
-            val deleted = UsersTable.deleteWhere { UsersTable.id eq userId }
-            deleted > 0
+            val deleted = UsersTable.deleteWhere { UsersTable.id eq userId } > 0
+            if (deleted) {
+                AccountEvents.countDeletion(clock.instant())
+                inTransaction()
+            }
+            deleted
         }
     }
 

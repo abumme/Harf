@@ -14,6 +14,7 @@ import uz.abumme.harfgame.backend.service.SuggestionServerService
 import uz.abumme.harfgame.data.api.ApiErrorResponse
 import uz.abumme.harfgame.data.api.ApiRoutes
 import uz.abumme.harfgame.data.suggestion.SuggestWordRequest
+import uz.abumme.harfgame.data.suggestion.SuggestionErrors
 import uz.abumme.harfgame.data.suggestion.SuggestWordResponse
 import uz.abumme.harfgame.data.suggestion.SuggestionStatus
 
@@ -34,6 +35,9 @@ fun Route.suggestionRoutes(service: SuggestionServerService) {
                     call.respond(HttpStatusCode.BadRequest, ApiErrorResponse("rejected", outcome.reason))
                 SuggestOutcome.OverCap ->
                     call.respond(HttpStatusCode.TooManyRequests, ApiErrorResponse("rate_limited", "Daily suggestion limit reached"))
+                // Any non-2xx makes the current app show its "couldn't send" message; a later one can match the code.
+                SuggestOutcome.Blocked ->
+                    call.respond(HttpStatusCode.Forbidden, ApiErrorResponse(SuggestionErrors.BLOCKED, "Suggestions are blocked for this account"))
             }
         }
     }

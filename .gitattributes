@@ -11,3 +11,4 @@ gradlew.bat text eol=crlf
 *.webp binary
 *.ttf binary
 *.otf binary
+*.woff2 binary
