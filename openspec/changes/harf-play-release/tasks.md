@@ -33,4 +33,5 @@
 
 ## 7. Pre-submit verification
 
+- [ ] 7.0 Refresh calendar snapshot: run `./gradlew :sharedUI:refreshCalendarSnapshot` (or the CI workflow with `refresh_calendar_snapshot`) and commit the bundled `<lang>_calendar.json` files right before building the release, so an offline fresh install plays the server's daily words; verify `./gradlew :sharedUI:jvmTest` is green and today's Uzbek word in the snapshot equals `GET /api/v1/wordpacks/uz-latn`.
 - [ ] 7.1 Install the signed release AAB on a clean device and run a full offline round + a sandbox purchase; verify no release-only (R8/signing/IAP) regressions before submission.

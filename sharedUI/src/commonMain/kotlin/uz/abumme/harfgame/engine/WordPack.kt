@@ -4,8 +4,11 @@ import harf_game.sharedui.generated.resources.Res
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.jetbrains.compose.resources.ExperimentalResourceApi
+import kotlinx.serialization.json.Json
+import uz.abumme.harfgame.data.wordpack.CalendarSnapshotDto
 import uz.abumme.harfgame.data.wordpack.WordPackCache
 import uz.abumme.harfgame.data.wordpack.WordPackDto
+import uz.abumme.harfgame.data.wordpack.WordPackIntegrity
 import uz.abumme.harfgame.data.wordpack.WordPackSchedule
 import uz.abumme.harfgame.lang.LanguageRegistry
 import uz.abumme.harfgame.lang.UzbekDailyWords
@@ -26,14 +29,18 @@ data class WordPack(
 }
 
 /**
- * Resolves the active word pack as the freshest valid one: a locally-cached server pack when present
- * and valid, otherwise the bundled pack — both offline. The bundled schedule is generated with the
- * shared [WordPackSchedule] so it matches the server's seeded version 1.
+ * Resolves the active word pack as the freshest valid one, all offline: a locally-cached server pack
+ * when present and valid; otherwise the build's calendar snapshot (`<lang>_calendar.json`, the
+ * published answers and schedule when the release was prepared) with the bundled guesses, when it
+ * passes the same integrity check; otherwise the generated bundled baseline, whose schedule comes from
+ * the shared [WordPackSchedule] so it matches the server's seeded version 1.
  */
 @OptIn(ExperimentalResourceApi::class)
 class WordPackRepository(
     private val registry: LanguageRegistry,
     private val cache: WordPackCache? = null,
+    /** The raw calendar snapshot of a language, or null (or a failure) when the build has none. */
+    private val snapshots: suspend (lang: String) -> String? = ::bundledSnapshot,
 ) {
 
     private val cached = HashMap<String, WordPack>()
@@ -45,7 +52,7 @@ class WordPackRepository(
             cached[id]?.let { return@withLock it } // re-check inside the lock
             val tokenizer = registry.tokenizer(id) ?: error("Unknown language: $id")
 
-            val fromServer = cache?.get(id)?.let { buildFromDto(id, it, tokenizer) }
+            val fromServer = cache?.get(id)?.let { buildFromDto(id, it) }
             (fromServer ?: buildBundled(id, tokenizer)).also { cached[id] = it }
         }
     }
@@ -54,25 +61,17 @@ class WordPackRepository(
     suspend fun invalidate(id: String) = mutex.withLock { cached.remove(id) }
 
     /** True if a fetched pack passes integrity and can replace the current one. */
-    fun isAdoptable(dto: WordPackDto): Boolean {
-        val tokenizer = registry.tokenizer(dto.lang) ?: return false
-        return buildFromDto(dto.lang, dto, tokenizer) != null
-    }
+    fun isAdoptable(dto: WordPackDto): Boolean = buildFromDto(dto.lang, dto) != null
 
-    private fun buildFromDto(id: String, dto: WordPackDto, tokenizer: Tokenizer): WordPack? {
+    /** The pack [dto] describes, or null when the shared [WordPackIntegrity] check (the server runs it too) rejects it. */
+    private fun buildFromDto(id: String, dto: WordPackDto): WordPack? {
         val config = registry.config(id) ?: return null
-        val answers = dto.answers.map { tokenizer.tokenize(it) ?: return null }
-        val schedule = dto.schedule.map { tokenizer.tokenize(it) ?: return null }
-        if (answers.isEmpty() || schedule.isEmpty()) return null
-        // Integrity: answers have a supported length and appear in the guess set.
-        val guesses = dto.guesses.mapNotNull { tokenizer.tokenize(it) }.toMutableSet()
-        guesses += answers
-        guesses += schedule
-        for (a in answers) if (a.size !in config.minLength..config.maxLength || a !in guesses) return null
-        return WordPack(id, answers, guesses, schedule, dto.anchorEpochDay)
+        val valid = WordPackIntegrity.check(dto, config) as? WordPackIntegrity.Valid ?: return null
+        return WordPack(id, valid.answers, valid.guesses, valid.schedule, dto.anchorEpochDay)
     }
 
     private suspend fun buildBundled(id: String, tokenizer: Tokenizer): WordPack {
+        snapshotPack(id)?.let { dto -> buildFromDto(id, dto)?.let { return it } }
         val answers = readLines("files/${id}_answers.txt").mapNotNull { tokenizer.tokenize(it) }
         val guessesRaw = readLines("files/${id}_guess.txt").mapNotNull { tokenizer.tokenize(it) }
         val isUz = id == "uz-latn" || id == "uz-cyrl"
@@ -92,9 +91,26 @@ class WordPackRepository(
         return WordPack(id, answers, guesses, schedule, WordPackSchedule.ANCHOR_EPOCH_DAY)
     }
 
+    /** The build's calendar snapshot of [id] as a pack with the bundled guesses; null when missing or unreadable. */
+    private suspend fun snapshotPack(id: String): WordPackDto? {
+        val raw = try {
+            snapshots(id)
+        } catch (_: Exception) {
+            null
+        } ?: return null
+        val snapshot = try {
+            snapshotJson.decodeFromString<CalendarSnapshotDto>(raw)
+        } catch (_: Exception) {
+            return null
+        }
+        if (snapshot.lang != id) return null
+        return snapshot.toPack(readLines("files/${id}_guess.txt"))
+    }
+
     /**
      * Integrity check for the BUNDLED files: every entry tokenizes, every answer has a supported
-     * length, and every answer appears in the guess dictionary. Returns problems (empty = ok).
+     * length, and every answer appears in the guess dictionary; a calendar snapshot, when the build
+     * has one, must pass the check a fetched pack passes. Returns problems (empty = ok).
      */
     suspend fun validate(id: String): List<String> {
         val config = registry.config(id) ?: return listOf("Unknown language: $id")
@@ -126,6 +142,21 @@ class WordPackRepository(
             }
             if (t !in guessTokens) errors.add("answer not in guess dictionary: '$line'")
         }
+        val hasSnapshot = try {
+            snapshots(id) != null
+        } catch (_: Exception) {
+            false
+        }
+        if (hasSnapshot) {
+            val snapshot = snapshotPack(id)
+            if (snapshot == null) {
+                errors.add("calendar snapshot unreadable or for another language")
+            } else {
+                (WordPackIntegrity.check(snapshot, config) as? WordPackIntegrity.Invalid)?.let { invalid ->
+                    invalid.problems.forEach { errors.add("calendar snapshot: $it") }
+                }
+            }
+        }
         return errors
     }
 
@@ -136,3 +167,14 @@ class WordPackRepository(
             .filter { it.isNotEmpty() && !it.startsWith("#") }
             .toList()
 }
+
+private val snapshotJson = Json { ignoreUnknownKeys = true }
+
+/** The calendar snapshot bundled with this build, or null when the build has none. */
+@OptIn(ExperimentalResourceApi::class)
+private suspend fun bundledSnapshot(lang: String): String? =
+    try {
+        Res.readBytes(CalendarSnapshotDto.resourcePath(lang)).decodeToString()
+    } catch (_: Exception) {
+        null // no snapshot committed for this language (e.g. before the first release refresh)
+    }

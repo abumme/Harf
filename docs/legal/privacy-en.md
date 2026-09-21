@@ -1,6 +1,6 @@
 # Privacy Policy for the «Harf» Application
 
-**Revision date:** 2026-09-06
+**Revision date:** 2026-09-17
 
 
 ## 1. General Provisions
@@ -17,7 +17,7 @@
 
 2.1. **Account identifier.** The Application creates an anonymous account identifier (a random UUID). It contains no name, phone number, or other direct identifiers.
 
-2.2. **Sign-in with Google or Apple (optional).** If the User signs in with Google or Apple, the server stores only the provider identifier (provider + subject id), which links the account on subsequent sign-ins. **Name, email address, and profile photo are not stored on the server.**
+2.2. **Sign-in with Google or Apple (optional).** If the User signs in with Google or Apple, the server stores the provider identifier (provider + subject id), which links the account on subsequent sign-ins, and the display name the User confirms when signing in. **The email address and profile photo are not stored on the server.**
 
 2.3. **Game statistics.** To synchronize progress across devices, the following is stored: game language, daily puzzle number, whether the round was won, number of attempts, and update time.
 
@@ -27,11 +27,14 @@
 
 2.6. The Application **does not collect** location, contacts, microphone, or camera data, and shows no advertising.
 
+2.7. **Word suggestions (optional).** If the User suggests adding a word to the dictionary, the server stores the word, its language, the time it was sent, and the decision on it (accepted or rejected). A suggestion is linked to the account until the account is deleted; after deletion, the suggestion is kept without any link to the account.
+
 ## 3. Purposes of Processing
 
 - Saving and synchronizing game progress across devices.
 - Providing access to paid extras.
 - Enabling account sign-in and session security.
+- Analyzing game statistics in aggregated form, without identifying individual users, to understand how the Application is used and to improve it.
 
 ## 4. Third Parties
 
@@ -47,11 +50,13 @@
 
 5.1. Session tokens are stored on the server only as hashes. Data between the Application and the server is transmitted over a secure connection (HTTPS).
 
-5.2. Server data is retained for as long as the User's account exists.
+5.2. Server data is retained for as long as the User's account exists. Aggregated statistics that identify no one may be kept after the account is deleted.
+
+5.3. Authorized administrators of the Application may access account data (account identifier, sign-in provider type, display name, game statistics and word suggestions) only for support, moderation and abuse prevention; administrator access is limited to administrator accounts and their actions are logged.
 
 ## 6. User Rights
 
-6.1. **Account deletion.** The User can delete their account within the Application; upon deletion, associated server data (sign-in identifiers, statistics, tokens) is deleted in a cascade.
+6.1. **Account deletion.** The User can delete their account within the Application; upon deletion, associated server data (sign-in identifiers, statistics, tokens) is deleted in a cascade. Deletion may also be carried out by an administrator at the User's request.
 
 6.2. The User may contact lazydevscat@gmail.com to obtain information about the processing of their data.
 

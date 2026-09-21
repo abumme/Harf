@@ -15,6 +15,12 @@ data class SuggestWordResponse(
     val status: String,
 )
 
+/** `ApiErrorResponse.error` codes of the suggestion endpoint besides `rejected` and `rate_limited`. */
+object SuggestionErrors {
+    /** 403: an ADMIN blocked the account's suggestions; nothing was stored. */
+    const val BLOCKED = "suggestions_blocked"
+}
+
 /** Server-side lifecycle of a suggestion; also the response status vocabulary the client shows. */
 enum class SuggestionStatus {
     /** Stored, awaiting editor review (also returned when an identical pending suggestion already existed). */

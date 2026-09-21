@@ -22,6 +22,11 @@ dependencies {
     implementation(libs.ktor.server.auth)
     implementation(libs.ktor.server.auth.jwt)
     implementation(libs.ktor.server.status.pages)
+    implementation(libs.ktor.server.rate.limit)
+    implementation(libs.ktor.server.forwarded.header)
+    implementation(libs.ktor.server.cors)
+    implementation(libs.ktor.server.conditional.headers)
+    implementation(libs.ktor.server.compression) // gzip/deflate word packs and admin JSON when the client accepts it
 
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
@@ -34,6 +39,7 @@ dependencies {
     implementation(libs.hikaricp)
     implementation(libs.google.api.client)
     implementation(libs.nimbus.jose.jwt)
+    implementation(libs.bouncycastle.prov) // Argon2id staff password hashing (pure Java)
     implementation(libs.logback.classic)
     implementation(libs.kotlinx.datetime)
     implementation(libs.kotlinx.serialization.json)
