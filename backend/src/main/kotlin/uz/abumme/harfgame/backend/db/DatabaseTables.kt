@@ -123,6 +123,7 @@ object WordPacksTable : Table("word_packs") {
     val guesses = text("guesses")   // JSON array of raw words
     val schedule = text("schedule") // JSON array of raw words, indexed from anchorEpochDay
     val updatedAt = timestamp("updated_at")
+    val firstPublicEpochDay = long("first_public_epoch_day").nullable()
 
     override val primaryKey = PrimaryKey(lang)
 }
@@ -330,6 +331,28 @@ object GameResultsTable : Table("game_results") {
     init {
         index("idx_game_results_lang_day", false, lang, puzzleDay)
         index("idx_game_results_day", false, puzzleDay)
+    }
+}
+
+/**
+ * Account-owned completed archive playthroughs with idempotent run ids and cascade deletion.
+ */
+object ArchiveRunsTable : Table("archive_runs") {
+    val userId = varchar("user_id", 36).references(UsersTable.id, onDelete = ReferenceOption.CASCADE)
+    val runId = varchar("run_id", 64)
+    val lang = varchar("lang", 16)
+    val puzzleDay = long("puzzle_day")
+    val won = bool("won")
+    val attempts = integer("attempts")
+    val hardMode = bool("hard_mode")
+    val rows = text("rows")
+    val completedAt = timestamp("completed_at")
+    val receivedAt = timestamp("received_at")
+
+    override val primaryKey = PrimaryKey(userId, runId)
+
+    init {
+        index("idx_archive_runs_user", false, userId)
     }
 }
 

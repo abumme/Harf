@@ -36,6 +36,7 @@ class LockedPack internal constructor(
     internal val answersJson: String,
     internal val guessesJson: String,
     internal val scheduleJson: String,
+    val firstPublicEpochDay: Long? = null,
 )
 
 /**
@@ -92,6 +93,7 @@ class PackPublisher(
                     answersJson = row[WordPacksTable.answers],
                     guessesJson = row[WordPacksTable.guesses],
                     scheduleJson = row[WordPacksTable.schedule],
+                    firstPublicEpochDay = row[WordPacksTable.firstPublicEpochDay],
                 )
             }
 
@@ -114,9 +116,17 @@ class PackPublisher(
             guesses == json.decodeFromString<List<String>>(pack.guessesJson)
         if (unchanged) return pack.version
 
+        val firstPublicEpochDay = if (calendar != null) {
+            CalendarStateTable.select(CalendarStateTable.initializedOn)
+                .where { CalendarStateTable.calendar eq calendar }
+                .singleOrNull()?.get(CalendarStateTable.initializedOn)?.toEpochDay() ?: anchor
+        } else {
+            pack.firstPublicEpochDay ?: anchor
+        }
+
         val effectiveFrom = if (calendar != null) CalendarDays.firstOpen(CalendarDays.today(calendar, now)).toEpochDay() else pack.effectiveFrom
         val version = nextVersion(pack.version)
-        val dto = WordPackDto(lang, version, effectiveFrom, anchor, answers, guesses, schedule)
+        val dto = WordPackDto(lang, version, effectiveFrom, anchor, answers, guesses, schedule, firstPublicEpochDay)
 
         val config = registry.config(lang) ?: throw PackIntegrityException(lang, listOf("no language config"))
         val check = WordPackIntegrity.check(dto, config)
@@ -129,6 +139,7 @@ class PackPublisher(
             it[WordPacksTable.anchorEpochDay] = anchor
             it[WordPacksTable.effectiveFrom] = effectiveFrom
             it[WordPacksTable.version] = version
+            it[WordPacksTable.firstPublicEpochDay] = firstPublicEpochDay
             it[updatedAt] = clock.instant()
         }
         return version

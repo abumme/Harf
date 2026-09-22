@@ -87,6 +87,7 @@ object DatabaseFactory {
         CalendarNoticesTable,
         CalendarStateTable,
         GameResultsTable,
+        ArchiveRunsTable,
         AnalyticsMetaTable,
         AccountEventsDailyTable,
         AnalyticsRollupDaysTable,

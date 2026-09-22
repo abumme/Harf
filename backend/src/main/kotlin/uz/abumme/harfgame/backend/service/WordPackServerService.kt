@@ -37,6 +37,7 @@ class WordPackServerService(
                 answers = json.decodeFromString(row[WordPacksTable.answers]),
                 guesses = json.decodeFromString(row[WordPacksTable.guesses]),
                 schedule = json.decodeFromString(row[WordPacksTable.schedule]),
+                firstPublicEpochDay = row[WordPacksTable.firstPublicEpochDay],
             )
         }
     }
