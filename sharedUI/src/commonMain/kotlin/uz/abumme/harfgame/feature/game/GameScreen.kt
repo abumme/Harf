@@ -1,5 +1,10 @@
 package uz.abumme.harfgame.feature.game
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -49,6 +54,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.utf16CodePoint
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -322,11 +328,12 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
             ResultView(state, config.displayName, puzzle.epochDay, onPaywall)
         }
     }
-    // Board sized to fully fit whatever space it is given; capped at 46.dp so tall phones look unchanged.
+    // Board sized to fully fit whatever space it is given; capped at 64.dp so the board grows to
+    // use spare height on tall phones instead of leaving a large empty margin.
     val board: @Composable (maxW: Dp, maxH: Dp) -> Unit = { maxW, maxH ->
         val gap = 6.dp
         val ts = minOf(
-            46.dp,
+            64.dp,
             (maxW - gap * (state.tileCount - 1)) / state.tileCount,
             (maxH - gap * (state.maxAttempts - 1)) / state.maxAttempts,
         )
@@ -410,10 +417,13 @@ fun BoardView(state: GameState, modifier: Modifier = Modifier, tileSize: Dp = 46
         for (r in 0 until state.maxAttempts) {
             val row = state.submitted.getOrNull(r)
             val isCurrent = r == state.submitted.size && state.status == GameStatus.Playing
+            // First empty cell of the in-progress row is where the next grapheme lands.
+            // current.size == tileCount when the row is full, so no cell is active then.
+            val activeCol = if (isCurrent) state.current.size else -1
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 for (c in 0 until state.tileCount) {
                     val g = row?.graphemes?.getOrNull(c) ?: if (isCurrent) state.current.getOrNull(c) else null
-                    Tile(g, row?.marks?.getOrNull(c), colors, tileSize)
+                    Tile(g, row?.marks?.getOrNull(c), colors, tileSize, active = c == activeCol)
                 }
             }
         }
@@ -421,9 +431,26 @@ fun BoardView(state: GameState, modifier: Modifier = Modifier, tileSize: Dp = 46
 }
 
 @Composable
-private fun Tile(grapheme: String?, mark: Mark?, colors: HarfColors, size: Dp = 46.dp) {
+private fun Tile(grapheme: String?, mark: Mark?, colors: HarfColors, size: Dp = 46.dp, active: Boolean = false) {
+    // Active cell: accent border with a slow pulse so the player sees where input lands.
+    val borderColor: Color
+    val borderWidth: Dp
+    if (active) {
+        val transition = rememberInfiniteTransition(label = "activeCell")
+        val alpha by transition.animateFloat(
+            initialValue = 0.35f,
+            targetValue = 1f,
+            animationSpec = infiniteRepeatable(tween(700), RepeatMode.Reverse),
+            label = "activeAlpha",
+        )
+        borderColor = colors.accent.copy(alpha = alpha)
+        borderWidth = 2.dp
+    } else {
+        borderColor = colors.rule
+        borderWidth = 1.dp
+    }
     Box(
-        modifier = Modifier.size(size).border(1.dp, colors.rule, RoundedCornerShape(3.dp)),
+        modifier = Modifier.size(size).border(borderWidth, borderColor, RoundedCornerShape(3.dp)),
         contentAlignment = Alignment.Center,
     ) {
         if (mark != null) FeedbackMark(mark, colors, Modifier.fillMaxSize())
@@ -451,27 +478,60 @@ fun KeyboardView(
 ) {
     val c = LocalHarfColors.current
     val spacing = 4.dp
-    // Uniform key width sized to the widest row so even the 12-key Cyrillic layout fits any phone
-    // (fixed-width keys used to clip the last column). Capped so a short row's keys don't balloon.
-    val maxKeys = config.keyboard.maxOf { it.size }
+    val rows = config.keyboard
+    val lastIdx = rows.lastIndex
+    // System-keyboard layout: delete at the trailing end of the top row, enter at the trailing
+    // end of the last row. Action keys are 1.5x a letter key. When appending them would shrink a
+    // key below a tappable minimum (e.g. the 12-key Uzbek-Cyrillic rows on a narrow phone), fall
+    // back to a separate action row so nothing clips.
+    val actionW = 1.5f
     BoxWithConstraints(modifier) {
-        val keyW = ((maxWidth - spacing * (maxKeys - 1)) / maxKeys).coerceAtMost(44.dp)
+        // Smallest letter width any row demands once its inline action (if any) is included.
+        val inlineKeyW = rows.indices.minOf { i ->
+            val actions = (if (i == 0) 1 else 0) + (if (i == lastIdx) 1 else 0)
+            val units = rows[i].size + actions * actionW
+            val gaps = rows[i].size + actions - 1
+            (maxWidth - spacing * gaps) / units
+        }
+        val inline = inlineKeyW >= 24.dp
+        val keyW = if (inline) {
+            inlineKeyW.coerceAtMost(44.dp)
+        } else {
+            val maxKeys = rows.maxOf { it.size }
+            ((maxWidth - spacing * (maxKeys - 1)) / maxKeys).coerceAtMost(44.dp)
+        }
         Column(
             Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(6.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            for (rowKeys in config.keyboard) {
+            rows.forEachIndexed { i, rowKeys ->
                 Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
                     for (k in rowKeys) KeyCap(k, keyStates[k], c, keyW) { onKey(k) }
+                    if (inline && i == 0) ActionKey("⌫", c, keyW * actionW, onDelete)
+                    if (inline && i == lastIdx) ActionKey("⏎", c, keyW * actionW, onEnter)
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ActionCap("ENTER", c, onEnter)
-                ActionCap("⌫", c, onDelete)
+            if (!inline) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ActionCap("ENTER", c, onEnter)
+                    ActionCap("⌫", c, onDelete)
+                }
             }
         }
     }
+}
+
+@Composable
+private fun ActionKey(label: String, c: HarfColors, width: Dp, onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(width = width, height = 42.dp)
+            .clip(RoundedCornerShape(5.dp))
+            .background(c.key)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) { Text(label, color = c.ink, fontSize = 16.sp, fontWeight = FontWeight.Medium) }
 }
 
 @Composable
