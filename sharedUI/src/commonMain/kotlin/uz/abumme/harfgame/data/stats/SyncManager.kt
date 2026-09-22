@@ -20,6 +20,8 @@ fun ResultRecord.toDto() = ResultRecordDto(
     puzzleDay = puzzleDay,
     won = won,
     attempts = attempts,
+    roundKind = roundKind,
+    hardMode = hardMode,
 )
 
 fun ResultRecordDto.toDomain() = ResultRecord(
@@ -27,6 +29,8 @@ fun ResultRecordDto.toDomain() = ResultRecord(
     puzzleDay = puzzleDay,
     won = won,
     attempts = attempts,
+    roundKind = roundKind,
+    hardMode = hardMode,
 )
 
 class SyncManager(

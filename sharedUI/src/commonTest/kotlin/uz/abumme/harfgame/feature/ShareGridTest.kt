@@ -37,4 +37,32 @@ class ShareGridTest {
         assertEquals("⬜", ShareGrid.emoji("newsprint", ABSENT))
         assertEquals("🟩", ShareGrid.emoji("schoolbook", CORRECT)) // green here is a pencil green, not Wordle's flat tile
     }
+
+    @Test
+    fun ordinary_daily_share_retains_existing_header_behavior() {
+        val text = ShareGrid.build("newsprint", "English", 312L, rows, won = true, isArchive = false, hardMode = false)
+        val header = text.split("\n")[0]
+        assertEquals("Harf · English · №312  2/6", header)
+    }
+
+    @Test
+    fun hard_mode_share_marks_asterisk_in_header() {
+        val text = ShareGrid.build("newsprint", "English", 312L, rows, won = true, isArchive = false, hardMode = true)
+        val header = text.split("\n")[0]
+        assertEquals("Harf · English · №312  2/6*", header)
+    }
+
+    @Test
+    fun archive_share_distinguishes_from_today_with_archive_prefix() {
+        val text = ShareGrid.build("newsprint", "Русский", 150L, rows, won = true, isArchive = true, hardMode = false)
+        val header = text.split("\n")[0]
+        assertEquals("Harf Archive · Русский · №150  2/6", header)
+    }
+
+    @Test
+    fun archive_and_hard_mode_share_combines_markers() {
+        val text = ShareGrid.build("newsprint", "Русский", 150L, rows, won = false, isArchive = true, hardMode = true)
+        val header = text.split("\n")[0]
+        assertEquals("Harf Archive · Русский · №150  X/6*", header)
+    }
 }

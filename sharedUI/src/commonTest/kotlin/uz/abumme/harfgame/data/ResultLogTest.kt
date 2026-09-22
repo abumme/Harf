@@ -2,13 +2,16 @@ package uz.abumme.harfgame.data
 
 import eu.anifantakis.lib.ksafe.KSafe
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.json.Json
 import uz.abumme.harfgame.data.stats.InProgressRound
 import uz.abumme.harfgame.data.stats.InProgressRow
 import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.data.stats.ResultRecord
 import uz.abumme.harfgame.data.stats.RoundStore
+import uz.abumme.harfgame.data.sync.RoundKind
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -16,6 +19,26 @@ class ResultLogTest {
 
     // distinctive so persisted KSafe state from other runs can't interfere
     private val rec = ResultRecord("test-lang", 987654L, won = true, attempts = 4)
+    private val json = Json { ignoreUnknownKeys = true }
+
+    @Test
+    fun legacy_snapshots_and_results_deserialize_as_normal_official_rounds() {
+        val legacyRoundJson = """{"version":1,"languageId":"en","puzzleDay":100,"rows":[],"current":[]}"""
+        val decodedRound = json.decodeFromString<InProgressRound>(legacyRoundJson)
+        assertEquals("en", decodedRound.languageId)
+        assertEquals(100L, decodedRound.puzzleDay)
+        assertEquals(RoundKind.OFFICIAL, decodedRound.roundKind)
+        assertFalse(decodedRound.hardMode)
+
+        val legacyResultJson = """{"language":"en","puzzleDay":100,"won":true,"attempts":3}"""
+        val decodedResult = json.decodeFromString<ResultRecord>(legacyResultJson)
+        assertEquals("en", decodedResult.language)
+        assertEquals(100L, decodedResult.puzzleDay)
+        assertEquals(true, decodedResult.won)
+        assertEquals(3, decodedResult.attempts)
+        assertEquals(RoundKind.OFFICIAL, decodedResult.roundKind)
+        assertFalse(decodedResult.hardMode)
+    }
 
     @Test
     fun record_survives_reopen_and_dedups() = runTest {

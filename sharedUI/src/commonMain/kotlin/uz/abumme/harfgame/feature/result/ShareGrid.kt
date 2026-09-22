@@ -28,9 +28,13 @@ object ShareGrid {
         rows: List<List<Mark>>,
         won: Boolean,
         maxAttempts: Int = 6,
+        isArchive: Boolean = false,
+        hardMode: Boolean = false,
     ): String {
         val score = if (won) rows.size.toString() else "X"
-        val header = "Harf · $languageDisplay · №$puzzleNumber  $score/$maxAttempts"
+        val hardMarker = if (hardMode) "*" else ""
+        val prefix = if (isArchive) "Harf Archive" else "Harf"
+        val header = "$prefix · $languageDisplay · №$puzzleNumber  $score/$maxAttempts$hardMarker"
         val grid = rows.joinToString("\n") { row -> row.joinToString("") { emoji(paletteId, it) } }
         return "$header\n$grid"
     }
