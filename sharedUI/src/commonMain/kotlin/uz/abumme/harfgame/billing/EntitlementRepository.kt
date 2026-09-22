@@ -16,7 +16,12 @@ class EntitlementRepository(
     private val settings: AppSettings,
 ) {
     private var currentOwnerId: String = ""
-    private val _entitlements = MutableStateFlow(settings.cachedEntitlements(currentOwnerId))
+    // A blank owner means no signed-in account, so there is no legitimate cached grant to seed from
+    // (a real grant is always owner-scoped). Mirrors the same guard in onAccountChanged; without it a
+    // legacy blank-owner ent.lifetime would unlock paid extras with no account/purchase.
+    private val _entitlements = MutableStateFlow(
+        if (currentOwnerId.isBlank()) Entitlements() else settings.cachedEntitlements(currentOwnerId)
+    )
     val entitlements: StateFlow<Entitlements> = _entitlements.asStateFlow()
 
     /** Swaps the active account context on sign-in, account switch, or sign-out. */
