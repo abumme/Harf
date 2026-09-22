@@ -36,37 +36,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import harf_game.sharedui.generated.resources.Res
 import harf_game.sharedui.generated.resources.delete_failed
-import harf_game.sharedui.generated.resources.link_failed
-import harf_game.sharedui.generated.resources.link_success
-import harf_game.sharedui.generated.resources.settings_account_linked
-import harf_game.sharedui.generated.resources.settings_account_sync
-import harf_game.sharedui.generated.resources.settings_cancel
-import harf_game.sharedui.generated.resources.settings_delete
-import harf_game.sharedui.generated.resources.settings_delete_account
-import harf_game.sharedui.generated.resources.settings_delete_body
-import harf_game.sharedui.generated.resources.settings_deleting
-import harf_game.sharedui.generated.resources.settings_founder
-import harf_game.sharedui.generated.resources.settings_legal
-import harf_game.sharedui.generated.resources.settings_link_apple
-import harf_game.sharedui.generated.resources.settings_link_google
-import harf_game.sharedui.generated.resources.settings_name_confirm
-import harf_game.sharedui.generated.resources.settings_name_dialog_title
-import harf_game.sharedui.generated.resources.settings_name_label
-import harf_game.sharedui.generated.resources.settings_signed_in_as
-import harf_game.sharedui.generated.resources.settings_log_out
-import harf_game.sharedui.generated.resources.settings_manage_purchases
-import harf_game.sharedui.generated.resources.settings_mark_style
-import harf_game.sharedui.generated.resources.settings_achievements
-import harf_game.sharedui.generated.resources.settings_leaderboards
-import harf_game.sharedui.generated.resources.settings_play_games
-import harf_game.sharedui.generated.resources.settings_privacy_policy
-import harf_game.sharedui.generated.resources.settings_support_harf
-import harf_game.sharedui.generated.resources.settings_support_harf_themes
-import harf_game.sharedui.generated.resources.settings_terms_offer
-import harf_game.sharedui.generated.resources.settings_title
-import harf_game.sharedui.generated.resources.signin_cancelled
-import harf_game.sharedui.generated.resources.signin_failed
-import harf_game.sharedui.generated.resources.signin_unavailable
+import harf_game.sharedui.generated.resources.*
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
@@ -147,13 +117,12 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
             }
         }
 
-        // Purchases surface only when the store is actually configured (real RevenueCat key). With a
-        // blank key isAvailable is false, so the whole paywall/founder/manage block is hidden — the
-        // first release ships without purchases and the section reappears once a key + products exist.
+        // Founder status displayed based on actual ownership, independent of store availability
+        if (ents.lifetime) {
+            Text(stringResource(Res.string.settings_founder), color = colors.accent, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+        }
+
         if (purchases.isAvailable) {
-            if (ents.lifetime) {
-                Text(stringResource(Res.string.settings_founder), color = colors.accent, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-            }
             OutlinedButton(onClick = onPaywall, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(if (ents.lifetime) Res.string.settings_support_harf_themes else Res.string.settings_support_harf))
             }
@@ -162,6 +131,14 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
                     Text(stringResource(Res.string.settings_manage_purchases))
                 }
             }
+        } else if (!ents.lifetime) {
+            // Desktop/Web guidance: no dead checkout button, clear path to purchase on mobile & sign in
+            Text(
+                stringResource(Res.string.founder_desktop_guidance),
+                color = colors.muted,
+                fontSize = 13.sp,
+                modifier = Modifier.padding(vertical = 4.dp),
+            )
         }
 
         Text(stringResource(Res.string.settings_account_sync), color = colors.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))

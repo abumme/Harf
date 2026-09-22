@@ -30,20 +30,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
-import harf_game.sharedui.generated.resources.Res
-import harf_game.sharedui.generated.resources.action_close
-import harf_game.sharedui.generated.resources.action_retry
-import harf_game.sharedui.generated.resources.paywall_founder_subtitle
-import harf_game.sharedui.generated.resources.paywall_intro
-import harf_game.sharedui.generated.resources.paywall_loading
-import harf_game.sharedui.generated.resources.paywall_no_products
-import harf_game.sharedui.generated.resources.paywall_owned
-import harf_game.sharedui.generated.resources.paywall_purchased
-import harf_game.sharedui.generated.resources.paywall_restore
-import harf_game.sharedui.generated.resources.paywall_restored
-import harf_game.sharedui.generated.resources.paywall_store_unavailable
-import harf_game.sharedui.generated.resources.paywall_theme_subtitle
-import harf_game.sharedui.generated.resources.settings_support_harf
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import harf_game.sharedui.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.EntitlementRepository
@@ -114,8 +103,18 @@ fun PaywallScreen(onBack: () -> Unit = {}) {
         when (state.phase) {
             PaywallPhase.Loading -> Text(stringResource(Res.string.paywall_loading), color = colors.muted)
             PaywallPhase.Unavailable -> {
-                Text(stringResource(Res.string.paywall_store_unavailable), color = colors.ink)
-                OutlinedButton(onClick = { vm.onAction(PaywallAction.Load) }) { Text(stringResource(Res.string.action_retry)) }
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(stringResource(Res.string.founder_title), color = colors.ink, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    Text(stringResource(Res.string.founder_one_time), color = colors.accent, fontSize = 14.sp)
+                    Text("• " + stringResource(Res.string.founder_feature_archive), color = colors.ink, fontSize = 14.sp)
+                    Text("• " + stringResource(Res.string.founder_feature_hard_mode), color = colors.ink, fontSize = 14.sp)
+                    Text("• " + stringResource(Res.string.founder_feature_future), color = colors.ink, fontSize = 14.sp)
+                    Spacer(Modifier.height(8.dp))
+                    Text(stringResource(Res.string.founder_desktop_guidance), color = colors.muted, fontSize = 13.sp)
+                }
             }
             PaywallPhase.Ready -> {
                 state.offerings?.lifetime?.let { item ->
