@@ -30,8 +30,8 @@
 - [x] 4.3 Distinguish verified empty ownership from refresh failure and scope cached entitlements by owner; verify offline access persists for the same owner while another account cannot inherit the cache.
 - [x] 4.4 Complete Google sign-in on iOS and JVM desktop using supported provider flows; verify a Google-linked account resolves to the same backend user id on Android, iOS, and desktop.
 - [x] 4.5 Add Google sign-in to web using its supported browser flow; verify it reaches the existing linked account and the backend rejects invalid audience/state/nonce data.
-- [ ] 4.6 (Deferred — later phase) Add Apple browser sign-in to Android and JVM desktop with server-validated callback handling; verify an Apple-linked iOS account signs into both clients and a cancelled callback leaves the session unchanged. Gated on Apple Services ID and store configuration; this release ships Apple native on iOS only.
-- [ ] 4.7 (Deferred — later phase) Add Apple sign-in to web with the configured Services ID and return URL; verify it reaches the same backend account as iOS and rejects invalid callback data.
+> Apple browser sign-in on Android, JVM desktop, and web (formerly 4.6–4.7) is deferred to a later phase and tracked in the separate `apple-signin-other-platforms` change. This release ships Apple native on iOS only.
+
 - [x] 4.8 Expose safe linking of a second provider and isolate account-owned archive/purchase state on sign-out, adoption, switch, and deletion; verify conflicting established accounts are not merged and a returning owner recovers access.
 
 ## 5. Founder surfaces and offer copy
