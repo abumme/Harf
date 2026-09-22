@@ -12,7 +12,12 @@ import kotlinx.coroutines.sync.withLock
 import uz.abumme.harfgame.data.api.ApiErrorResponse
 import uz.abumme.harfgame.data.api.ApiResult
 import uz.abumme.harfgame.data.api.ApiRoutes
+import uz.abumme.harfgame.data.archive.ArchiveHistoryDto
+import uz.abumme.harfgame.data.archive.ArchiveRunDto
+import uz.abumme.harfgame.data.archive.ArchiveUploadRequest
+import uz.abumme.harfgame.data.archive.ArchiveUploadResponse
 import uz.abumme.harfgame.data.auth.*
+import uz.abumme.harfgame.data.service.ArchiveService
 import uz.abumme.harfgame.data.service.AuthService
 import uz.abumme.harfgame.data.service.SyncService
 import uz.abumme.harfgame.data.sync.UserStatsDto
@@ -237,6 +242,98 @@ class KtorSyncService(
     }
 
     /** Decode a server error body, falling back to a status-derived code when the body is empty. */
+    private suspend fun errorFrom(
+        response: io.ktor.client.statement.HttpResponse,
+        fallbackMessage: String,
+    ): ApiResult.Error = try {
+        val error = response.body<ApiErrorResponse>()
+        ApiResult.Error(error.error, error.message ?: fallbackMessage)
+    } catch (_: Exception) {
+        ApiResult.Error("http_${response.status.value}", fallbackMessage)
+    }
+
+    private companion object {
+        val UNAUTHORIZED = ApiResult.Error("unauthorized", "Unauthorized")
+    }
+}
+
+class KtorArchiveService(
+    private val httpClient: HttpClient,
+    private val baseUrl: String = "http://localhost:8080",
+    private val sessionStore: SessionStore,
+    private val authService: AuthService,
+) : ArchiveService {
+
+    override suspend fun listRuns(token: String): ApiResult<ArchiveHistoryDto> {
+        return executeWithAuthRetry { currentToken ->
+            val response = httpClient.get("$baseUrl${ApiRoutes.ARCHIVE_RUNS}") {
+                header(HttpHeaders.Authorization, "Bearer $currentToken")
+            }
+            when {
+                response.status == HttpStatusCode.OK -> ApiResult.Success(response.body<ArchiveHistoryDto>())
+                response.status == HttpStatusCode.Unauthorized -> UNAUTHORIZED
+                else -> errorFrom(response, "Failed to fetch archive history")
+            }
+        }
+    }
+
+    override suspend fun uploadRuns(token: String, runs: List<ArchiveRunDto>): ApiResult<Int> {
+        return executeWithAuthRetry { currentToken ->
+            val response = httpClient.post("$baseUrl${ApiRoutes.ARCHIVE_RUNS}") {
+                header(HttpHeaders.Authorization, "Bearer $currentToken")
+                contentType(ContentType.Application.Json)
+                setBody(ArchiveUploadRequest(runs))
+            }
+            when {
+                response.status == HttpStatusCode.OK -> {
+                    val resp = response.body<ArchiveUploadResponse>()
+                    ApiResult.Success(resp.acceptedCount)
+                }
+                response.status == HttpStatusCode.Unauthorized -> UNAUTHORIZED
+                else -> errorFrom(response, "Failed to upload archive runs")
+            }
+        }
+    }
+
+    private suspend fun <T> executeWithAuthRetry(
+        block: suspend (accessToken: String) -> ApiResult<T>
+    ): ApiResult<T> {
+        val accessToken = sessionStore.get().accessToken
+            ?: return ApiResult.Error("unauthorized", "No active session")
+
+        val firstAttempt = try {
+            block(accessToken)
+        } catch (e: Exception) {
+            return ApiResult.Error("NETWORK_ERROR", e.message ?: "Network error")
+        }
+
+        if (!(firstAttempt is ApiResult.Error && firstAttempt.code == "unauthorized")) {
+            return firstAttempt
+        }
+
+        val newAccessToken = refreshOnce(accessToken)
+        if (newAccessToken == null) {
+            sessionStore.clear()
+            return firstAttempt
+        }
+        return try {
+            block(newAccessToken)
+        } catch (e: Exception) {
+            ApiResult.Error("NETWORK_ERROR", e.message ?: "Network error")
+        }
+    }
+
+    private suspend fun refreshOnce(usedAccessToken: String): String? {
+        val current = sessionStore.get()
+        val currentAccess = current.accessToken
+        if (currentAccess != null && currentAccess != usedAccessToken) {
+            return currentAccess
+        }
+        val refreshToken = current.refreshToken ?: return null
+        val result = authService.refreshToken(RefreshRequest(refreshToken))
+        return (result as? ApiResult.Success)?.data?.tokens?.accessToken
+    }
+
     private suspend fun errorFrom(
         response: io.ktor.client.statement.HttpResponse,
         fallbackMessage: String,

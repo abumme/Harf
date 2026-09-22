@@ -11,10 +11,14 @@ import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
 import uz.abumme.harfgame.BuildConfig
 import uz.abumme.harfgame.billing.EntitlementRepository
+import uz.abumme.harfgame.data.archive.ArchiveHistoryManager
+import uz.abumme.harfgame.data.archive.ArchiveRoundStore
 import uz.abumme.harfgame.data.auth.SessionStore
+import uz.abumme.harfgame.data.network.KtorArchiveService
 import uz.abumme.harfgame.data.network.KtorAuthService
 import uz.abumme.harfgame.data.network.KtorSuggestionService
 import uz.abumme.harfgame.data.network.KtorSyncService
+import uz.abumme.harfgame.data.service.ArchiveService
 import uz.abumme.harfgame.data.service.AuthService
 import uz.abumme.harfgame.data.service.SuggestionService
 import uz.abumme.harfgame.data.service.SyncService
@@ -36,6 +40,7 @@ val appModule: Module = module {
     single { AppSettings(get()) }
     single { ResultLog(get()) }
     single { RoundStore(get()) }
+    single { ArchiveRoundStore(get()) }
     single { PendingUploadStore(get()) }
     single { WordPackCache(get()) }
     single {
@@ -64,6 +69,16 @@ val appModule: Module = module {
     single<AuthService> { KtorAuthService(get(), baseUrl = BuildConfig.API_BASE_URL, sessionStore = get()) }
     single<SyncService> {
         KtorSyncService(get(), baseUrl = BuildConfig.API_BASE_URL, sessionStore = get(), authService = get())
+    }
+    single<ArchiveService> {
+        KtorArchiveService(get(), baseUrl = BuildConfig.API_BASE_URL, sessionStore = get(), authService = get())
+    }
+    single {
+        ArchiveHistoryManager(
+            ksafe = get(),
+            sessionStore = get(),
+            archiveService = get(),
+        )
     }
     single<SuggestionService> { KtorSuggestionService(get(), baseUrl = BuildConfig.API_BASE_URL) }
     single {

@@ -3,8 +3,10 @@ package uz.abumme.harfgame.di
 import eu.anifantakis.lib.ksafe.KSafe
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import uz.abumme.harfgame.BuildConfig
 import uz.abumme.harfgame.billing.NoOpPurchaseController
 import uz.abumme.harfgame.billing.PurchaseController
+import uz.abumme.harfgame.data.auth.JvmGoogleOAuthClient
 import uz.abumme.harfgame.data.auth.NoOpOAuthClient
 import uz.abumme.harfgame.data.auth.OAuthClient
 import uz.abumme.harfgame.feature.share.Sharer
@@ -17,7 +19,11 @@ actual val platformModule: Module = module {
     single { KSafe() }
     single<Sharer> { DesktopSharer() }
     single<PurchaseController> { NoOpPurchaseController }
-    single<OAuthClient> { NoOpOAuthClient(isGoogleSupported = true) }
+    single<OAuthClient> {
+        val googleClientId = BuildConfig.GOOGLE_SERVER_CLIENT_ID
+        if (googleClientId.isNotBlank()) JvmGoogleOAuthClient(googleClientId)
+        else NoOpOAuthClient(isGoogleSupported = true)
+    }
     single<GamesServices> { NoOpGamesServices() }
 }
 
