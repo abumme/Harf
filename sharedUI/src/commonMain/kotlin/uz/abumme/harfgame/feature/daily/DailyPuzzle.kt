@@ -39,6 +39,28 @@ class DailyPuzzleProvider(
     /** The puzzle day of [instant]; the per-language zones are shared with the server's calendar ([PuzzleDays]). */
     fun epochDay(languageId: String, instant: Instant): Long = PuzzleDays.epochDay(languageId, instant)
 
+    suspend fun firstPublicDay(languageId: String): Long = packs.load(languageId).firstPublicDay
+    suspend fun firstPublishedDay(languageId: String): Long = firstPublicDay(languageId)
+
+    suspend fun historical(languageId: String, epochDay: Long, instant: Instant = Clock.System.now()): DailyPuzzle {
+        val today = epochDay(languageId, instant)
+        val pack = packs.load(languageId)
+        val firstDay = pack.firstPublicDay
+        require(epochDay >= firstDay) {
+            "Day $epochDay is before first public day $firstDay for $languageId"
+        }
+        require(epochDay < today) {
+            if (epochDay == today) "Day $epochDay is today for $languageId; use daily puzzle instead"
+            else "Day $epochDay is in the future relative to today $today for $languageId"
+        }
+        val offset = (epochDay - pack.anchorEpochDay).toInt()
+        require(offset in pack.schedule.indices) {
+            "Day $epochDay (offset $offset) is out of range for $languageId schedule (size ${pack.schedule.size})"
+        }
+        val answer = pack.schedule[offset]
+        return DailyPuzzle(languageId, epochDay, answer)
+    }
+
     suspend fun daily(languageId: String, instant: Instant = Clock.System.now()): DailyPuzzle {
         val day = epochDay(languageId, instant)
         firstSync?.let { sync ->

@@ -24,7 +24,10 @@ data class WordPack(
     val guesses: Set<List<String>>,
     val schedule: List<List<String>> = emptyList(),
     val anchorEpochDay: Long = 0L,
+    val firstPublicEpochDay: Long? = null,
 ) {
+    val firstPublicDay: Long get() = firstPublicEpochDay ?: anchorEpochDay
+    val firstPublishedDay: Long get() = firstPublicDay
     fun isValidGuess(graphemes: List<String>): Boolean = graphemes in guesses
 }
 
@@ -67,7 +70,7 @@ class WordPackRepository(
     private fun buildFromDto(id: String, dto: WordPackDto): WordPack? {
         val config = registry.config(id) ?: return null
         val valid = WordPackIntegrity.check(dto, config) as? WordPackIntegrity.Valid ?: return null
-        return WordPack(id, valid.answers, valid.guesses, valid.schedule, dto.anchorEpochDay)
+        return WordPack(id, valid.answers, valid.guesses, valid.schedule, dto.anchorEpochDay, dto.firstPublicEpochDay)
     }
 
     private suspend fun buildBundled(id: String, tokenizer: Tokenizer): WordPack {
@@ -88,7 +91,7 @@ class WordPackRepository(
         }
 
         val guesses = (guessesRaw + answers + dailyAnswers + schedule).toSet()
-        return WordPack(id, answers, guesses, schedule, WordPackSchedule.ANCHOR_EPOCH_DAY)
+        return WordPack(id, answers, guesses, schedule, WordPackSchedule.ANCHOR_EPOCH_DAY, WordPackSchedule.ANCHOR_EPOCH_DAY)
     }
 
     /** The build's calendar snapshot of [id] as a pack with the bundled guesses; null when missing or unreadable. */
