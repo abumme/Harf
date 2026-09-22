@@ -29,9 +29,11 @@ import uz.abumme.harfgame.data.keyWindow
 import kotlin.coroutines.resume
 
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
-class IosAppleOAuthClient : OAuthClient {
+class IosAppleOAuthClient(
+    private val googleClientId: String = "",
+) : OAuthClient {
 
-    override val isGoogleSupported: Boolean get() = false
+    override val isGoogleSupported: Boolean get() = googleClientId.isNotBlank()
     override val isAppleSupported: Boolean get() = true
 
     override suspend fun signInWithGoogle(): OAuthResult = OAuthResult.NotConfigured
