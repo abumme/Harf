@@ -9,8 +9,12 @@ The system SHALL offer Google sign-in on Android, iOS, JVM desktop, and web, and
 - **WHEN** a configured Android, iOS, JVM desktop, or web client offers account sign-in
 - **THEN** the player can choose Google and reach the corresponding existing Harf account
 
+#### Scenario: Apple sign-in available on iOS
+- **WHEN** a configured iOS client offers account sign-in
+- **THEN** the player can choose Apple and complete native sign-in to the same Harf account
+
 #### Scenario: Apple sign-in available on every platform
-- **WHEN** a configured Android, iOS, JVM desktop, or web client offers account sign-in
+- **WHEN** a configured Android, JVM desktop, or web client offers account sign-in
 - **THEN** the player can choose Apple and reach the same Harf account as native iOS Apple sign-in
 
 #### Scenario: Apple callback is cancelled or invalid
