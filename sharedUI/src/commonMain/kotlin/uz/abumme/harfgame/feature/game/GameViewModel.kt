@@ -7,6 +7,8 @@ import uz.abumme.harfgame.core.mvi.UiState
 import uz.abumme.harfgame.data.stats.InProgressRound
 import uz.abumme.harfgame.data.stats.InProgressRow
 import uz.abumme.harfgame.data.stats.ResultRecord
+import uz.abumme.harfgame.data.sync.RoundKind
+import uz.abumme.harfgame.engine.HardModeValidator
 import uz.abumme.harfgame.engine.Mark
 import uz.abumme.harfgame.engine.ScoreResult
 import uz.abumme.harfgame.engine.Scorer
@@ -26,17 +28,22 @@ data class GameState(
     val status: GameStatus = GameStatus.Playing,
     val keyStates: Map<String, Mark> = emptyMap(),
     val revealed: List<String>? = null,
+    val roundKind: RoundKind = RoundKind.OFFICIAL,
+    val hardMode: Boolean = false,
 ) : UiState
 
 sealed interface GameAction : UiAction {
     data class Input(val grapheme: String) : GameAction
     data object Delete : GameAction
     data object Submit : GameAction
+    data class SetHardMode(val enabled: Boolean) : GameAction
+    data object ToggleHardMode : GameAction
 }
 
 sealed interface GameEvent : UiEvent {
     data object Incomplete : GameEvent
     data object InvalidGuess : GameEvent
+    data class HardModeViolation(val violation: uz.abumme.harfgame.engine.HardModeViolation) : GameEvent
     data class RoundEnded(val won: Boolean) : GameEvent
 }
 
@@ -49,8 +56,10 @@ class GameViewModel(
     private val puzzle: DailyPuzzle,
     private val pack: WordPack,
     restore: InProgressRound? = null,
+    private val roundKind: RoundKind = restore?.roundKind ?: RoundKind.OFFICIAL,
+    private val hardMode: Boolean = restore?.hardMode ?: false,
     private val onFinish: (ResultRecord) -> Unit = {},
-) : BaseViewModel<GameState, GameAction, GameEvent>(initialState(puzzle, restore)) {
+) : BaseViewModel<GameState, GameAction, GameEvent>(initialState(puzzle, restore, roundKind, hardMode)) {
 
     private val answer = puzzle.answer
 
@@ -60,6 +69,16 @@ class GameViewModel(
             is GameAction.Input -> setState { if (current.size >= tileCount) this else copy(current = current + action.grapheme) }
             GameAction.Delete -> setState { if (current.isEmpty()) this else copy(current = current.dropLast(1)) }
             GameAction.Submit -> submit()
+            is GameAction.SetHardMode -> {
+                if (currentState.submitted.isEmpty()) {
+                    setState { copy(hardMode = action.enabled) }
+                }
+            }
+            GameAction.ToggleHardMode -> {
+                if (currentState.submitted.isEmpty()) {
+                    setState { copy(hardMode = !hardMode) }
+                }
+            }
         }
     }
 
@@ -69,6 +88,8 @@ class GameViewModel(
         puzzleDay = puzzle.epochDay,
         rows = currentState.submitted.map { r -> InProgressRow(r.graphemes, r.marks.map { it.ordinal }) },
         current = currentState.current,
+        roundKind = currentState.roundKind,
+        hardMode = currentState.hardMode,
     )
 
     private fun submit() {
@@ -80,6 +101,14 @@ class GameViewModel(
         if (!pack.isValidGuess(s.current)) {
             sendEvent(GameEvent.InvalidGuess)
             return
+        }
+        if (s.hardMode && s.submitted.isNotEmpty()) {
+            val rows = s.submitted.map { it.graphemes to it.marks }
+            val violation = HardModeValidator.validate(rows, s.current)
+            if (violation != null) {
+                sendEvent(GameEvent.HardModeViolation(violation))
+                return
+            }
         }
         val marks = (Scorer.score(s.current, answer) as ScoreResult.Scored).marks
         val submitted = s.submitted + GameRow(s.current, marks)
@@ -97,14 +126,24 @@ class GameViewModel(
             )
         }
         if (won || lost) {
-            onFinish(ResultRecord(puzzle.languageId, puzzle.epochDay, won, submitted.size))
+            onFinish(ResultRecord(puzzle.languageId, puzzle.epochDay, won, submitted.size, s.roundKind, s.hardMode))
             sendEvent(GameEvent.RoundEnded(won))
         }
     }
 
     companion object {
-        private fun initialState(puzzle: DailyPuzzle, restore: InProgressRound?): GameState {
-            val base = GameState(languageId = puzzle.languageId, tileCount = puzzle.tileCount)
+        private fun initialState(
+            puzzle: DailyPuzzle,
+            restore: InProgressRound?,
+            roundKind: RoundKind = RoundKind.OFFICIAL,
+            hardMode: Boolean = false,
+        ): GameState {
+            val base = GameState(
+                languageId = puzzle.languageId,
+                tileCount = puzzle.tileCount,
+                roundKind = restore?.roundKind ?: roundKind,
+                hardMode = restore?.hardMode ?: hardMode,
+            )
             if (restore == null || restore.languageId != puzzle.languageId || restore.puzzleDay != puzzle.epochDay) {
                 return base
             }

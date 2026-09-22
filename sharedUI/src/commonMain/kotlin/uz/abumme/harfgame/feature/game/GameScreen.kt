@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -25,21 +26,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.fillMaxWidth
-import harf_game.sharedui.generated.resources.Res
-import harf_game.sharedui.generated.resources.action_got_it
-import harf_game.sharedui.generated.resources.help
-import harf_game.sharedui.generated.resources.howto_body
-import harf_game.sharedui.generated.resources.howto_title
-import harf_game.sharedui.generated.resources.not_enough_letters
-import harf_game.sharedui.generated.resources.not_in_word_list
-import harf_game.sharedui.generated.resources.game_suggest_word
-import harf_game.sharedui.generated.resources.suggest_failed
-import harf_game.sharedui.generated.resources.suggest_sent
-import harf_game.sharedui.generated.resources.action_copy
-import harf_game.sharedui.generated.resources.action_share
-import harf_game.sharedui.generated.resources.result_out_of_tries
-import harf_game.sharedui.generated.resources.result_solved
-import harf_game.sharedui.generated.resources.settings_support_harf
+import harf_game.sharedui.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -143,6 +130,7 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
 
     // transient feedback for rejected submissions (too short / not in dictionary)
     var message by remember { mutableStateOf<String?>(null) }
+    var hardViolation by remember { mutableStateOf<uz.abumme.harfgame.engine.HardModeViolation?>(null) }
     // the just-rejected unknown word, offered for suggestion until the player edits or sends it
     var suggestCandidate by remember { mutableStateOf<String?>(null) }
     var suggestBusy by remember { mutableStateOf(false) }
@@ -150,6 +138,22 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
     val invalidMsg = stringResource(Res.string.not_in_word_list)
     val suggestSentMsg = stringResource(Res.string.suggest_sent)
     val suggestFailedMsg = stringResource(Res.string.suggest_failed)
+
+    val hardViolationMsg = hardViolation?.let { v ->
+        when (v) {
+            is uz.abumme.harfgame.engine.HardModeViolation.CorrectPositionChanged ->
+                stringResource(Res.string.hard_mode_correct_position, v.position + 1, v.expected.uppercase())
+            is uz.abumme.harfgame.engine.HardModeViolation.PresentGraphemeAtSamePosition ->
+                stringResource(Res.string.hard_mode_present_position, v.grapheme.uppercase(), v.position + 1)
+            is uz.abumme.harfgame.engine.HardModeViolation.MinimumCountNotSatisfied ->
+                if (v.requiredCount <= 1) {
+                    stringResource(Res.string.hard_mode_missing_grapheme, v.grapheme.uppercase())
+                } else {
+                    stringResource(Res.string.hard_mode_minimum_count, v.requiredCount, v.grapheme.uppercase())
+                }
+        }
+    }
+
     LaunchedEffect(vm) {
         vm.events.collect { ev ->
             when (ev) {
@@ -158,12 +162,16 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
                     message = invalidMsg
                     suggestCandidate = vm.state.value.current.joinToString("")
                 }
+                is GameEvent.HardModeViolation -> hardViolation = ev.violation
                 is GameEvent.RoundEnded -> {}
             }
         }
     }
     LaunchedEffect(message) {
         if (message != null) { kotlinx.coroutines.delay(1500); message = null }
+    }
+    LaunchedEffect(hardViolation) {
+        if (hardViolation != null) { kotlinx.coroutines.delay(1500); hardViolation = null }
     }
     // A new/edited guess invalidates the pending suggestion offer.
     LaunchedEffect(state.current) {
@@ -201,18 +209,73 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
 
     // Reusable pieces so the tall and wide layouts share one source of truth.
     val helpRow: @Composable () -> Unit = {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            // Hard Mode toggle (pre-round only, gated by Founder entitlement)
+            if (state.submitted.isEmpty() && state.status == GameStatus.Playing) {
+                val isFounder = uz.abumme.harfgame.billing.EntitlementGate.lifetimeExtrasUnlocked(
+                    koinInject<uz.abumme.harfgame.billing.EntitlementRepository>().entitlements.collectAsState().value
+                )
+                if (isFounder) {
+                    TextButton(onClick = { vm.onAction(GameAction.ToggleHardMode) }) {
+                        Text(
+                            if (state.hardMode) "* " + stringResource(Res.string.game_hard_mode) else stringResource(Res.string.game_hard_mode),
+                            color = if (state.hardMode) colors.accent else colors.muted,
+                            fontWeight = if (state.hardMode) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 13.sp,
+                        )
+                    }
+                } else {
+                    TextButton(onClick = onPaywall) {
+                        Text(
+                            stringResource(Res.string.game_hard_mode) + " 🔒",
+                            color = colors.muted,
+                            fontSize = 13.sp,
+                        )
+                    }
+                }
+            } else if (state.hardMode) {
+                Text(
+                    "* " + stringResource(Res.string.game_hard_mode),
+                    color = colors.accent,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(start = 12.dp),
+                )
+            } else {
+                Spacer(Modifier.width(1.dp))
+            }
+
             val helpLabel = stringResource(Res.string.help)
             TextButton(onClick = { showHelp = true }, modifier = Modifier.semantics { contentDescription = helpLabel }) {
                 Text("?", color = colors.muted)
             }
         }
     }
+    val switchScript: (String) -> Unit = { targetScript ->
+        if (targetScript != script) {
+            val currentSnapshot = vm.snapshot()
+            scope.launch {
+                roundStore.save(currentSnapshot)
+                val targetPuzzle = provider.daily(targetScript)
+                val converted = uz.abumme.harfgame.lang.UzbekScriptConverter.convertRound(
+                    round = currentSnapshot,
+                    targetScript = targetScript,
+                    targetAnswer = targetPuzzle.answer,
+                )
+                roundStore.save(converted)
+                script = targetScript
+            }
+        }
+    }
     val chips: @Composable () -> Unit = {
         if (languageId.startsWith("uz")) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ScriptChip("Lotin", script == "uz-latn") { script = "uz-latn" }
-                ScriptChip("Кирилл", script == "uz-cyrl") { script = "uz-cyrl" }
+                ScriptChip("Lotin", script == "uz-latn") { switchScript("uz-latn") }
+                ScriptChip("Кирилл", script == "uz-cyrl") { switchScript("uz-cyrl") }
             }
         }
     }
@@ -222,8 +285,9 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             MarkLegend(Modifier.padding(vertical = 2.dp), compact = true)
+            val displayMsg = hardViolationMsg ?: message
             Box(Modifier.height(20.dp), contentAlignment = Alignment.Center) {
-                message?.let { Text(it, color = colors.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
+                displayMsg?.let { Text(it, color = colors.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
             }
             // Offer to suggest an unknown full-length word for editor review.
             if (state.status == GameStatus.Playing && suggestCandidate != null) {
@@ -462,6 +526,8 @@ private fun ResultView(state: GameState, languageDisplay: String, puzzleNumber: 
             rows = state.submitted.map { it.marks },
             won = state.status == GameStatus.Won,
             maxAttempts = state.maxAttempts,
+            isArchive = state.roundKind == uz.abumme.harfgame.data.sync.RoundKind.ARCHIVE,
+            hardMode = state.hardMode,
         )
         Button(onClick = { scope.launch { sharer.share(shareText) } }) { Text(stringResource(Res.string.action_share)) }
         OutlinedButton(onClick = { sharer.copy(shareText) }) { Text(stringResource(Res.string.action_copy)) }
