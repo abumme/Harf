@@ -57,4 +57,55 @@ object WordPackSchedule {
         val idx = if (i in 0 until schedule.size.toLong()) i.toInt() else i.mod(schedule.size)
         return schedule[idx]
     }
+
+    /**
+     * Resolves the archive answer for [epochDay] without modulo-wrapping past the schedule bounds.
+     * Throws [IllegalArgumentException] if [epochDay] is outside the explicit schedule range.
+     */
+    fun <T> archiveAnswerFor(schedule: List<T>, anchorEpochDay: Long, epochDay: Long): T {
+        val i = epochDay - anchorEpochDay
+        require(i in 0 until schedule.size.toLong()) {
+            "Day $epochDay is outside schedule range [$anchorEpochDay, ${anchorEpochDay + schedule.size})"
+        }
+        return schedule[i.toInt()]
+    }
+
+    /**
+     * Extends [existing] schedule to [newHorizon] without modifying any historical answers already published.
+     */
+    fun extend(existing: List<String>, answers: List<String>, seed: Long, newHorizon: Int): List<String> {
+        if (newHorizon <= existing.size) return existing
+        if (answers.size <= 1) return existing + List(newHorizon - existing.size) { answers.first() }
+        val rnd = Random(seed xor existing.size.toLong())
+        val out = ArrayList<String>(newHorizon)
+        out.addAll(existing)
+        while (out.size < newHorizon) {
+            for (w in answers.shuffled(rnd)) {
+                if (out.isNotEmpty() && out.last() == w) continue
+                out.add(w)
+                if (out.size >= newHorizon) break
+            }
+        }
+        return out
+    }
+
+    /**
+     * Extends [existing] index order to [newHorizon] without modifying any historical answers already published.
+     */
+    fun extendOrder(existing: List<Int>, size: Int, seed: Long, newHorizon: Int): List<Int> {
+        if (newHorizon <= existing.size) return existing
+        if (size <= 1) return existing + List(newHorizon - existing.size) { 0 }
+        val rnd = Random(seed xor existing.size.toLong())
+        val idx = (0 until size).toList()
+        val out = ArrayList<Int>(newHorizon)
+        out.addAll(existing)
+        while (out.size < newHorizon) {
+            for (i in idx.shuffled(rnd)) {
+                if (out.isNotEmpty() && out.last() == i) continue
+                out.add(i)
+                if (out.size >= newHorizon) break
+            }
+        }
+        return out
+    }
 }

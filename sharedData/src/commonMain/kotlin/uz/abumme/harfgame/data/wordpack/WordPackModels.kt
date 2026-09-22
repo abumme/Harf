@@ -23,4 +23,8 @@ data class WordPackDto(
     val answers: List<String>,
     val guesses: List<String>,
     val schedule: List<String>,
-)
+    val firstPublicEpochDay: Long? = null,
+) {
+    val firstPublicDay: Long get() = firstPublicEpochDay ?: anchorEpochDay
+    val firstPublishedDay: Long get() = firstPublicDay
+}
