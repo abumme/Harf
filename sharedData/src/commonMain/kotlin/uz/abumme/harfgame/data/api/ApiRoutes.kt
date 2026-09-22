@@ -12,6 +12,10 @@ object ApiRoutes {
 
     const val SYNC_STATS = "$API_PREFIX/sync/stats"
 
+    const val ARCHIVE_RUNS = "$API_PREFIX/archive/runs"
+
+    const val ENTITLEMENTS = "$API_PREFIX/entitlements"
+
     const val WORDPACKS = "$API_PREFIX/wordpacks"
 
     const val SUGGESTIONS = "$API_PREFIX/suggestions"

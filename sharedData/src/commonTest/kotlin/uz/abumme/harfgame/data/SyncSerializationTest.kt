@@ -6,14 +6,28 @@ import kotlinx.serialization.json.Json
 import uz.abumme.harfgame.data.api.ApiErrorResponse
 import uz.abumme.harfgame.data.api.ApiResult
 import uz.abumme.harfgame.data.sync.ResultRecordDto
+import uz.abumme.harfgame.data.sync.RoundKind
 import uz.abumme.harfgame.data.sync.UserStatsDto
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 class SyncSerializationTest {
     private val json = Json {
         prettyPrint = false
         ignoreUnknownKeys = true
+    }
+
+    @Test
+    fun testLegacyResultRecordDtoDeserializesAsNormalOfficialRound() {
+        val legacyJson = """{"language":"uz","puzzleDay":19500,"won":true,"attempts":4}"""
+        val decoded = json.decodeFromString<ResultRecordDto>(legacyJson)
+        assertEquals("uz", decoded.language)
+        assertEquals(19500L, decoded.puzzleDay)
+        assertEquals(true, decoded.won)
+        assertEquals(4, decoded.attempts)
+        assertEquals(RoundKind.OFFICIAL, decoded.roundKind)
+        assertFalse(decoded.hardMode)
     }
 
     @Test

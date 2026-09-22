@@ -4,11 +4,19 @@ import kotlin.time.Instant
 import kotlinx.serialization.Serializable
 
 @Serializable
+enum class RoundKind {
+    OFFICIAL,
+    ARCHIVE,
+}
+
+@Serializable
 data class ResultRecordDto(
     val language: String,
     val puzzleDay: Long,
     val won: Boolean,
     val attempts: Int,
+    val roundKind: RoundKind = RoundKind.OFFICIAL,
+    val hardMode: Boolean = false,
 )
 
 @Serializable
