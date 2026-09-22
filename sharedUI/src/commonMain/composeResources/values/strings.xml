@@ -74,6 +74,29 @@
 
     <string name="style_prompt_title">Pick your mark style</string>
 
+    <string name="hard_mode_correct_position">%1$d. letter must be %2$s</string>
+    <string name="hard_mode_present_position">%1$s cannot be the %2$d. letter</string>
+    <string name="hard_mode_missing_grapheme">Guess must contain %1$s</string>
+    <string name="hard_mode_minimum_count">Guess must contain at least %1$d %2$s</string>
+
+    <string name="archive_title">Puzzle Archive</string>
+    <string name="archive_locked_title">Founder Edition Required</string>
+    <string name="archive_locked_desc">Revisit and replay every past puzzle with Harf Founder Edition.</string>
+    <string name="archive_unlock_action">Unlock Founder</string>
+    <string name="archive_empty">No past puzzles available yet.</string>
+    <string name="archive_day_label">Day %1$d</string>
+    <string name="archive_replay">Replay</string>
+    <string name="archive_completed">Completed</string>
+
+    <string name="founder_title">Founder Edition</string>
+    <string name="founder_one_time">One-time purchase · Lifetime access</string>
+    <string name="founder_feature_archive">Unlimited puzzle archive</string>
+    <string name="founder_feature_hard_mode">Hard mode challenging play</string>
+    <string name="founder_feature_future">All future extras included</string>
+    <string name="founder_desktop_guidance">Founder Edition is purchased on mobile (Android &amp; iOS). Sign in to activate your access on this device.</string>
+    <string name="game_hard_mode">Hard Mode</string>
+    <string name="game_hard_mode_short">Hard</string>
+
     <string name="result_solved">Solved in %1$d/%2$d</string>
     <string name="result_out_of_tries">Out of tries</string>
     <string name="action_share">Share</string>

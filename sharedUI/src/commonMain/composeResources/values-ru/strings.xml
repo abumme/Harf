@@ -74,6 +74,29 @@
 
     <string name="style_prompt_title">Выберите стиль меток</string>
 
+    <string name="hard_mode_correct_position">%1$d-я буква должна быть %2$s</string>
+    <string name="hard_mode_present_position">%1$s не может быть %2$d-й буквой</string>
+    <string name="hard_mode_missing_grapheme">Слово должно содержать %1$s</string>
+    <string name="hard_mode_minimum_count">Слово должно содержать не менее %1$d %2$s</string>
+
+    <string name="archive_title">Архив головоломок</string>
+    <string name="archive_locked_title">Требуется Founder Edition</string>
+    <string name="archive_locked_desc">Переигрывайте любые прошлые слова с изданием Harf Founder.</string>
+    <string name="archive_unlock_action">Открыть Founder</string>
+    <string name="archive_empty">Прошлые слова пока недоступны.</string>
+    <string name="archive_day_label">День %1$d</string>
+    <string name="archive_replay">Переиграть</string>
+    <string name="archive_completed">Пройдено</string>
+
+    <string name="founder_title">Издание Founder</string>
+    <string name="founder_one_time">Разовая покупка · Бессрочный доступ</string>
+    <string name="founder_feature_archive">Неограниченный архив слов</string>
+    <string name="founder_feature_hard_mode">Сложный режим игры</string>
+    <string name="founder_feature_future">Все будущие дополнения включены</string>
+    <string name="founder_desktop_guidance">Издание Founder приобретается на мобильных устройствах (Android и iOS). Войдите, чтобы активировать доступ на этом устройстве.</string>
+    <string name="game_hard_mode">Сложный режим</string>
+    <string name="game_hard_mode_short">Сложно</string>
+
     <string name="result_solved">Решено за %1$d/%2$d</string>
     <string name="result_out_of_tries">Попытки закончились</string>
     <string name="action_share">Поделиться</string>
