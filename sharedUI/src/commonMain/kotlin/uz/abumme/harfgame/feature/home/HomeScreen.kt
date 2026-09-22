@@ -28,6 +28,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import harf_game.sharedui.generated.resources.Res
+import harf_game.sharedui.generated.resources.archive_title
 import harf_game.sharedui.generated.resources.home_tagline
 import harf_game.sharedui.generated.resources.home_theme
 import harf_game.sharedui.generated.resources.settings_title
@@ -51,7 +52,12 @@ private val LANGUAGES = listOf(
 )
 
 @Composable
-fun HomeScreen(onPlay: (String) -> Unit = {}, onStats: () -> Unit = {}, onSettings: () -> Unit = {}) {
+fun HomeScreen(
+    onPlay: (String) -> Unit = {},
+    onArchive: () -> Unit = {},
+    onStats: () -> Unit = {},
+    onSettings: () -> Unit = {},
+) {
     val settings = koinInject<AppSettings>()
     val entitlements = koinInject<EntitlementRepository>()
     val controller = koinInject<PurchaseController>()
@@ -91,6 +97,7 @@ fun HomeScreen(onPlay: (String) -> Unit = {}, onStats: () -> Unit = {}, onSettin
             Button(onClick = { onPlay(id) }, modifier = Modifier.width(220.dp)) { Text(label) }
         }
 
+        OutlinedButton(onClick = onArchive, modifier = Modifier.width(220.dp)) { Text(stringResource(Res.string.archive_title)) }
         OutlinedButton(onClick = onStats, modifier = Modifier.width(220.dp)) { Text(stringResource(Res.string.statistics)) }
         OutlinedButton(onClick = onSettings, modifier = Modifier.width(220.dp)) { Text(stringResource(Res.string.settings_title)) }
 

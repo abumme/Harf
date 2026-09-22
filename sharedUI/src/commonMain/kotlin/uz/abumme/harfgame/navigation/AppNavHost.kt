@@ -7,6 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
 import uz.abumme.harfgame.billing.HostedCustomerCenter
+import uz.abumme.harfgame.feature.archive.ArchiveScreen
 import uz.abumme.harfgame.feature.game.GameScreen
 import uz.abumme.harfgame.feature.home.HomeScreen
 import uz.abumme.harfgame.feature.paywall.PaywallScreen
@@ -16,6 +17,9 @@ import uz.abumme.harfgame.feature.stats.StatsScreen
 /** Type-safe routes. Feature graphs add destinations here as they land. */
 @Serializable
 object Home
+
+@Serializable
+object Archive
 
 @Serializable
 data class Game(val languageId: String)
@@ -39,8 +43,19 @@ fun AppNavHost() {
         composable<Home> {
             HomeScreen(
                 onPlay = { languageId -> navController.navigate(Game(languageId)) },
+                onArchive = { navController.navigate(Archive) },
                 onStats = { navController.navigate(Stats) },
                 onSettings = { navController.navigate(Settings) },
+            )
+        }
+        composable<Archive> {
+            ArchiveScreen(
+                onBack = { navController.popBackStack() },
+                onOpenPuzzle = { languageId, epochDay ->
+                    // Navigation to historical puzzle
+                    navController.navigate(Game(languageId))
+                },
+                onPaywall = { navController.navigate(Paywall) },
             )
         }
         composable<Game> { entry ->
