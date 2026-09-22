@@ -47,16 +47,20 @@ class AppSettings(
     /**
      * Last known entitlements, cached for offline display only. This is a mirror of RevenueCat,
      * never a grant: [uz.abumme.harfgame.billing.EntitlementRepository] writes it solely from
-     * controller-derived state.
+     * controller-derived state, scoped by owner id to prevent cross-account inheritance.
      */
-    fun cachedEntitlements(): uz.abumme.harfgame.billing.Entitlements = uz.abumme.harfgame.billing.Entitlements(
-        lifetime = ksafe.getDirect(KEY_ENT_LIFETIME, false),
-        ownedThemes = ksafe.getDirect(KEY_ENT_THEMES, "").split(',').filter { it.isNotBlank() }.toSet(),
-    )
+    fun cachedEntitlements(ownerId: String = ""): uz.abumme.harfgame.billing.Entitlements {
+        val suffix = if (ownerId.isNotBlank()) ".$ownerId" else ""
+        return uz.abumme.harfgame.billing.Entitlements(
+            lifetime = ksafe.getDirect(KEY_ENT_LIFETIME + suffix, false),
+            ownedThemes = ksafe.getDirect(KEY_ENT_THEMES + suffix, "").split(',').filter { it.isNotBlank() }.toSet(),
+        )
+    }
 
-    fun cacheEntitlements(e: uz.abumme.harfgame.billing.Entitlements) {
-        ksafe.putDirect(KEY_ENT_LIFETIME, e.lifetime)
-        ksafe.putDirect(KEY_ENT_THEMES, e.ownedThemes.joinToString(","))
+    fun cacheEntitlements(e: uz.abumme.harfgame.billing.Entitlements, ownerId: String = "") {
+        val suffix = if (ownerId.isNotBlank()) ".$ownerId" else ""
+        ksafe.putDirect(KEY_ENT_LIFETIME + suffix, e.lifetime)
+        ksafe.putDirect(KEY_ENT_THEMES + suffix, e.ownedThemes.joinToString(","))
     }
 
     companion object {

@@ -11,9 +11,13 @@ class FakePurchaseController(
         themes = listOf(StoreItem("theme_dusk", "Dusk", "$0.99")),
     ),
     var nextOutcome: PurchaseOutcome = PurchaseOutcome.Success,
+    initialEntitlements: Entitlements = Entitlements(),
 ) : PurchaseController {
 
-    private var entitlements = Entitlements()
+    private var entitlements = initialEntitlements
+    var simulateFailure: Boolean = false
+    var identifiedUser: String? = null
+    var resetCalled: Boolean = false
 
     override suspend fun offerings(): OfferingsResult =
         if (isAvailable) OfferingsResult.Available(offerings) else OfferingsResult.Unavailable
@@ -28,7 +32,23 @@ class FakePurchaseController(
         return nextOutcome
     }
 
-    override suspend fun currentEntitlements(): Entitlements = entitlements
+    override suspend fun currentEntitlements(): EntitlementsResult {
+        if (!isAvailable || simulateFailure) return EntitlementsResult.Failure
+        return EntitlementsResult.Success(entitlements)
+    }
+
+    override suspend fun identify(userId: String) {
+        identifiedUser = userId
+    }
+
+    override suspend fun reset() {
+        resetCalled = true
+        identifiedUser = null
+    }
+
+    fun setEntitlements(e: Entitlements) {
+        entitlements = e
+    }
 
     private fun grant(productId: String) {
         entitlements = if (productId.startsWith(ENTITLEMENT_THEME_PREFIX)) {

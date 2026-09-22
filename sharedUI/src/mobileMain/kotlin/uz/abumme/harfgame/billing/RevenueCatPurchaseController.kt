@@ -3,6 +3,8 @@ package uz.abumme.harfgame.billing
 import com.revenuecat.purchases.kmp.Purchases
 import com.revenuecat.purchases.kmp.PurchasesConfiguration
 import com.revenuecat.purchases.kmp.ktx.awaitCustomerInfo
+import com.revenuecat.purchases.kmp.ktx.awaitLogIn
+import com.revenuecat.purchases.kmp.ktx.awaitLogOut
 import com.revenuecat.purchases.kmp.ktx.awaitOfferings
 import com.revenuecat.purchases.kmp.ktx.awaitPurchase
 import com.revenuecat.purchases.kmp.ktx.awaitRestore
@@ -35,6 +37,20 @@ class RevenueCatPurchaseController(apiKey: String) : PurchaseController {
         } else {
             false
         }
+    }
+
+    override suspend fun identify(userId: String) {
+        if (!isAvailable) return
+        try {
+            Purchases.sharedInstance.awaitLogIn(userId)
+        } catch (_: Exception) {}
+    }
+
+    override suspend fun reset() {
+        if (!isAvailable) return
+        try {
+            Purchases.sharedInstance.awaitLogOut()
+        } catch (_: Exception) {}
     }
 
     override suspend fun offerings(): OfferingsResult {
@@ -81,12 +97,15 @@ class RevenueCatPurchaseController(apiKey: String) : PurchaseController {
         }
     }
 
-    override suspend fun currentEntitlements(): Entitlements {
-        if (!isAvailable) return Entitlements()
+    override suspend fun currentEntitlements(): EntitlementsResult {
+        if (!isAvailable) return EntitlementsResult.Success(Entitlements())
         return try {
-            Purchases.sharedInstance.awaitCustomerInfo().toEntitlements()
+            val info = Purchases.sharedInstance.awaitCustomerInfo()
+            EntitlementsResult.Success(info.toEntitlements())
         } catch (e: PurchasesException) {
-            Entitlements()
+            EntitlementsResult.Failure
+        } catch (e: Exception) {
+            EntitlementsResult.Failure
         }
     }
 
