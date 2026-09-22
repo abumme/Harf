@@ -30,12 +30,16 @@ import uz.abumme.harfgame.backend.dictionary.WiktionaryLookup
 import uz.abumme.harfgame.backend.review.DailyReportScheduler
 import uz.abumme.harfgame.backend.review.SuggestionReviewWorker
 import java.time.Instant
+import uz.abumme.harfgame.backend.routes.archiveRoutes
 import uz.abumme.harfgame.backend.routes.authRoutes
+import uz.abumme.harfgame.backend.routes.entitlementRoutes
 import uz.abumme.harfgame.backend.routes.suggestionRoutes
 import uz.abumme.harfgame.backend.routes.syncRoutes
 import uz.abumme.harfgame.backend.routes.wordPackRoutes
 import uz.abumme.harfgame.backend.security.JwtService
+import uz.abumme.harfgame.backend.service.ArchiveServerService
 import uz.abumme.harfgame.backend.service.AuthServerService
+import uz.abumme.harfgame.backend.service.EntitlementServerService
 import uz.abumme.harfgame.backend.service.SuggestionServerService
 import uz.abumme.harfgame.backend.service.SyncServerService
 import uz.abumme.harfgame.backend.service.WordPackServerService
@@ -209,6 +213,8 @@ fun Application.module(
     authService: AuthServerService = AuthServerService(jwtService, verifiers),
     syncService: SyncServerService = SyncServerService(),
     wordPackService: WordPackServerService = WordPackServerService(),
+    archiveService: ArchiveServerService = ArchiveServerService(),
+    entitlementService: EntitlementServerService = EntitlementServerService(),
     suggestionService: SuggestionServerService = SuggestionServerService(wordPackService),
     admin: AdminBackend = AdminBackend(packLanguages = wordPackService::languages, wordPacks = wordPackService, playerAuth = authService),
 ) {
@@ -276,6 +282,8 @@ fun Application.module(
         }
         authRoutes(authService)
         syncRoutes(syncService)
+        archiveRoutes(archiveService)
+        entitlementRoutes(entitlementService)
         wordPackRoutes(wordPackService)
         suggestionRoutes(suggestionService)
         adminRoutes(admin)
