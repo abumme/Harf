@@ -24,6 +24,17 @@ data class HarfColors(
     val key: Color,
     val keyDigraph: Color,
     val keyAbsent: Color,
+    // Status roles. Defaulted so every edition gets sensible destructive/success colors;
+    // an edition may override them. No screen should reach for a literal color for these.
+    val danger: Color = Color(0xFFB3282D),
+    val onDanger: Color = Color(0xFFFFFFFF),
+    val success: Color = Color(0xFF2E7D46),
+    val onSuccess: Color = Color(0xFFFFFFFF),
+    // Letter color drawn over a filled feedback mark, so a glyph stays legible on the fill
+    // (dark-on-navy / dark-on-red otherwise). Light editions fill dark → white letter.
+    val onCorrect: Color = Color(0xFFFBFCFE),
+    val onPresent: Color = Color(0xFFFBFCFE),
+    val onAbsent: Color = Color(0xFFFBFCFE),
 )
 
 /** How feedback marks are drawn; the shape channel that keeps states colorblind-safe. */
