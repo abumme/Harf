@@ -556,9 +556,10 @@ fun KeyboardView(
             val maxKeys = rows.maxOf { it.size }
             ((maxWidth - spacing * (maxKeys - 1)) / maxKeys).coerceAtMost(56.dp)
         }
-        // Keys grow square-ish with their width so the keyboard fills the space the board's
-        // capped tiles leave, instead of sitting tiny at the bottom under a large empty margin.
-        val keyH = keyW.coerceIn(42.dp, 52.dp)
+        // Key height is set to a real on-screen keyboard height (~Gboard), independent of the
+        // narrow per-key width that a 12-key Cyrillic row forces, so the keyboard doesn't sit
+        // short under a large empty gap. Cyrillic keys are legitimately narrow — Gboard's are too.
+        val keyH = 48.dp
         Column(
             Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
