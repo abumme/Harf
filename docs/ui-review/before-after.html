@@ -1,0 +1,535 @@
+<title>Harf UI — Before / After</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  /* ---- Report chrome tokens (theme-aware) ---- */
+  :root{
+    --ground:#EEF1F5; --surface:#FFFFFF; --surface2:#F5F7FA;
+    --ink:#14181D; --muted:#5A636E; --rule:#D5DBE3; --rule2:#E4E9EF;
+    --accent:#1C3F63; --accent-soft:#E7EEF6;
+    --bad:#B3282D; --bad-soft:#FBECEC;
+    --good:#3F7D52; --good-soft:#E9F2EC;
+    --shadow:0 1px 2px rgba(20,24,29,.05),0 8px 24px -12px rgba(20,24,29,.18);
+    color-scheme:light;
+  }
+  :root:not([data-theme="light"]){
+    @media (prefers-color-scheme:dark){
+      --ground:#111418; --surface:#191D22; --surface2:#20252B;
+      --ink:#E9ECF1; --muted:#98A2AD; --rule:#2B313A; --rule2:#242A31;
+      --accent:#79A8D8; --accent-soft:#1B2A3A;
+      --bad:#E36B70; --bad-soft:#2E1C1D;
+      --good:#6FB587; --good-soft:#18261D;
+      --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);
+      color-scheme:dark;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#111418; --surface:#191D22; --surface2:#20252B;
+    --ink:#E9ECF1; --muted:#98A2AD; --rule:#2B313A; --rule2:#242A31;
+    --accent:#79A8D8; --accent-soft:#1B2A3A;
+    --bad:#E36B70; --bad-soft:#2E1C1D;
+    --good:#6FB587; --good-soft:#18261D;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px -14px rgba(0,0,0,.6);
+    color-scheme:dark;
+  }
+  /* ---- Harf app tokens (light Newsprint — most frames depict the light app) ---- */
+  .app{
+    --paper:#FBFCFE; --paper2:#EEF2F6; --card:#FFFFFF; --aink:#12161B;
+    --amuted:#59626D; --arule:#D8DEE6; --anavy:#1C3F63; --ared:#B3282D;
+    --key:#E7ECF1; --agood:#2E7D46;
+    --oncorrect:#FBFCFE; /* letter over a filled mark */
+  }
+  /* Dark Newsprint variant — re-tuned, not inverted (used only in the Dark section) */
+  .app.dark{
+    --paper:#0F1216; --paper2:#171B21; --card:#171B21; --aink:#E9ECF1;
+    --amuted:#8A94A0; --arule:#2A313A; --anavy:#6FA3D6; --ared:#E0656A;
+    --key:#232A33; --agood:#63B981;
+    --oncorrect:#0F1216;
+  }
+  .app.dark .phone{background:var(--paper);border-color:var(--arule);color:var(--aink)}
+  /* dark-section board tiles */
+  .dt{width:34px;height:34px;display:flex;align-items:center;justify-content:center;
+    border-radius:6px;font-family:"Lora",serif;font-weight:700;font-size:15px}
+  .dt.e{border:1.5px solid var(--arule);color:var(--aink)}
+  .dt.g{background:var(--anavy);color:var(--oncorrect)}
+  .dt.y{background:var(--ared);color:var(--oncorrect)}
+  .mode-seg{display:flex;gap:3px;justify-content:center;margin-top:14px;
+    background:var(--paper2);border:1px solid var(--arule);border-radius:999px;padding:3px}
+  .mode-seg span{font-size:10.5px;font-weight:600;color:var(--amuted);padding:5px 11px;border-radius:999px}
+  .mode-seg span.on{background:var(--anavy);color:var(--oncorrect)}
+
+  *{box-sizing:border-box}
+  body{background:var(--ground);color:var(--ink);
+    font-family:"IBM Plex Sans",system-ui,sans-serif;line-height:1.55;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding-block:clamp(28px,5vw,64px);
+    padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));
+    padding-inline:clamp(16px,4vw,40px)}
+
+  /* ---- Masthead ---- */
+  .mast{border-bottom:2px solid var(--ink);padding-bottom:18px;margin-bottom:8px}
+  .kicker{font-family:"IBM Plex Mono",monospace;font-size:12px;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+  .kicker .dot{width:5px;height:5px;border-radius:50%;background:var(--bad)}
+  h1{font-family:"Lora",Georgia,serif;font-weight:700;letter-spacing:-.01em;
+    font-size:clamp(34px,6vw,56px);line-height:1.02;margin:.28em 0 .12em;text-wrap:balance}
+  .lede{color:var(--muted);font-size:clamp(15px,1.6vw,17px);max-width:60ch}
+  .scope{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+  .scope span{font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:999px;
+    border:1px solid var(--rule);background:var(--surface)}
+  .scope .on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+
+  /* ---- Section ---- */
+  section{margin-top:clamp(40px,6vw,68px)}
+  .sec-head{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+    border-bottom:1px solid var(--rule);padding-bottom:12px;margin-bottom:24px}
+  .sec-no{font-family:"IBM Plex Mono",monospace;font-size:13px;color:var(--accent);font-weight:500}
+  .sec-head h2{font-family:"Lora",serif;font-weight:600;font-size:clamp(22px,3vw,30px);
+    letter-spacing:-.01em;margin:0}
+  .sec-head .tag{margin-left:auto;font-size:12px;font-weight:600;text-transform:uppercase;
+    letter-spacing:.08em;color:var(--muted)}
+  .why{color:var(--muted);max-width:66ch;margin:-8px 0 24px;font-size:15px}
+  .why b{color:var(--ink);font-weight:600}
+  .why code,.note code,li code{font-family:"IBM Plex Mono",monospace;font-size:.86em;
+    background:var(--surface2);border:1px solid var(--rule2);padding:1px 5px;border-radius:5px}
+
+  /* ---- Before/After spread ---- */
+  .spread{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+  @media (max-width:720px){.spread{grid-template-columns:1fr}}
+  .col{background:var(--surface);border:1px solid var(--rule);border-radius:16px;
+    padding:16px 16px 18px;box-shadow:var(--shadow)}
+  .col.after{border-color:color-mix(in srgb,var(--good) 45%,var(--rule))}
+  .col-label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;
+    letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px}
+  .col-label .pip{width:9px;height:9px;border-radius:50%}
+  .before .col-label{color:var(--bad)} .before .pip{background:var(--bad)}
+  .after .col-label{color:var(--good)} .after .pip{background:var(--good)}
+  .col-label .verdict{margin-left:auto;font-weight:500;letter-spacing:0;text-transform:none;
+    font-size:12px;color:var(--muted)}
+
+  /* ---- Phone frame ---- */
+  .phone{background:var(--paper);border:1px solid var(--arule);border-radius:20px;
+    padding:14px 13px;color:var(--aink);font-size:13px;overflow:hidden}
+  .phone .bar{display:flex;justify-content:space-between;align-items:center;
+    font-size:10px;color:var(--amuted);margin-bottom:12px;font-variant-numeric:tabular-nums}
+  .phone .bar .dots{letter-spacing:2px}
+  .masth{font-family:"Lora",serif;font-weight:700;letter-spacing:-.01em;text-align:center}
+
+  /* generic app button */
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;
+    border-radius:10px;padding:11px 12px;font-size:13px;font-weight:600;font-family:inherit;
+    border:1.5px solid var(--anavy);background:var(--anavy);color:#fff;text-align:center}
+  .btn.ghost{background:transparent;color:var(--anavy)}
+  .btn.sm{padding:9px 12px;font-size:12.5px}
+  .stack{display:flex;flex-direction:column;gap:9px;align-items:center}
+  .stack .btn{max-width:200px}
+
+  /* topbar */
+  .topbar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .topbar .back{display:flex;align-items:center;gap:6px;color:var(--anavy);font-weight:600;font-size:12.5px}
+  .topbar .title{font-family:"Lora",serif;font-weight:700;font-size:16px}
+
+  /* settings groups */
+  .grp{border:1px solid var(--arule);border-radius:12px;background:var(--card);overflow:hidden;margin-bottom:12px}
+  .grp .gh{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+    color:var(--amuted);padding:9px 12px 4px}
+  .row{display:flex;align-items:center;gap:10px;padding:11px 12px;border-top:1px solid var(--paper2);font-size:12.5px}
+  .row:first-of-type{border-top:none}
+  .row .chev{margin-left:auto;color:var(--amuted)}
+  .row .val{margin-left:auto;color:var(--amuted);font-size:12px}
+  .row.danger{color:var(--ared)}
+  .flatbtn{border:1.5px solid var(--anavy);border-radius:10px;color:var(--anavy);
+    padding:10px;text-align:center;font-weight:600;font-size:12.5px;margin-bottom:8px}
+  .flatbtn.red{border-color:var(--ared);color:var(--ared)}
+  .danger-zone{border:1px solid color-mix(in srgb,var(--ared) 30%, var(--arule));
+    background:color-mix(in srgb,var(--ared) 5%,var(--card));border-radius:12px;padding:12px;margin-top:4px}
+  .danger-zone .dz-h{font-size:10.5px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ared);margin-bottom:8px}
+  .btn.danger{background:transparent;border-color:var(--ared);color:var(--ared)}
+
+  /* archive rows */
+  .arow{display:flex;align-items:center;gap:11px;padding:11px 13px;border:1px solid var(--arule);
+    border-radius:11px;background:var(--card);margin-bottom:8px;font-size:12.5px}
+  .arow.flat{justify-content:center;color:var(--anavy);font-weight:600;border-color:var(--anavy);background:transparent}
+  .arow .date{font-weight:600}
+  .arow .sub{color:var(--amuted);font-size:11px}
+  .arow .status{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600}
+  .badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px}
+  .badge.win{background:color-mix(in srgb,var(--agood) 14%,var(--card));color:var(--agood)}
+  .badge.miss{background:var(--paper2);color:var(--amuted)}
+  .badge.new{background:var(--anavy);color:#fff}
+  .mini-grid{display:grid;grid-template-columns:repeat(5,7px);gap:2px}
+  .mini-grid i{width:7px;height:7px;border-radius:2px;display:block}
+  .g{background:var(--anavy)} .y{background:var(--ared)} .n{background:var(--absent,#c3c9d1)}
+
+  /* result / win */
+  .result-flat{text-align:center;padding:14px 6px}
+  .result-flat .r-title{font-family:"Lora",serif;font-weight:700;font-size:17px;margin-bottom:14px}
+  .result-flat .r-btns{display:flex;gap:8px}
+  .win-card{text-align:center}
+  .streak{display:inline-flex;align-items:center;gap:7px;background:color-mix(in srgb,var(--ared) 9%,var(--card));
+    color:var(--ared);font-weight:700;font-size:12px;padding:6px 13px;border-radius:999px;margin:2px 0 12px}
+  .win-card .big{font-family:"Lora",serif;font-weight:700;font-size:20px;line-height:1.1}
+  .win-card .sub{color:var(--amuted);font-size:11.5px;margin-top:3px}
+  .share-grid{display:grid;grid-template-columns:repeat(5,15px);gap:3px;justify-content:center;margin:14px 0}
+  .share-grid i{width:15px;height:15px;border-radius:3px;display:block}
+  .next{color:var(--amuted);font-size:11px;margin-top:10px}
+
+  /* theme swatches */
+  .swatches{display:flex;gap:8px;justify-content:center;margin-top:4px}
+  .sw{width:30px;height:30px;border-radius:8px;border:2px solid transparent;position:relative}
+  .sw.on{border-color:var(--aink)}
+  .cyc{display:flex;align-items:center;justify-content:space-between;border:1.5px solid var(--anavy);
+    border-radius:10px;color:var(--anavy);padding:10px 12px;font-weight:600;font-size:12.5px;max-width:200px;margin:0 auto}
+
+  /* note strip */
+  .note{display:grid;grid-template-columns:auto 1fr;gap:12px;margin-top:16px;
+    background:var(--surface2);border:1px solid var(--rule2);border-radius:12px;padding:13px 15px;font-size:14px}
+  .note .fix{font-family:"IBM Plex Mono",monospace;font-size:11px;font-weight:600;color:#fff;
+    background:var(--good);padding:3px 8px;border-radius:6px;height:max-content;letter-spacing:.03em}
+  .note .fix.p0{background:var(--bad)} .note .fix.p1{background:var(--accent)}
+  .note ul{margin:0;padding-left:18px} .note li{margin:2px 0;color:var(--muted)}
+  .note li b{color:var(--ink);font-weight:600}
+  .refs{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);margin-top:8px}
+
+  /* copy table */
+  .copy-tbl{border:1px solid var(--rule);border-radius:14px;overflow:hidden;background:var(--surface)}
+  .ct-row{display:grid;grid-template-columns:130px 1fr 1fr;gap:0;border-top:1px solid var(--rule2)}
+  .ct-row:first-child{border-top:none;background:var(--surface2);font-weight:600;font-size:12px;
+    text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .ct-row>div{padding:12px 14px}
+  .ct-row .k{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--muted);border-right:1px solid var(--rule2)}
+  .ct-b{border-right:1px solid var(--rule2);color:var(--muted)}
+  .ct-b .lang,.ct-a .lang{font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:600;
+    letter-spacing:.05em;opacity:.6;margin-right:6px}
+  .ct-b s{color:var(--bad);text-decoration-color:color-mix(in srgb,var(--bad) 55%,transparent)}
+  .ct-a{color:var(--ink)} .ct-a strong{color:var(--good);font-weight:600}
+  @media (max-width:680px){
+    .ct-row{grid-template-columns:1fr}
+    .ct-row .k,.ct-b{border-right:none}
+    .ct-row:first-child{display:none}
+    .ct-row>div{padding:9px 14px}
+    .ct-row{border-top-width:2px}
+  }
+
+  /* principles footer */
+  .princ{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:22px}
+  @media (max-width:640px){.princ{grid-template-columns:1fr}}
+  .pcard{border:1px solid var(--rule);border-radius:13px;padding:15px 16px;background:var(--surface)}
+  .pcard h4{margin:0 0 5px;font-size:14px;font-weight:700;display:flex;gap:8px;align-items:center}
+  .pcard p{margin:0;color:var(--muted);font-size:13.5px}
+  .pcard .n{font-family:"IBM Plex Mono",monospace;color:var(--accent);font-size:12px}
+
+  footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--rule);
+    color:var(--muted);font-size:12.5px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+  .app .absent-fix{--absent:#c3c9d1}
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div class="kicker"><span>Harf</span><span class="dot"></span><span>UI review — pre-release</span><span class="dot"></span><span>buttons · layout · copy</span></div>
+    <h1>Before / After</h1>
+    <p class="lede">A design pass over the surfaces users touch most, framed in Harf's own Newsprint edition. Every “before” is the shipping code today; every “after” is a concrete, buildable direction — not a repaint.</p>
+    <div class="scope">
+      <span class="on">Home</span><span class="on">Settings</span><span class="on">Archive</span><span class="on">Result</span><span class="on">Copy</span><span class="on">Dark</span>
+      <span>Newsprint · light + dark</span>
+    </div>
+  </header>
+
+  <!-- 1. HOME -->
+  <section>
+    <div class="sec-head"><span class="sec-no">01</span><h2>Home — hierarchy over a wall of pills</h2><span class="tag">Layout · Buttons</span></div>
+    <p class="why">Six identical <code>Modifier.width(220.dp)</code> buttons stack with no weight difference between <b>the one thing you came to do</b> (play today) and the four places you rarely go. The theme control is a blind cycle — you rotate editions one tap at a time, never seeing them. <span class="refs">HomeScreen.kt:97–114</span></p>
+    <div class="spread">
+      <div class="col before app absent-fix">
+        <div class="col-label"><span class="pip"></span>Before<span class="verdict">flat · no primary</span></div>
+        <div class="phone">
+          <div class="bar"><span>9:41</span><span class="dots">▪▪▪ ▪▪</span></div>
+          <div class="masth" style="font-size:34px;margin:18px 0 2px">Harf</div>
+          <div style="text-align:center;color:var(--amuted);font-size:11px;margin-bottom:16px">Ежедневная словесная дуэль</div>
+          <div class="stack">
+            <div class="btn">O‘zbek</div>
+            <div class="btn">Русский</div>
+            <div class="btn ghost">Архив головоломок</div>
+            <div class="btn ghost">Статистика</div>
+            <div class="btn ghost">Настройки</div>
+            <div class="btn ghost">Тема: Newsprint</div>
+          </div>
+        </div>
+      </div>
+      <div class="col after app absent-fix">
+        <div class="col-label"><span class="pip"></span>After<span class="verdict">1 primary · nav grouped · themes visible</span></div>
+        <div class="phone">
+          <div class="bar"><span>9:41</span><span class="dots">▪▪▪ ▪▪</span></div>
+          <div class="masth" style="font-size:34px;margin:14px 0 2px">Harf</div>
+          <div style="text-align:center;color:var(--amuted);font-size:11px;margin-bottom:14px">Ежедневная игра в слова</div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--amuted);margin:0 0 7px 2px">Играть сегодня</div>
+          <div class="stack" style="gap:8px">
+            <div class="btn" style="max-width:none;padding:13px">O‘zbek · сегодня</div>
+            <div class="btn" style="max-width:none;padding:13px">Русский · сегодня</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <div class="btn ghost sm" style="flex:1">Архив</div>
+            <div class="btn ghost sm" style="flex:1">Статистика</div>
+            <div class="btn ghost sm" style="flex:1">Настройки</div>
+          </div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--amuted);margin:14px 0 6px 2px">Издание</div>
+          <div class="swatches">
+            <span class="sw on" style="background:#EEF2F6"></span>
+            <span class="sw" style="background:#F3E3E3"></span>
+            <span class="sw" style="background:#E7EAEE"></span>
+            <span class="sw" style="background:#DBE6F1"></span>
+            <span class="sw" style="background:#EAEEE0"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note"><span class="fix p1">P1</span><ul>
+      <li><b>Primary action earns weight.</b> Today’s language(s) as filled buttons under a “Играть сегодня” label; the rest demote to a single ghost row.</li>
+      <li><b>Theme becomes recognition, not recall.</b> Swatch row shows all editions at once — no blind cycling. Owned vs. locked handled by the existing <code>EntitlementGate</code>.</li>
+      <li><b>Wide windows:</b> center the stack in a <code>widthIn(max)</code> hero instead of a 220dp column stranded in whitespace.</li>
+    </ul></div>
+  </section>
+
+  <!-- 2. SETTINGS -->
+  <section>
+    <div class="sec-head"><span class="sec-no">02</span><h2>Settings — sections, and a real danger zone</h2><span class="tag">Layout · Buttons</span></div>
+    <p class="why">Every action is the same full-width <code>OutlinedButton</code> in one undifferentiated scroll — sign-in, legal links and <b>Delete account</b> carry equal weight, the only distinction a hardcoded <code>Color(0xFFD32F2F)</code> on the label. No grouping, and no back affordance on desktop/web. <span class="refs">SettingsScreen.kt:155–295</span></p>
+    <div class="spread">
+      <div class="col before app">
+        <div class="col-label"><span class="pip"></span>Before<span class="verdict">flat list · red text only</span></div>
+        <div class="phone">
+          <div class="masth" style="font-size:20px;text-align:left;margin-bottom:14px">Настройки</div>
+          <div class="flatbtn">Выйти</div>
+          <div class="flatbtn">Привязать Google</div>
+          <div class="flatbtn">Привязать Apple</div>
+          <div class="flatbtn">Таблица лидеров</div>
+          <div class="flatbtn">Политика конфиденциальности</div>
+          <div class="flatbtn">Условия использования (оферта)</div>
+          <div class="flatbtn red">Удалить аккаунт</div>
+        </div>
+      </div>
+      <div class="col after app">
+        <div class="col-label"><span class="pip"></span>After<span class="verdict">grouped · back · isolated danger</span></div>
+        <div class="phone">
+          <div class="topbar"><span class="back">‹ Назад</span><span class="title">Настройки</span></div>
+          <div class="grp">
+            <div class="gh">Аккаунт</div>
+            <div class="row">Google <span class="val">привязан ✓</span></div>
+            <div class="row">Apple <span class="val">Привязать ›</span></div>
+            <div class="row">Выйти <span class="chev">›</span></div>
+          </div>
+          <div class="grp">
+            <div class="gh">Play Games</div>
+            <div class="row">Таблица лидеров <span class="chev">›</span></div>
+          </div>
+          <div class="grp">
+            <div class="gh">Правовая информация</div>
+            <div class="row">Конфиденциальность <span class="chev">›</span></div>
+            <div class="row">Условия использования <span class="chev">›</span></div>
+          </div>
+          <div class="danger-zone">
+            <div class="dz-h">Опасная зона</div>
+            <div class="btn danger">Удалить аккаунт</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note"><span class="fix p1">P1</span><ul>
+      <li><b>Group by intent</b> — Account / Play Games / Legal — so scanning is O(section), not O(button).</li>
+      <li><b>Danger is isolated, not just red text.</b> Its own bordered zone at the bottom, using a new <code>danger</code>/<code>onDanger</code> token — kills three hardcoded <code>0xFFD32F2F</code> literals.</li>
+      <li><b>Shared top-bar with labeled back</b> — fixes the desktop/web dead-end that also hits Stats.</li>
+    </ul></div>
+  </section>
+
+  <!-- 3. ARCHIVE -->
+  <section>
+    <div class="sec-head"><span class="sec-no">03</span><h2>Archive — rows that say something</h2><span class="tag">Layout · Copy · P0 nearby</span></div>
+    <p class="why">Past days are full-width outlined buttons labeled <code>«День 5»</code> and nothing else — no date, no whether you played or won. Flat browsing of the paywall’s headline feature. <b>And the row is wired to a bug:</b> <code>onOpenPuzzle</code> drops <code>epochDay</code> and opens <em>today</em> — every archive day is the same puzzle. <span class="refs">ArchiveScreen.kt:154–160 · AppNavHost.kt:54</span></p>
+    <div class="spread">
+      <div class="col before app absent-fix">
+        <div class="col-label"><span class="pip"></span>Before<span class="verdict">day number only · opens today</span></div>
+        <div class="phone">
+          <div class="topbar"><span class="back">←</span><span class="title" style="font-size:18px">Архив головоломок</span></div>
+          <div class="arow flat">День 8</div>
+          <div class="arow flat">День 7</div>
+          <div class="arow flat">День 6</div>
+          <div class="arow flat">День 5</div>
+          <div class="arow flat">День 4</div>
+          <div class="flatbtn" style="margin-top:6px">Back</div>
+        </div>
+      </div>
+      <div class="col after app absent-fix">
+        <div class="col-label"><span class="pip"></span>After<span class="verdict">date · status · correct day</span></div>
+        <div class="phone">
+          <div class="topbar"><span class="back">‹ Назад</span><span class="title" style="font-size:16px">Архив</span></div>
+          <div class="arow">
+            <div><div class="date">Пн, 22 сент</div><div class="sub">Русский · слово раскрыто</div></div>
+            <div class="status"><span class="mini-grid absent-fix"><i class="n"></i><i class="g"></i><i class="y"></i><i class="g"></i><i class="g"></i></span><span class="badge win">4/6</span></div>
+          </div>
+          <div class="arow">
+            <div><div class="date">Вс, 21 сент</div><div class="sub">Русский</div></div>
+            <div class="status"><span class="badge miss">не сыграно</span><span class="chev" style="color:var(--amuted)">›</span></div>
+          </div>
+          <div class="arow">
+            <div><div class="date">Сб, 20 сент</div><div class="sub">Русский · не угадано</div></div>
+            <div class="status"><span class="badge miss">X/6</span></div>
+          </div>
+          <div class="arow">
+            <div><div class="date">Пт, 19 сент</div><div class="sub">Русский</div></div>
+            <div class="status"><span class="badge win">3/6</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note"><span class="fix p0">P0 + P1</span><ul>
+      <li><b>Fix the route first.</b> Thread <code>epochDay</code> through <code>Game(languageId, epochDay)</code> → <code>GameScreen</code> → <code>DailyPuzzleProvider.daily(script, epochDay)</code>. Ship-blocker: the feature is dead today.</li>
+      <li><b>Rows carry date + result</b> (win N/6, miss X/6, «не сыграно») pulled from the existing result log — turns a list of numbers into a browsable history.</li>
+      <li><b>Localize “Back”</b> (<code>ArchiveScreen.kt:124</code>) and give the back arrow an accessible name.</li>
+    </ul></div>
+  </section>
+
+  <!-- 4. RESULT -->
+  <section>
+    <div class="sec-head"><span class="sec-no">04</span><h2>Result — make the peak feel like one</h2><span class="tag">Layout · Emotion</span></div>
+    <p class="why">The payoff of a daily game is one 18sp line — <code>«Решено за 3/6»</code> — then Share / Copy. The streak (🔥) that drives return visits is buried in a Stats screen nobody opens mid-round, and the share grid is invisible until you’ve already shared. <span class="refs">GameScreen.kt:591–603</span></p>
+    <div class="spread">
+      <div class="col before app absent-fix">
+        <div class="col-label"><span class="pip"></span>Before<span class="verdict">one line · streak hidden</span></div>
+        <div class="phone">
+          <div class="result-flat">
+            <div class="r-title">Решено за 3/6</div>
+            <div class="r-btns"><div class="btn sm">Поделиться</div><div class="btn ghost sm">Копировать</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="col after app absent-fix">
+        <div class="col-label"><span class="pip"></span>After<span class="verdict">streak loud · grid inline</span></div>
+        <div class="phone">
+          <div class="win-card">
+            <div class="streak">🔥 12 дней подряд</div>
+            <div class="big">Отгадано!</div>
+            <div class="sub">Русский · за 3 попытки из 6</div>
+            <div class="share-grid absent-fix">
+              <i class="n"></i><i class="y"></i><i class="n"></i><i class="n"></i><i class="y"></i>
+              <i class="g"></i><i class="n"></i><i class="y"></i><i class="n"></i><i class="n"></i>
+              <i class="g"></i><i class="g"></i><i class="g"></i><i class="g"></i><i class="g"></i>
+            </div>
+            <div class="btn sm" style="margin-bottom:8px">Поделиться результатом</div>
+            <div class="btn ghost sm">Копировать</div>
+            <div class="next">Следующее слово через 6 ч 12 мин</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="note"><span class="fix p1">P1</span><ul>
+      <li><b>Streak is the loudest element</b> — it’s the reason people come back. Surface it here, not three taps away.</li>
+      <li><b>Render the share grid inline</b> (already computed for <code>ShareGrid</code>) so the win is visible before sharing, and add a staggered tile-flip reveal on submit — the app’s one signature motion, currently absent.</li>
+      <li><b>Countdown to next word</b> closes the loop with a reason to return.</li>
+    </ul></div>
+  </section>
+
+  <!-- 5. COPY -->
+  <section>
+    <div class="sec-head"><span class="sec-no">05</span><h2>Copy — clarify (RU primary)</h2><span class="tag">/impeccable clarify</span></div>
+    <p class="why">All 92 keys exist in every locale — the gaps are <b>value-level</b>: leaked English, exposed error codes, vague destructive labels, and one literal hardcoded string. Rewrites keep meaning and voice.</p>
+    <div class="copy-tbl">
+      <div class="ct-row"><div>Key</div><div>Before</div><div>After</div></div>
+      <div class="ct-row">
+        <div class="k">home_tagline</div>
+        <div class="ct-b"><span class="lang">RU</span><s>Ежедневная словесная дуэль</s><br><span class="lang">EN</span><s>A daily word duel</s></div>
+        <div class="ct-a"><span class="lang">RU</span><strong>Ежедневная игра в слова</strong><br><span class="lang">EN</span><strong>A daily word puzzle</strong><br><span style="color:var(--muted);font-size:12px">“дуэль/duel” implies versus — it’s a solo puzzle.</span></div>
+      </div>
+      <div class="ct-row">
+        <div class="k">archive_locked_title</div>
+        <div class="ct-b"><span class="lang">RU</span><s>Требуется Founder Edition</s></div>
+        <div class="ct-a"><span class="lang">RU</span><strong>Требуется издание Founder</strong><br><span style="color:var(--muted);font-size:12px">“Edition” leaks untranslated while <code>founder_title</code> translates it. Pick one treatment.</span></div>
+      </div>
+      <div class="ct-row">
+        <div class="k">settings_delete<br>(confirm btn)</div>
+        <div class="ct-b"><span class="lang">RU</span><s>Удалить</s><br><span style="color:var(--muted);font-size:12px">names no object</span></div>
+        <div class="ct-a"><span class="lang">RU</span><strong>Удалить аккаунт</strong><br><span class="lang">EN</span><strong>Delete account</strong></div>
+      </div>
+      <div class="ct-row">
+        <div class="k">signin_failed</div>
+        <div class="ct-b"><span class="lang">RU</span><s>Не удалось войти через %1$s: %2$s</s><br><span style="color:var(--muted);font-size:12px">dumps raw code at the user</span></div>
+        <div class="ct-a"><span class="lang">RU</span><strong>Не удалось войти через %1$s. Попробуйте ещё раз.</strong><br><span style="color:var(--muted);font-size:12px">log <code>%2$s</code>, don’t show it</span></div>
+      </div>
+      <div class="ct-row">
+        <div class="k">archive_day_label</div>
+        <div class="ct-b"><span class="lang">RU</span><s>День %1$d</s></div>
+        <div class="ct-a"><span class="lang">RU</span><strong>real date + status</strong> (see §03) — “День N” is an index, not a date.</div>
+      </div>
+      <div class="ct-row">
+        <div class="k">values-uz<br>(~15 keys)</div>
+        <div class="ct-b"><span class="lang">UZ</span><s>oʻtgan · soʻzlar · boʻlishi</s> (U+02BB)<br>vs <s>o'z · so'z</s> (ASCII) elsewhere</div>
+        <div class="ct-a"><span class="lang">UZ</span><strong>Normalize one tutuq belgisi</strong> across all Uzbek strings + unify <code>Qiyin rejim</code> (3 variants today).</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. DARK -->
+  <section>
+    <div class="sec-head"><span class="sec-no">06</span><h2>Dark editions — no white flash at night</h2><span class="tag">Theming · Contrast</span></div>
+    <p class="why">The app is white-only by construction: <code>HarfTheme</code> uses <code>lightColorScheme</code>, all five editions are light, and <code>App.kt</code> reports <code>isDark=false</code> unconditionally. Open the daily at 22:00 and it’s a full white flash. The same token pass fixes a real bug: in <b>Fill/Outline</b> mark styles the letter is the dark <code>ink</code> over a full navy <code>correct</code> fill — <b>dark-on-dark</b>. <span class="refs">HarfTheme.kt:35 · App.kt:21 · GameScreen.kt:481</span></p>
+    <div class="spread">
+      <div class="col before app">
+        <div class="col-label"><span class="pip"></span>Before<span class="verdict">light only · dark-on-dark letter</span></div>
+        <div class="phone">
+          <div class="bar"><span>22:14</span><span>🌙 ночь</span></div>
+          <div class="masth" style="font-size:16px;margin:2px 0 12px">Русский · сегодня</div>
+          <div style="display:flex;flex-direction:column;gap:5px;align-items:center">
+            <div style="display:flex;gap:5px">
+              <span class="dt e">С</span><span class="dt g" style="color:var(--aink)">Л</span><span class="dt y" style="color:var(--aink)">О</span><span class="dt e">В</span><span class="dt e">О</span>
+            </div>
+            <div style="display:flex;gap:5px">
+              <span class="dt g" style="color:var(--aink)">К</span><span class="dt e">Н</span><span class="dt e">И</span><span class="dt e">Г</span><span class="dt e">А</span>
+            </div>
+          </div>
+          <div style="text-align:center;color:var(--ared);font-size:10.5px;margin-top:12px;font-weight:600">Буква тонет в заливке ↑</div>
+          <div style="text-align:center;color:var(--amuted);font-size:10.5px;margin-top:6px">Тема: только светлая</div>
+        </div>
+      </div>
+      <div class="col after app dark">
+        <div class="col-label"><span class="pip"></span>After<span class="verdict">dark ground · on-mark letter · mode</span></div>
+        <div class="phone">
+          <div class="bar"><span>22:14</span><span>🌙 ночь</span></div>
+          <div class="masth" style="font-size:16px;margin:2px 0 12px;color:var(--aink)">Русский · сегодня</div>
+          <div style="display:flex;flex-direction:column;gap:5px;align-items:center">
+            <div style="display:flex;gap:5px">
+              <span class="dt e">С</span><span class="dt g">Л</span><span class="dt y">О</span><span class="dt e">В</span><span class="dt e">О</span>
+            </div>
+            <div style="display:flex;gap:5px">
+              <span class="dt g">К</span><span class="dt e">Н</span><span class="dt e">И</span><span class="dt e">Г</span><span class="dt e">А</span>
+            </div>
+          </div>
+          <div class="mode-seg">
+            <span>Система</span><span class="on">Тёмная</span><span>Светлая</span>
+          </div>
+          <div style="text-align:center;color:var(--agood);font-size:10.5px;margin-top:8px;font-weight:600">Буква = on-mark цвет ✓</div>
+        </div>
+      </div>
+    </div>
+    <div class="note"><span class="fix p1">P1</span><ul>
+      <li><b>Every edition gets a dark variant</b> — re-tuned paper/ink/accent + feedback colors on a dark ground, <b>not</b> a naive invert; the newsprint identity and mark shapes survive.</li>
+      <li><b>Theme mode</b> system / light / dark, default system → follows <code>isSystemInDarkTheme()</code>; <code>App.kt</code> reports the real value so status-bar icons match.</li>
+      <li><b>Letter over a filled mark uses <code>onCorrect</code>/<code>onPresent</code>/<code>onAbsent</code></b> — fixes the dark-on-dark that fails on light today and would be worse on dark.</li>
+    </ul></div>
+  </section>
+
+  <!-- Principles / carry-through -->
+  <section>
+    <div class="sec-head"><span class="sec-no">07</span><h2>What these share</h2><span class="tag">System, not screens</span></div>
+    <div class="princ">
+      <div class="pcard"><h4><span class="n">→</span> One button system</h4><p>Primary / ghost / danger as three tokenized styles reused everywhere — no per-screen hand-rolled <code>Box+clickable</code> chips, no equal-weight walls.</p></div>
+      <div class="pcard"><h4><span class="n">→</span> One top-bar</h4><p>Labeled back + serif title, shared by Archive, Stats, Settings — fixes the desktop/web dead-end in one component.</p></div>
+      <div class="pcard"><h4><span class="n">→</span> Semantic tokens</h4><p>Add <code>danger</code> / <code>success</code> roles so no screen reaches for a raw <code>0xFFD32F2F</code> again — and they’ll carry into dark mode for free.</p></div>
+      <div class="pcard"><h4><span class="n">→</span> State &amp; motion</h4><p>Loading + empty states everywhere Paywall already has them, plus the one signature tile-flip reveal the game is missing.</p></div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Harf · pre-release UI review — read-only critique, nothing implemented</span>
+    <span>Newsprint edition · buttons · layout · copy</span>
+  </footer>
+</div>
