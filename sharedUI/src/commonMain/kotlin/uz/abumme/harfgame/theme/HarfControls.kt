@@ -2,6 +2,7 @@ package uz.abumme.harfgame.theme
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -59,7 +60,7 @@ fun GhostButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
         shape = LocalHarfShapes.current.button,
         border = BorderStroke(1.5.dp, c.accent),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = c.accent),
-    ) { Text(text, fontWeight = FontWeight.SemiBold) }
+    ) { Text(text, Modifier.basicMarquee(), fontWeight = FontWeight.SemiBold, maxLines = 1) }
 }
 
 @Composable
