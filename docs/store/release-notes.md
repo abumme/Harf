@@ -3,6 +3,55 @@
 For Play Console → Release → "What's new". One entry per language, ≤ 500 chars each.
 First release: **versionCode 1 / versionName 1.0.0**.
 
+# 1.3.0 (versionCode 5)
+
+## en
+
+```
+What's new in 1.3.0
+
+• A refreshed look across the home screen, settings, and the game — clearer buttons and tidier sections
+• Bigger, easier-to-tap on-screen keyboard
+• Letters stay crisp and readable on colored tiles
+• A back button on every screen
+• The edition picker now shows all themes at once
+• Wording and Uzbek text polish
+
+Thanks for playing — see you tomorrow.
+```
+
+## ru
+
+```
+Что нового в 1.3.0
+
+• Обновлённый вид главного экрана, настроек и игры — понятные кнопки и аккуратные разделы
+• Крупнее и удобнее экранная клавиатура
+• Буквы остаются чёткими и читаемыми на цветных плитках
+• Кнопка «Назад» на каждом экране
+• Выбор оформления показывает все издания сразу
+• Улучшены формулировки и узбекский текст
+
+Спасибо, что играете — до завтра.
+```
+
+## uz
+
+```
+1.3.0 dagi yangiliklar
+
+• Bosh ekran, sozlamalar va o'yin yangilandi — tushunarli tugmalar va tartibli bo'limlar
+• Kattaroq va bosish qulayroq ekran klaviaturasi
+• Harflar rangli kataklarda ham aniq va o'qilishi oson
+• Har bir ekranda "Orqaga" tugmasi
+• Nashr tanlash endi barcha nashrlarni bir vaqtda ko'rsatadi
+• Matn va o'zbekcha yozuv sayqallandi
+
+O'ynaganingiz uchun rahmat — ertaga ko'rishguncha.
+```
+
+---
+
 # 1.2.0 (versionCode 4)
 
 ## en
