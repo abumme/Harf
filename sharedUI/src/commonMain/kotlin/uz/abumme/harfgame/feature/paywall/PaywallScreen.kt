@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Button
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -143,11 +142,12 @@ fun PaywallScreen(onBack: () -> Unit = {}) {
 
       }
         message?.let { Text(it, color = colors.accent, fontSize = 13.sp) }
-        OutlinedButton(
+        uz.abumme.harfgame.theme.GhostButton(
+            text = stringResource(Res.string.paywall_restore),
             onClick = { vm.onAction(PaywallAction.Restore) },
-            enabled = state.busyProductId == null,
             modifier = Modifier.fillMaxWidth(),
-        ) { Text(stringResource(Res.string.paywall_restore)) }
+            enabled = state.busyProductId == null,
+        )
     }
 }
 
