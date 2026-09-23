@@ -62,7 +62,11 @@ class RevenueCatPurchaseController(apiKey: String) : PurchaseController {
                 val p = pkg.storeProduct
                 StoreItem(id = p.id, title = p.title, priceLabel = p.price.formatted)
             }
-            val lifetime = items.firstOrNull { it.id.contains("lifetime", ignoreCase = true) }
+            // The Founder product id is ENTITLEMENT_LIFETIME ("harf_founder"), which has no "lifetime"
+            // substring; match it by id first, keeping the "lifetime" contains-check as a legacy fallback.
+            val lifetime = items.firstOrNull {
+                it.id == ENTITLEMENT_LIFETIME || it.id.contains("lifetime", ignoreCase = true)
+            }
             // classify each package once: the lifetime pick is never also listed as a theme
             val themes = items.filter {
                 it != lifetime && (it.id.startsWith(ENTITLEMENT_THEME_PREFIX) || it.id.contains("theme", ignoreCase = true))
