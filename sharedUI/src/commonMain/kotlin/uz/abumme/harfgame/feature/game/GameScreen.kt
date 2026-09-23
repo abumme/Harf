@@ -45,6 +45,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
@@ -60,6 +63,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import harf_game.sharedui.generated.resources.Res
 import harf_game.sharedui.generated.resources.action_copy
+import harf_game.sharedui.generated.resources.action_back
 import harf_game.sharedui.generated.resources.action_got_it
 import harf_game.sharedui.generated.resources.action_share
 import harf_game.sharedui.generated.resources.game_hard_mode
@@ -110,7 +114,7 @@ private data class Loaded(
 )
 
 @Composable
-fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
+fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Unit = {}) {
     val provider = koinInject<DailyPuzzleProvider>()
     val packs = koinInject<WordPackRepository>()
     val registry = koinInject<LanguageRegistry>()
@@ -242,6 +246,11 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+          Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            val backLabel = stringResource(Res.string.action_back)
+            TextButton(onClick = onBack, modifier = Modifier.semantics { contentDescription = backLabel }) {
+                Text("‹", color = colors.ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            }
             // Hard Mode toggle (pre-round only, gated by Founder entitlement)
             if (state.submitted.isEmpty() && state.status == GameStatus.Playing) {
                 val isFounder = uz.abumme.harfgame.billing.EntitlementGate.lifetimeExtrasUnlocked(
@@ -291,6 +300,7 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
             } else {
                 Spacer(Modifier.width(1.dp))
             }
+          }
 
             val helpLabel = stringResource(Res.string.help)
             TextButton(onClick = { showHelp = true }, modifier = Modifier.semantics { contentDescription = helpLabel }) {
@@ -436,6 +446,17 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
     }
 }
 
+/**
+ * A contrasting halo behind a tile/key glyph so it stays legible over a filled mark — a light
+ * halo under a dark letter, a dark halo under a light one. Returns a plain style (no shadow) when
+ * there is no mark, so unmarked cells are unaffected.
+ */
+private fun glyphHalo(mark: Mark?, letterColor: Color, colors: HarfColors, blurPx: Float): TextStyle {
+    if (mark == null) return TextStyle.Default
+    val halo = if (letterColor.luminance() < 0.5f) colors.paper else colors.ink
+    return TextStyle(shadow = Shadow(color = halo, blurRadius = blurPx))
+}
+
 @Composable
 fun BoardView(state: GameState, modifier: Modifier = Modifier, tileSize: Dp = 46.dp) {
     val colors = LocalHarfColors.current
@@ -482,9 +503,16 @@ private fun Tile(grapheme: String?, mark: Mark?, colors: HarfColors, size: Dp = 
         if (mark != null) FeedbackMark(mark, colors, Modifier.fillMaxSize())
         if (grapheme != null) {
             // Text scales with the tile — exactly 20.sp at the standard 46.dp. Over a filled mark
-            // the letter takes the style's on-mark color so it stays legible on the fill.
+            // the letter takes the style's on-mark color plus a contrasting halo, so it stays
+            // legible on any fill (full or partial) in any edition, not just on the tile ground.
             val letterColor = if (mark != null) LocalMarkStyle.current.letterColor(mark, colors) else colors.ink
-            Text(grapheme.uppercase(), color = letterColor, fontWeight = FontWeight.Bold, fontSize = (size.value * (20f / 46f)).sp)
+            Text(
+                grapheme.uppercase(),
+                color = letterColor,
+                fontWeight = FontWeight.Bold,
+                fontSize = (size.value * (20f / 46f)).sp,
+                style = glyphHalo(mark, letterColor, colors, size.value * 0.18f),
+            )
         }
     }
 }
@@ -577,7 +605,13 @@ private fun KeyCap(label: String, mark: Mark?, c: HarfColors, width: Dp, height:
     ) {
         if (mark != null) FeedbackMark(mark, c, Modifier.fillMaxSize().padding(4.dp))
         val letterColor = if (mark != null) LocalMarkStyle.current.letterColor(mark, c) else c.ink
-        Text(label.uppercase(), color = letterColor, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        Text(
+            label.uppercase(),
+            color = letterColor,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.Medium,
+            style = glyphHalo(mark, letterColor, c, 6f),
+        )
     }
 }
 
