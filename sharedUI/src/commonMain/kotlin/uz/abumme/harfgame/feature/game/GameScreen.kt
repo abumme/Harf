@@ -8,6 +8,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -30,37 +31,56 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.foundation.layout.fillMaxWidth
-import harf_game.sharedui.generated.resources.*
-import org.jetbrains.compose.resources.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import uz.abumme.harfgame.feature.onboarding.MarkLegend
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.foundation.focusable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.utf16CodePoint
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import harf_game.sharedui.generated.resources.Res
+import harf_game.sharedui.generated.resources.action_copy
+import harf_game.sharedui.generated.resources.action_got_it
+import harf_game.sharedui.generated.resources.action_share
+import harf_game.sharedui.generated.resources.game_hard_mode
+import harf_game.sharedui.generated.resources.game_suggest_word
+import harf_game.sharedui.generated.resources.hard_mode_correct_position
+import harf_game.sharedui.generated.resources.hard_mode_minimum_count
+import harf_game.sharedui.generated.resources.hard_mode_missing_grapheme
+import harf_game.sharedui.generated.resources.hard_mode_present_position
+import harf_game.sharedui.generated.resources.help
+import harf_game.sharedui.generated.resources.howto_body
+import harf_game.sharedui.generated.resources.howto_title
+import harf_game.sharedui.generated.resources.not_enough_letters
+import harf_game.sharedui.generated.resources.not_in_word_list
+import harf_game.sharedui.generated.resources.result_out_of_tries
+import harf_game.sharedui.generated.resources.result_solved
+import harf_game.sharedui.generated.resources.settings_support_harf
+import harf_game.sharedui.generated.resources.suggest_failed
+import harf_game.sharedui.generated.resources.suggest_sent
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.PurchaseController
 import uz.abumme.harfgame.data.stats.InProgressRound
@@ -71,6 +91,7 @@ import uz.abumme.harfgame.engine.WordPack
 import uz.abumme.harfgame.engine.WordPackRepository
 import uz.abumme.harfgame.feature.daily.DailyPuzzle
 import uz.abumme.harfgame.feature.daily.DailyPuzzleProvider
+import uz.abumme.harfgame.feature.onboarding.MarkLegend
 import uz.abumme.harfgame.feature.result.ShareGrid
 import uz.abumme.harfgame.feature.share.Sharer
 import uz.abumme.harfgame.lang.LanguageConfig
@@ -79,8 +100,7 @@ import uz.abumme.harfgame.settings.AppSettings
 import uz.abumme.harfgame.theme.HarfColors
 import uz.abumme.harfgame.theme.LocalHarfColors
 import uz.abumme.harfgame.theme.marks.LocalMarkStyle
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.rememberCoroutineScope
+import kotlin.time.Duration.Companion.milliseconds
 
 private data class Loaded(
     val puzzle: DailyPuzzle,
@@ -174,10 +194,12 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
         }
     }
     LaunchedEffect(message) {
-        if (message != null) { kotlinx.coroutines.delay(1500); message = null }
+        if (message != null) {
+            delay(1500.milliseconds); message = null }
     }
     LaunchedEffect(hardViolation) {
-        if (hardViolation != null) { kotlinx.coroutines.delay(1500); hardViolation = null }
+        if (hardViolation != null) {
+            delay(1500.milliseconds); hardViolation = null }
     }
     // A new/edited guess invalidates the pending suggestion offer.
     LaunchedEffect(state.current) {
@@ -461,7 +483,7 @@ private fun Tile(grapheme: String?, mark: Mark?, colors: HarfColors, size: Dp = 
     }
 }
 
-/** Feedback drawn by the active [MarkStyle] (Scribble / Fill / Outline). */
+/** Feedback drawn by the active [Mark] Style (Scribble / Fill / Outline). */
 @Composable
 fun FeedbackMark(mark: Mark, colors: HarfColors, modifier: Modifier = Modifier) {
     LocalMarkStyle.current.Draw(mark, colors, modifier)
@@ -495,27 +517,30 @@ fun KeyboardView(
         }
         val inline = inlineKeyW >= 24.dp
         val keyW = if (inline) {
-            inlineKeyW.coerceAtMost(44.dp)
+            inlineKeyW.coerceAtMost(56.dp)
         } else {
             val maxKeys = rows.maxOf { it.size }
-            ((maxWidth - spacing * (maxKeys - 1)) / maxKeys).coerceAtMost(44.dp)
+            ((maxWidth - spacing * (maxKeys - 1)) / maxKeys).coerceAtMost(56.dp)
         }
+        // Keys grow square-ish with their width so the keyboard fills the space the board's
+        // capped tiles leave, instead of sitting tiny at the bottom under a large empty margin.
+        val keyH = keyW.coerceIn(42.dp, 52.dp)
         Column(
             Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             rows.forEachIndexed { i, rowKeys ->
                 Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
-                    for (k in rowKeys) KeyCap(k, keyStates[k], c, keyW) { onKey(k) }
-                    if (inline && i == 0) ActionKey("⌫", c, keyW * actionW, onDelete)
-                    if (inline && i == lastIdx) ActionKey("⏎", c, keyW * actionW, onEnter)
+                    for (k in rowKeys) KeyCap(k, keyStates[k], c, keyW, keyH) { onKey(k) }
+                    if (inline && i == 0) ActionKey("⌫", c, keyW * actionW, keyH, onDelete)
+                    if (inline && i == lastIdx) ActionKey("⏎", c, keyW * actionW, keyH, onEnter)
                 }
             }
             if (!inline) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ActionCap("ENTER", c, onEnter)
-                    ActionCap("⌫", c, onDelete)
+                    ActionCap("ENTER", c, keyH, onEnter)
+                    ActionCap("⌫", c, keyH, onDelete)
                 }
             }
         }
@@ -523,10 +548,10 @@ fun KeyboardView(
 }
 
 @Composable
-private fun ActionKey(label: String, c: HarfColors, width: Dp, onClick: () -> Unit) {
+private fun ActionKey(label: String, c: HarfColors, width: Dp, height: Dp, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .size(width = width, height = 42.dp)
+            .size(width = width, height = height)
             .clip(RoundedCornerShape(5.dp))
             .background(c.key)
             .clickable(onClick = onClick),
@@ -535,10 +560,10 @@ private fun ActionKey(label: String, c: HarfColors, width: Dp, onClick: () -> Un
 }
 
 @Composable
-private fun KeyCap(label: String, mark: Mark?, c: HarfColors, width: Dp, onClick: () -> Unit) {
+private fun KeyCap(label: String, mark: Mark?, c: HarfColors, width: Dp, height: Dp, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .size(width = width, height = 42.dp)
+            .size(width = width, height = height)
             .clip(RoundedCornerShape(5.dp))
             .background(c.key)
             .clickable(onClick = onClick),
@@ -550,10 +575,10 @@ private fun KeyCap(label: String, mark: Mark?, c: HarfColors, width: Dp, onClick
 }
 
 @Composable
-private fun ActionCap(label: String, c: HarfColors, onClick: () -> Unit) {
+private fun ActionCap(label: String, c: HarfColors, height: Dp, onClick: () -> Unit) {
     Box(
         modifier = Modifier
-            .height(42.dp)
+            .height(height)
             .clip(RoundedCornerShape(5.dp))
             .background(c.key)
             .clickable(onClick = onClick)
