@@ -247,17 +247,32 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
                 val isFounder = uz.abumme.harfgame.billing.EntitlementGate.lifetimeExtrasUnlocked(
                     koinInject<uz.abumme.harfgame.billing.EntitlementRepository>().entitlements.collectAsState().value
                 )
+                val hardShape = uz.abumme.harfgame.theme.LocalHarfShapes.current.button
                 if (isFounder) {
-                    TextButton(onClick = { vm.onAction(GameAction.ToggleHardMode) }) {
+                    val on = state.hardMode
+                    Box(
+                        modifier = Modifier
+                            .clip(hardShape)
+                            .background(if (on) colors.accent.copy(alpha = 0.14f) else Color.Transparent)
+                            .border(1.dp, if (on) colors.accent else colors.rule, hardShape)
+                            .clickable { vm.onAction(GameAction.ToggleHardMode) }
+                            .padding(horizontal = 12.dp, vertical = 7.dp),
+                    ) {
                         Text(
-                            if (state.hardMode) "* " + stringResource(Res.string.game_hard_mode) else stringResource(Res.string.game_hard_mode),
-                            color = if (state.hardMode) colors.accent else colors.muted,
-                            fontWeight = if (state.hardMode) FontWeight.Bold else FontWeight.Normal,
+                            stringResource(Res.string.game_hard_mode),
+                            color = if (on) colors.accent else colors.muted,
+                            fontWeight = if (on) FontWeight.Bold else FontWeight.Medium,
                             fontSize = 13.sp,
                         )
                     }
                 } else {
-                    TextButton(onClick = onPaywall) {
+                    Box(
+                        modifier = Modifier
+                            .clip(hardShape)
+                            .border(1.dp, colors.rule, hardShape)
+                            .clickable(onClick = onPaywall)
+                            .padding(horizontal = 12.dp, vertical = 7.dp),
+                    ) {
                         Text(
                             stringResource(Res.string.game_hard_mode) + " 🔒",
                             color = colors.muted,
@@ -267,7 +282,7 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
                 }
             } else if (state.hardMode) {
                 Text(
-                    "* " + stringResource(Res.string.game_hard_mode),
+                    stringResource(Res.string.game_hard_mode),
                     color = colors.accent,
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
@@ -301,10 +316,11 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
     }
     val chips: @Composable () -> Unit = {
         if (languageId.startsWith("uz")) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ScriptChip("Lotin", script == "uz-latn") { switchScript("uz-latn") }
-                ScriptChip("Кирилл", script == "uz-cyrl") { switchScript("uz-cyrl") }
-            }
+            uz.abumme.harfgame.theme.SegmentedSwitch(
+                options = listOf("uz-latn" to "Lotin", "uz-cyrl" to "Кирилл"),
+                selectedKey = script,
+                onSelect = { switchScript(it) },
+            )
         }
     }
     val feedback: @Composable () -> Unit = {
@@ -421,18 +437,6 @@ fun GameScreen(languageId: String, onPaywall: () -> Unit = {}) {
 }
 
 @Composable
-private fun ScriptChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    val c = LocalHarfColors.current
-    Box(
-        modifier = Modifier
-            .clickable(onClick = onClick)
-            .background(if (selected) c.accent else c.card, RoundedCornerShape(20.dp))
-            .border(1.dp, c.rule, RoundedCornerShape(20.dp))
-            .padding(horizontal = 14.dp, vertical = 6.dp),
-    ) { Text(label, color = if (selected) c.paper else c.muted, fontSize = 13.sp) }
-}
-
-@Composable
 fun BoardView(state: GameState, modifier: Modifier = Modifier, tileSize: Dp = 46.dp) {
     val colors = LocalHarfColors.current
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -477,8 +481,10 @@ private fun Tile(grapheme: String?, mark: Mark?, colors: HarfColors, size: Dp = 
     ) {
         if (mark != null) FeedbackMark(mark, colors, Modifier.fillMaxSize())
         if (grapheme != null) {
-            // Text scales with the tile — exactly 20.sp at the standard 46.dp.
-            Text(grapheme.uppercase(), color = colors.ink, fontWeight = FontWeight.Bold, fontSize = (size.value * (20f / 46f)).sp)
+            // Text scales with the tile — exactly 20.sp at the standard 46.dp. Over a filled mark
+            // the letter takes the style's on-mark color so it stays legible on the fill.
+            val letterColor = if (mark != null) LocalMarkStyle.current.letterColor(mark, colors) else colors.ink
+            Text(grapheme.uppercase(), color = letterColor, fontWeight = FontWeight.Bold, fontSize = (size.value * (20f / 46f)).sp)
         }
     }
 }
@@ -570,7 +576,8 @@ private fun KeyCap(label: String, mark: Mark?, c: HarfColors, width: Dp, height:
         contentAlignment = Alignment.Center,
     ) {
         if (mark != null) FeedbackMark(mark, c, Modifier.fillMaxSize().padding(4.dp))
-        Text(label.uppercase(), color = c.ink, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+        val letterColor = if (mark != null) LocalMarkStyle.current.letterColor(mark, c) else c.ink
+        Text(label.uppercase(), color = letterColor, fontSize = 13.sp, fontWeight = FontWeight.Medium)
     }
 }
 

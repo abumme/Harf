@@ -60,6 +60,12 @@ object OutlineMarkStyle : MarkStyle {
 object FillMarkStyle : MarkStyle {
     override val id = HarfMarkStyleId.Fill
 
+    // CORRECT fills the whole tile, so the glyph over it needs the light on-mark color.
+    // PRESENT fills only the bottom half (the top stays on the tile ground) and ABSENT is a
+    // hollow stroke, so ink stays legible for both.
+    override fun letterColor(mark: Mark, colors: HarfColors) =
+        if (mark == Mark.CORRECT) colors.onCorrect else colors.ink
+
     @Composable
     override fun Draw(mark: Mark, colors: HarfColors, modifier: Modifier) {
         val color = markColor(mark, colors)

@@ -3,6 +3,7 @@ package uz.abumme.harfgame.theme.marks
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import uz.abumme.harfgame.engine.Mark
 import uz.abumme.harfgame.theme.HarfColors
 
@@ -16,6 +17,13 @@ interface MarkStyle {
 
     @Composable
     fun Draw(mark: Mark, colors: HarfColors, modifier: Modifier)
+
+    /**
+     * Color for a glyph drawn on top of this style's mark, so the letter stays legible. Styles
+     * that fill the tile solidly (see [FillMarkStyle]) return an on-mark color; outline/scribble
+     * marks leave the tile ground showing, so the default ink is fine.
+     */
+    fun letterColor(mark: Mark, colors: HarfColors): Color = colors.ink
 }
 
 enum class HarfMarkStyleId { Scribble, Fill, Outline }
