@@ -1,8 +1,7 @@
 package uz.abumme.harfgame.feature.settings
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -12,10 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.border
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,14 +26,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import harf_game.sharedui.generated.resources.Res
-import harf_game.sharedui.generated.resources.delete_failed
 import harf_game.sharedui.generated.resources.*
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
@@ -50,7 +46,11 @@ import uz.abumme.harfgame.data.auth.SessionStore
 import uz.abumme.harfgame.data.stats.SyncManager
 import uz.abumme.harfgame.feature.cellstyles.StyleExperimentController
 import uz.abumme.harfgame.feature.cellstyles.StylePreview
+import uz.abumme.harfgame.theme.DangerButton
+import uz.abumme.harfgame.theme.GhostButton
 import uz.abumme.harfgame.theme.LocalHarfColors
+import uz.abumme.harfgame.theme.LocalHarfShapes
+import uz.abumme.harfgame.theme.ScreenTopBar
 import uz.abumme.harfgame.theme.marks.HarfMarkStyleId
 
 /** Public legal document URLs. Update these to the hosted locations before release. */
@@ -60,7 +60,7 @@ private object LegalLinks {
 }
 
 @Composable
-fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}) {
+fun SettingsScreen(onBack: () -> Unit = {}, onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}) {
     val controller = koinInject<StyleExperimentController>()
     val purchases = koinInject<PurchaseController>()
     val entitlements = koinInject<EntitlementRepository>()
@@ -86,114 +86,168 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState())
-            .padding(24.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text(stringResource(Res.string.settings_title), color = colors.ink, fontWeight = FontWeight.Bold, fontSize = 24.sp)
-        Text(stringResource(Res.string.settings_mark_style), color = colors.muted, fontSize = 13.sp)
+        ScreenTopBar(
+            title = stringResource(Res.string.settings_title),
+            backLabel = stringResource(Res.string.action_back),
+            onBack = onBack,
+        )
 
-        for (id in HarfMarkStyleId.entries) {
-            val selected = id == active
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { scope.launch { controller.setFromSettings(id) } }
-                    .border(
-                        width = if (selected) 2.dp else 1.dp,
-                        color = if (selected) colors.accent else colors.rule,
-                        shape = RoundedCornerShape(8.dp),
+        // Appearance — mark style
+        SettingsSection(stringResource(Res.string.settings_mark_style)) {
+            for (id in HarfMarkStyleId.entries) {
+                val selected = id == active
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { scope.launch { controller.setFromSettings(id) } }
+                        .border(
+                            width = if (selected) 2.dp else 1.dp,
+                            color = if (selected) colors.accent else colors.rule,
+                            shape = LocalHarfShapes.current.swatch,
+                        )
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    StylePreview(id)
+                    Text(
+                        id.name,
+                        color = colors.ink,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                        fontSize = 15.sp,
                     )
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                StylePreview(id)
-                Text(
-                    id.name,
-                    color = colors.ink,
-                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                    fontSize = 15.sp,
-                )
+                }
             }
         }
 
-        // Founder status displayed based on actual ownership, independent of store availability
+        // Support / purchases
         if (ents.lifetime) {
             Text(stringResource(Res.string.settings_founder), color = colors.accent, fontWeight = FontWeight.Bold, fontSize = 15.sp)
         }
-
         if (purchases.isAvailable) {
-            OutlinedButton(onClick = onPaywall, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(if (ents.lifetime) Res.string.settings_support_harf_themes else Res.string.settings_support_harf))
-            }
+            GhostButton(
+                stringResource(if (ents.lifetime) Res.string.settings_support_harf_themes else Res.string.settings_support_harf),
+                onPaywall, Modifier.fillMaxWidth(),
+            )
             if (hostedBillingUiSupported) {
-                OutlinedButton(onClick = onCustomerCenter, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(Res.string.settings_manage_purchases))
-                }
+                GhostButton(stringResource(Res.string.settings_manage_purchases), onCustomerCenter, Modifier.fillMaxWidth())
             }
         } else if (!ents.lifetime) {
-            // Desktop/Web guidance: no dead checkout button, clear path to purchase on mobile & sign in
             Text(
                 stringResource(Res.string.founder_desktop_guidance),
-                color = colors.muted,
-                fontSize = 13.sp,
-                modifier = Modifier.padding(vertical = 4.dp),
+                color = colors.muted, fontSize = 13.sp, modifier = Modifier.padding(vertical = 4.dp),
             )
         }
 
-        Text(stringResource(Res.string.settings_account_sync), color = colors.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
-
-        if (session?.isLinked == true) {
-            val linkedName = session?.displayName
-            Text(
-                if (linkedName != null) stringResource(Res.string.settings_signed_in_as, linkedName)
-                else stringResource(Res.string.settings_account_linked),
-                color = colors.accent,
-                fontWeight = FontWeight.Medium,
-                fontSize = 14.sp,
-            )
-            OutlinedButton(
-                onClick = { scope.launch { syncManager.logout() } },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(Res.string.settings_log_out))
-            }
-        } else {
-            // Sign-in yields a token; the actual link is deferred until the user confirms a name in
-            // the dialog below. A cancel/unavailable/failure surfaces as a status message instead.
-            val startSignIn: (OAuthProvider, String, suspend () -> OAuthResult) -> Unit = { provider, label, signIn ->
-                scope.launch {
-                    when (val result = signIn()) {
-                        is OAuthResult.Token -> {
-                            nameInput = result.suggestedName ?: session?.displayName ?: ""
-                            authMessage = null
-                            pendingLink = PendingLink(provider, label, result.idToken, result.nonce)
+        // Account
+        SettingsSection(stringResource(Res.string.settings_account_sync)) {
+            if (session?.isLinked == true) {
+                val linkedName = session?.displayName
+                Text(
+                    if (linkedName != null) stringResource(Res.string.settings_signed_in_as, linkedName)
+                    else stringResource(Res.string.settings_account_linked),
+                    color = colors.accent, fontWeight = FontWeight.Medium, fontSize = 14.sp,
+                )
+                GhostButton(stringResource(Res.string.settings_log_out), { scope.launch { syncManager.logout() } }, Modifier.fillMaxWidth())
+            } else {
+                val startSignIn: (OAuthProvider, String, suspend () -> OAuthResult) -> Unit = { provider, label, signIn ->
+                    scope.launch {
+                        when (val result = signIn()) {
+                            is OAuthResult.Token -> {
+                                nameInput = result.suggestedName ?: session?.displayName ?: ""
+                                authMessage = null
+                                pendingLink = PendingLink(provider, label, result.idToken, result.nonce)
+                            }
+                            OAuthResult.Cancelled -> authMessage = getString(Res.string.signin_cancelled, label)
+                            OAuthResult.NotConfigured -> authMessage = getString(Res.string.signin_unavailable, label)
+                            is OAuthResult.Failed -> {
+                                // Keep the technical cause in logs; show the user a plain recovery message.
+                                println("Sign-in failed ($label): ${result.message}")
+                                authMessage = getString(Res.string.signin_failed, label)
+                            }
                         }
-                        OAuthResult.Cancelled -> authMessage = getString(Res.string.signin_cancelled, label)
-                        OAuthResult.NotConfigured -> authMessage = getString(Res.string.signin_unavailable, label)
-                        is OAuthResult.Failed -> authMessage = getString(Res.string.signin_failed, label, result.message)
                     }
                 }
-            }
-            if (oauthClient.isGoogleSupported) {
-                OutlinedButton(
-                    onClick = { startSignIn(OAuthProvider.GOOGLE, "Google") { oauthClient.signInWithGoogle() } },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(Res.string.settings_link_google))
+                if (oauthClient.isGoogleSupported) {
+                    GhostButton(stringResource(Res.string.settings_link_google), { startSignIn(OAuthProvider.GOOGLE, "Google") { oauthClient.signInWithGoogle() } }, Modifier.fillMaxWidth())
+                }
+                if (oauthClient.isAppleSupported) {
+                    GhostButton(stringResource(Res.string.settings_link_apple), { startSignIn(OAuthProvider.APPLE, "Apple") { oauthClient.signInWithApple() } }, Modifier.fillMaxWidth())
                 }
             }
-            if (oauthClient.isAppleSupported) {
-                OutlinedButton(
-                    onClick = { startSignIn(OAuthProvider.APPLE, "Apple") { oauthClient.signInWithApple() } },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(stringResource(Res.string.settings_link_apple))
-                }
+            authMessage?.let { Text(it, color = colors.muted, fontSize = 13.sp) }
+        }
+
+        // Play Games
+        if (gamesServices.isAvailable) {
+            SettingsSection(stringResource(Res.string.settings_play_games)) {
+                GhostButton(stringResource(Res.string.settings_leaderboards), { gamesServices.showLeaderboards() }, Modifier.fillMaxWidth())
+                GhostButton(stringResource(Res.string.settings_achievements), { gamesServices.showAchievements() }, Modifier.fillMaxWidth())
             }
         }
 
-        authMessage?.let { Text(it, color = colors.muted, fontSize = 13.sp) }
+        // Legal
+        SettingsSection(stringResource(Res.string.settings_legal)) {
+            GhostButton(stringResource(Res.string.settings_privacy_policy), { uriHandler.openUri(LegalLinks.PRIVACY) }, Modifier.fillMaxWidth())
+            GhostButton(stringResource(Res.string.settings_terms_offer), { uriHandler.openUri(LegalLinks.OFFER) }, Modifier.fillMaxWidth())
+        }
+
+        // Danger zone — isolated, using the danger token
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, colors.danger.copy(alpha = 0.4f), LocalHarfShapes.current.container)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                stringResource(Res.string.settings_delete_account).uppercase(),
+                color = colors.danger, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp,
+            )
+            DangerButton(stringResource(Res.string.settings_delete), { deleteError = null; showDeleteConfirm = true }, Modifier.fillMaxWidth())
+        }
+
+        if (showDeleteConfirm) {
+            AlertDialog(
+                onDismissRequest = { if (!deleting) showDeleteConfirm = false },
+                title = { Text(stringResource(Res.string.settings_delete_account)) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(stringResource(Res.string.settings_delete_body))
+                        deleteError?.let { Text(it, color = colors.danger, fontSize = 13.sp) }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = !deleting,
+                        onClick = {
+                            scope.launch {
+                                deleting = true
+                                deleteError = null
+                                when (val result = syncManager.deleteAccount()) {
+                                    is uz.abumme.harfgame.data.api.ApiResult.Success -> showDeleteConfirm = false
+                                    is uz.abumme.harfgame.data.api.ApiResult.Error -> {
+                                        println("Delete account failed: ${result.message}")
+                                        deleteError = getString(Res.string.delete_failed)
+                                    }
+                                }
+                                deleting = false
+                            }
+                        }
+                    ) {
+                        Text(stringResource(if (deleting) Res.string.settings_deleting else Res.string.settings_delete), color = colors.danger)
+                    }
+                },
+                dismissButton = {
+                    TextButton(enabled = !deleting, onClick = { showDeleteConfirm = false }) {
+                        Text(stringResource(Res.string.settings_cancel))
+                    }
+                }
+            )
+        }
 
         pendingLink?.let { link ->
             AlertDialog(
@@ -216,7 +270,10 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
                             scope.launch {
                                 authMessage = when (val r = syncManager.linkAccount(link.provider, link.idToken, link.nonce, confirmedName)) {
                                     is uz.abumme.harfgame.data.api.ApiResult.Success -> getString(Res.string.link_success, link.label)
-                                    is uz.abumme.harfgame.data.api.ApiResult.Error -> getString(Res.string.link_failed, link.label, r.message)
+                                    is uz.abumme.harfgame.data.api.ApiResult.Error -> {
+                                        println("Link account failed (${link.label}): ${r.message}")
+                                        getString(Res.string.link_failed, link.label)
+                                    }
                                 }
                                 pendingLink = null
                             }
@@ -232,76 +289,22 @@ fun SettingsScreen(onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}
                 }
             )
         }
+    }
+}
 
-        if (gamesServices.isAvailable) {
-            Text(stringResource(Res.string.settings_play_games), color = colors.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
-            OutlinedButton(onClick = { gamesServices.showLeaderboards() }, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(Res.string.settings_leaderboards))
-            }
-            OutlinedButton(onClick = { gamesServices.showAchievements() }, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(Res.string.settings_achievements))
-            }
-        }
-
-        Text(stringResource(Res.string.settings_legal), color = colors.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
-        OutlinedButton(
-            onClick = { uriHandler.openUri(LegalLinks.PRIVACY) },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(Res.string.settings_privacy_policy))
-        }
-        OutlinedButton(
-            onClick = { uriHandler.openUri(LegalLinks.OFFER) },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(Res.string.settings_terms_offer))
-        }
-
-        OutlinedButton(
-            onClick = { deleteError = null; showDeleteConfirm = true },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(stringResource(Res.string.settings_delete_account), color = Color(0xFFD32F2F))
-        }
-
-        if (showDeleteConfirm) {
-            AlertDialog(
-                onDismissRequest = { if (!deleting) showDeleteConfirm = false },
-                title = { Text(stringResource(Res.string.settings_delete_account)) },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(stringResource(Res.string.settings_delete_body))
-                        deleteError?.let { Text(it, color = Color(0xFFD32F2F), fontSize = 13.sp) }
-                    }
-                },
-                confirmButton = {
-                    TextButton(
-                        enabled = !deleting,
-                        onClick = {
-                            scope.launch {
-                                deleting = true
-                                deleteError = null
-                                // Only close on confirmed success; on failure keep the dialog open
-                                // with a retryable error and the account/data intact.
-                                when (val result = syncManager.deleteAccount()) {
-                                    is uz.abumme.harfgame.data.api.ApiResult.Success -> showDeleteConfirm = false
-                                    is uz.abumme.harfgame.data.api.ApiResult.Error ->
-                                        deleteError = getString(Res.string.delete_failed, result.message)
-                                }
-                                deleting = false
-                            }
-                        }
-                    ) {
-                        Text(stringResource(if (deleting) Res.string.settings_deleting else Res.string.settings_delete), color = Color(0xFFD32F2F))
-                    }
-                },
-                dismissButton = {
-                    TextButton(enabled = !deleting, onClick = { showDeleteConfirm = false }) {
-                        Text(stringResource(Res.string.settings_cancel))
-                    }
-                }
-            )
-        }
+/** A labeled group: muted uppercase header + a bordered container holding the section's controls. */
+@Composable
+private fun SettingsSection(title: String, content: @Composable () -> Unit) {
+    val c = LocalHarfColors.current
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(title.uppercase(), color = c.muted, fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 0.8.sp)
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .border(1.dp, c.rule, LocalHarfShapes.current.container)
+                .padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) { content() }
     }
 }
 

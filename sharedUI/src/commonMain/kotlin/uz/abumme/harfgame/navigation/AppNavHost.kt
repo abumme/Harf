@@ -46,6 +46,7 @@ fun AppNavHost() {
                 onArchive = { navController.navigate(Archive) },
                 onStats = { navController.navigate(Stats) },
                 onSettings = { navController.navigate(Settings) },
+                onPaywall = { navController.navigate(Paywall) },
             )
         }
         composable<Archive> {
@@ -61,14 +62,16 @@ fun AppNavHost() {
         composable<Game> { entry ->
             GameScreen(
                 languageId = entry.toRoute<Game>().languageId,
+                onBack = { navController.popBackStack() },
                 onPaywall = { navController.navigate(Paywall) },
             )
         }
         composable<Stats> {
-            StatsScreen()
+            StatsScreen(onBack = { navController.popBackStack() })
         }
         composable<Settings> {
             SettingsScreen(
+                onBack = { navController.popBackStack() },
                 onPaywall = { navController.navigate(Paywall) },
                 onCustomerCenter = { navController.navigate(CustomerCenter) },
             )

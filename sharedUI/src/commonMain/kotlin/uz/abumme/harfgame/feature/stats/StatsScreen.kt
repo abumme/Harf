@@ -25,6 +25,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import harf_game.sharedui.generated.resources.Res
+import harf_game.sharedui.generated.resources.action_back
 import harf_game.sharedui.generated.resources.statistics
 import harf_game.sharedui.generated.resources.stats_best
 import harf_game.sharedui.generated.resources.stats_played
@@ -88,28 +89,32 @@ class StatsViewModel(
 }
 
 @Composable
-fun StatsScreen() {
+fun StatsScreen(onBack: () -> Unit = {}) {
     val resultLog = koinInject<ResultLog>()
     val registry = koinInject<LanguageRegistry>()
     val puzzles = koinInject<DailyPuzzleProvider>()
     val vm = viewModel { StatsViewModel(resultLog, registry, puzzles) }
     val state by vm.state.collectAsState()
-    StatsContent(state)
+    StatsContent(state, onBack)
 }
 
 /** Stateless content — previewable with sample entries. */
 @Composable
-fun StatsContent(state: StatsState) {
+fun StatsContent(state: StatsState, onBack: () -> Unit = {}) {
     val c = LocalHarfColors.current
     Column(
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState())
-            .padding(24.dp),
+            .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text(stringResource(Res.string.statistics), color = c.ink, fontWeight = FontWeight.Bold, fontSize = 24.sp)
+        uz.abumme.harfgame.theme.ScreenTopBar(
+            title = stringResource(Res.string.statistics),
+            backLabel = stringResource(Res.string.action_back),
+            onBack = onBack,
+        )
         for (e in state.entries) {
             HorizontalDivider(color = c.rule)
             Text(e.display, color = c.ink, fontWeight = FontWeight.Bold, fontSize = 16.sp)
