@@ -1,9 +1,13 @@
 package uz.abumme.harfgame.billing
 
+import androidx.compose.runtime.Immutable
+
 /** A purchasable item as shown on the paywall (id + display title + localized price). */
+@Immutable
 data class StoreItem(val id: String, val title: String, val priceLabel: String)
 
 /** The products offered: the one-time lifetime unlock and any cosmetic theme packs. */
+@Immutable
 data class Offerings(val lifetime: StoreItem?, val themes: List<StoreItem> = emptyList()) {
     val all: List<StoreItem> get() = listOfNotNull(lifetime) + themes
 }
@@ -13,6 +17,7 @@ data class Offerings(val lifetime: StoreItem?, val themes: List<StoreItem> = emp
  * [lifetime] enables the bundled extras (archive, hard mode, Founder badge);
  * [ownedThemes] are the cosmetic theme entitlement ids the user owns.
  */
+@Immutable
 data class Entitlements(
     val lifetime: Boolean = false,
     val ownedThemes: Set<String> = emptySet(),

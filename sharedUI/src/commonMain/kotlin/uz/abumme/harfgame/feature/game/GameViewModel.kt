@@ -1,5 +1,6 @@
 package uz.abumme.harfgame.feature.game
 
+import androidx.compose.runtime.Immutable
 import uz.abumme.harfgame.core.mvi.BaseViewModel
 import uz.abumme.harfgame.core.mvi.UiAction
 import uz.abumme.harfgame.core.mvi.UiEvent
@@ -15,10 +16,12 @@ import uz.abumme.harfgame.engine.Scorer
 import uz.abumme.harfgame.engine.WordPack
 import uz.abumme.harfgame.feature.daily.DailyPuzzle
 
+@Immutable
 data class GameRow(val graphemes: List<String>, val marks: List<Mark>)
 
 enum class GameStatus { Playing, Won, Lost }
 
+@Immutable
 data class GameState(
     val languageId: String,
     val tileCount: Int,
@@ -56,8 +59,8 @@ class GameViewModel(
     private val puzzle: DailyPuzzle,
     private val pack: WordPack,
     restore: InProgressRound? = null,
-    private val roundKind: RoundKind = restore?.roundKind ?: RoundKind.OFFICIAL,
-    private val hardMode: Boolean = restore?.hardMode ?: false,
+    roundKind: RoundKind = restore?.roundKind ?: RoundKind.OFFICIAL,
+    hardMode: Boolean = restore?.hardMode ?: false,
     private val onFinish: (ResultRecord) -> Unit = {},
 ) : BaseViewModel<GameState, GameAction, GameEvent>(initialState(puzzle, restore, roundKind, hardMode)) {
 

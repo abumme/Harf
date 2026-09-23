@@ -14,6 +14,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -46,6 +47,7 @@ import uz.abumme.harfgame.theme.LocalHarfColors
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
+@Immutable
 data class StatsEntry(
     val languageId: String,
     val display: String,
@@ -53,6 +55,7 @@ data class StatsEntry(
     val streak: StreakStats,
 )
 
+@Immutable
 data class StatsState(val entries: List<StatsEntry> = emptyList()) : UiState
 object StatsNoAction : UiAction
 object StatsNoEvent : UiEvent

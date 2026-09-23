@@ -1,5 +1,6 @@
 package uz.abumme.harfgame.feature.paywall
 
+import androidx.compose.runtime.Immutable
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
 import harf_game.sharedui.generated.resources.Res
@@ -19,6 +20,7 @@ import uz.abumme.harfgame.core.mvi.UiState
 
 enum class PaywallPhase { Loading, Ready, Unavailable }
 
+@Immutable
 data class PaywallState(
     val phase: PaywallPhase = PaywallPhase.Loading,
     val offerings: Offerings? = null,

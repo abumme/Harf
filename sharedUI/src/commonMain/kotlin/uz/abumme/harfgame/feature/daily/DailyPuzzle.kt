@@ -1,5 +1,6 @@
 package uz.abumme.harfgame.feature.daily
 
+import androidx.compose.runtime.Immutable
 import kotlin.time.Clock
 import kotlin.time.Instant
 import uz.abumme.harfgame.data.wordpack.FirstPackSync
@@ -11,6 +12,7 @@ import kotlin.time.Duration.Companion.seconds
 import kotlin.time.ExperimentalTime
 
 /** The word to solve today for one language. */
+@Immutable
 data class DailyPuzzle(
     val languageId: String,
     val epochDay: Long,
