@@ -39,17 +39,19 @@
     <string name="settings_delete_account">Hisobni o'chirish</string>
     <string name="settings_delete_body">Hisobingizni o'chirmoqchimisiz? Barcha serverdagi ma'lumotlar va mahalliy statistika butunlay o'chiriladi.</string>
     <string name="settings_deleting">o'chirilmoqda…</string>
-    <string name="settings_delete">o'chirish</string>
+    <string name="settings_delete">Hisobni o'chirish</string>
     <string name="settings_cancel">Bekor qilish</string>
 
     <string name="link_success">%1$s hisobi bog'landi</string>
-    <string name="link_failed">%1$s hisobini bog'lab bo'lmadi (%2$s)</string>
+    <string name="link_failed">%1$s hisobini bog'lab bo'lmadi. Qayta urinib ko'ring.</string>
     <string name="signin_cancelled">%1$s orqali kirish bekor qilindi</string>
     <string name="signin_unavailable">%1$s orqali kirish hozircha mavjud emas</string>
-    <string name="signin_failed">%1$s orqali kirib bo'lmadi: %2$s</string>
-    <string name="delete_failed">Hisobni o'chirib bo'lmadi (%1$s). Qayta urinib ko'ring.</string>
+    <string name="signin_failed">%1$s orqali kirib bo'lmadi. Qayta urinib ko'ring.</string>
+    <string name="delete_failed">Hisobni o'chirib bo'lmadi. Qayta urinib ko'ring.</string>
 
-    <string name="home_tagline">Har kuni bir so'z jangi</string>
+    <string name="home_tagline">Har kuni bir so'z o'yini</string>
+    <string name="home_play_today">Bugun o'ynash</string>
+    <string name="home_edition">Nashr</string>
     <string name="statistics">Statistika</string>
     <string name="home_theme">Mavzu — %1$s</string>
 
@@ -62,10 +64,11 @@
     <string name="paywall_restored">Xaridlar tiklandi</string>
     <string name="paywall_intro">Harf abadiy bepul — reklama va taymerlarsiz. Bular loyihani qo'llab-quvvatlashning ixtiyoriy usullari.</string>
     <string name="action_close">Yopish</string>
+    <string name="action_back">Orqaga</string>
     <string name="paywall_loading">Yuklanmoqda…</string>
     <string name="paywall_store_unavailable">Do'kon hozircha mavjud emas.</string>
     <string name="action_retry">Qayta urinish</string>
-    <string name="paywall_founder_subtitle">Founder — arxiv, murakkab rejim, nishon</string>
+    <string name="paywall_founder_subtitle">Founder — arxiv, qiyin rejim, nishon</string>
     <string name="paywall_theme_subtitle">Kosmetik mavzu</string>
     <string name="paywall_no_products">Mavjud mahsulotlar yo'q.</string>
     <string name="paywall_restore">Xaridlarni tiklash</string>
@@ -74,25 +77,25 @@
 
     <string name="style_prompt_title">Belgi uslubini tanlang</string>
 
-    <string name="hard_mode_correct_position">%1$d-harf %2$s boʻlishi kerak</string>
-    <string name="hard_mode_present_position">%1$s %2$d-harf boʻla olmaydi</string>
-    <string name="hard_mode_missing_grapheme">Soʻzda %1$s boʻlishi kerak</string>
-    <string name="hard_mode_minimum_count">Soʻzda kamida %1$d ta %2$s boʻlishi kerak</string>
+    <string name="hard_mode_correct_position">%1$d-harf %2$s bo'lishi kerak</string>
+    <string name="hard_mode_present_position">%1$s %2$d-harf bo'la olmaydi</string>
+    <string name="hard_mode_missing_grapheme">So'zda %1$s bo'lishi kerak</string>
+    <string name="hard_mode_minimum_count">So'zda kamida %1$d ta %2$s bo'lishi kerak</string>
 
     <string name="archive_title">Boshqotirmalar arxivi</string>
     <string name="archive_locked_title">Founder Edition talab qilinadi</string>
-    <string name="archive_locked_desc">Harf Founder Edition bilan oʻtgan barcha soʻzlarni qayta oʻynang.</string>
+    <string name="archive_locked_desc">Harf Founder Edition bilan o'tgan barcha so'zlarni qayta o'ynang.</string>
     <string name="archive_unlock_action">Founderni ochish</string>
-    <string name="archive_empty">Hali oʻtgan soʻzlar mavjud emas.</string>
+    <string name="archive_empty">Hali o'tgan so'zlar mavjud emas.</string>
     <string name="archive_day_label">%1$d-kun</string>
-    <string name="archive_replay">Qayta oʻynash</string>
+    <string name="archive_replay">Qayta o'ynash</string>
     <string name="archive_completed">Tugatilgan</string>
 
     <string name="founder_title">Founder nashri</string>
     <string name="founder_one_time">Bir martalik xarid · Cheksiz kirish</string>
-    <string name="founder_feature_archive">Cheksiz soʻzlar arxivi</string>
-    <string name="founder_feature_hard_mode">Qiyin oʻyin rejimi</string>
-    <string name="founder_feature_future">Barcha kelgusi qoʻshimchalar kiritilgan</string>
+    <string name="founder_feature_archive">Cheksiz so'zlar arxivi</string>
+    <string name="founder_feature_hard_mode">Qiyin rejim</string>
+    <string name="founder_feature_future">Barcha kelgusi qo'shimchalar kiritilgan</string>
     <string name="founder_desktop_guidance">Founder nashri mobil ilovada (Android va iOS) xarid qilinadi. Ushbu qurilmada faollashtirish uchun tizimga kiring.</string>
     <string name="game_hard_mode">Qiyin rejim</string>
     <string name="game_hard_mode_short">Qiyin</string>

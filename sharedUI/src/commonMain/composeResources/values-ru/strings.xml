@@ -39,17 +39,19 @@
     <string name="settings_delete_account">Удалить аккаунт</string>
     <string name="settings_delete_body">Вы уверены, что хотите удалить аккаунт? Все серверные данные и локальная статистика будут удалены безвозвратно.</string>
     <string name="settings_deleting">Удаление…</string>
-    <string name="settings_delete">Удалить</string>
+    <string name="settings_delete">Удалить аккаунт</string>
     <string name="settings_cancel">Отмена</string>
 
     <string name="link_success">Аккаунт %1$s привязан</string>
-    <string name="link_failed">Не удалось привязать аккаунт %1$s (%2$s)</string>
+    <string name="link_failed">Не удалось привязать аккаунт %1$s. Попробуйте ещё раз.</string>
     <string name="signin_cancelled">Вход через %1$s отменён</string>
     <string name="signin_unavailable">Вход через %1$s пока недоступен</string>
-    <string name="signin_failed">Не удалось войти через %1$s: %2$s</string>
-    <string name="delete_failed">Не удалось удалить аккаунт (%1$s). Попробуйте ещё раз.</string>
+    <string name="signin_failed">Не удалось войти через %1$s. Попробуйте ещё раз.</string>
+    <string name="delete_failed">Не удалось удалить аккаунт. Попробуйте ещё раз.</string>
 
-    <string name="home_tagline">Ежедневная словесная дуэль</string>
+    <string name="home_tagline">Ежедневная игра в слова</string>
+    <string name="home_play_today">Играть сегодня</string>
+    <string name="home_edition">Издание</string>
     <string name="statistics">Статистика</string>
     <string name="home_theme">Тема — %1$s</string>
 
@@ -62,6 +64,7 @@
     <string name="paywall_restored">Покупки восстановлены</string>
     <string name="paywall_intro">Harf бесплатен навсегда — без рекламы и таймеров. Это необязательные способы поддержать проект.</string>
     <string name="action_close">Закрыть</string>
+    <string name="action_back">Назад</string>
     <string name="paywall_loading">Загрузка…</string>
     <string name="paywall_store_unavailable">Магазин сейчас недоступен.</string>
     <string name="action_retry">Повторить</string>

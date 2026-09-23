@@ -39,17 +39,19 @@
     <string name="settings_delete_account">Delete Account</string>
     <string name="settings_delete_body">Are you sure you want to delete your account? All server-side data and local stats will be permanently removed.</string>
     <string name="settings_deleting">Deleting…</string>
-    <string name="settings_delete">Delete</string>
+    <string name="settings_delete">Delete account</string>
     <string name="settings_cancel">Cancel</string>
 
     <string name="link_success">%1$s account linked</string>
-    <string name="link_failed">Couldn\'t link %1$s account (%2$s)</string>
+    <string name="link_failed">Couldn\'t link your %1$s account. Please try again.</string>
     <string name="signin_cancelled">%1$s sign-in cancelled</string>
     <string name="signin_unavailable">%1$s sign-in isn\'t available yet</string>
-    <string name="signin_failed">%1$s sign-in failed: %2$s</string>
-    <string name="delete_failed">Couldn\'t delete your account (%1$s). Please try again.</string>
+    <string name="signin_failed">Couldn\'t sign in with %1$s. Please try again.</string>
+    <string name="delete_failed">Couldn\'t delete your account. Please try again.</string>
 
-    <string name="home_tagline">A daily word duel</string>
+    <string name="home_tagline">A daily word puzzle</string>
+    <string name="home_play_today">Play today</string>
+    <string name="home_edition">Edition</string>
     <string name="statistics">Statistics</string>
     <string name="home_theme">Theme — %1$s</string>
 
@@ -62,6 +64,7 @@
     <string name="paywall_restored">Purchases restored</string>
     <string name="paywall_intro">Harf is free forever — no ads, no timers. These are optional ways to support it.</string>
     <string name="action_close">Close</string>
+    <string name="action_back">Back</string>
     <string name="paywall_loading">Loading…</string>
     <string name="paywall_store_unavailable">Store unavailable right now.</string>
     <string name="action_retry">Retry</string>
