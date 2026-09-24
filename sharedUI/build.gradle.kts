@@ -132,25 +132,43 @@ tasks.withType<Test>().configureEach {
     }
 }
 
-// RevenueCat public SDK keys come from local.properties (gitignored) or a -P gradle property,
+// RevenueCat public SDK keys come from -P gradle property or local.properties (gitignored),
 // never from committed source. Blank => purchases report Unavailable, no crash.
 val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
 fun rcKey(name: String): String =
-    localProps.getProperty(name) ?: providers.gradleProperty(name).orNull ?: ""
+    providers.gradleProperty(name).orNull ?: localProps.getProperty(name) ?: ""
 
 // A release build must never ship a RevenueCat Test Store / placeholder key. Real public SDK keys
 // start with a store prefix (goog_ / appl_); a blank key is allowed (purchases report Unavailable).
-val isReleaseBuild = gradle.startParameter.taskNames.any {
-    it.contains("Release", ignoreCase = true)
+val xcodeConfig = System.getenv("CONFIGURATION")
+val isXcodeRelease = xcodeConfig?.equals("Release", ignoreCase = true) == true
+val releaseTasks = gradle.startParameter.taskNames.filter { it.contains("Release", ignoreCase = true) }
+val isAnyReleaseTask = releaseTasks.isNotEmpty() || isXcodeRelease
+
+fun isReleaseForTarget(target: String): Boolean {
+    if (!isAnyReleaseTask) return false
+    if (isXcodeRelease) {
+        return target == "ios"
+    }
+    val hasTargetTask = releaseTasks.any { it.contains(target, ignoreCase = true) }
+    val hasOtherTargetTask = releaseTasks.any {
+        when (target) {
+            "android" -> it.contains("ios", ignoreCase = true) || it.contains("apple", ignoreCase = true)
+            "ios" -> it.contains("android", ignoreCase = true)
+            else -> false
+        }
+    }
+    return if (hasOtherTargetTask && !hasTargetTask) false else true
 }
-fun rcReleaseKey(name: String, prodPrefix: String): String {
+
+fun rcReleaseKey(name: String, prodPrefix: String, target: String): String {
     val value = rcKey(name)
-    if (isReleaseBuild && value.isNotBlank() && !value.startsWith(prodPrefix)) {
+    if (isReleaseForTarget(target) && value.isNotBlank() && !value.startsWith(prodPrefix)) {
         error(
-            "Refusing release build: '$name' is not a production RevenueCat key " +
+            "Refusing release build for $target: '$name' is not a production RevenueCat key " +
                 "(expected it to start with '$prodPrefix', e.g. a real public SDK key). " +
                 "Test Store / placeholder keys must not ship in a release. Use a real key or leave it blank."
         )
@@ -164,10 +182,10 @@ fun rcReleaseKey(name: String, prodPrefix: String): String {
 val localBackend = gradle.startParameter.taskNames.any { it.contains("Local", ignoreCase = true) }
 fun apiBaseUrl(): String {
     val prodDefault = "https://api.lazydevs.uz/harf"
-    val value = (localProps.getProperty("harf.apiBaseUrl")
-        ?: providers.gradleProperty("harf.apiBaseUrl").orNull
+    val value = (providers.gradleProperty("harf.apiBaseUrl").orNull
+        ?: localProps.getProperty("harf.apiBaseUrl")
         ?: "").ifBlank { if (localBackend) "http://localhost:8080" else prodDefault }
-    if (isReleaseBuild) {
+    if (isAnyReleaseTask) {
         require(value.startsWith("https://")) { "Release API base URL must be HTTPS: '$value'." }
         val host = value.removePrefix("https://").substringBefore('/').substringBefore(':')
         require(host !in setOf("localhost", "127.0.0.1", "10.0.2.2")) {
@@ -181,8 +199,8 @@ fun apiBaseUrl(): String {
 // backend audience. This is a PUBLIC id (it ships in the app), overridable via `-Pgoogle.serverClientId`
 // or local.properties. Blank => Google sign-in reports NotConfigured (no crash).
 fun googleServerClientId(): String =
-    localProps.getProperty("google.serverClientId")
-        ?: providers.gradleProperty("google.serverClientId").orNull
+    providers.gradleProperty("google.serverClientId").orNull
+        ?: localProps.getProperty("google.serverClientId")
         ?: "508164918683-9rce0g2mrjqn9pcshk33kdf870rg1hua.apps.googleusercontent.com"
 
 buildConfig {
@@ -194,10 +212,10 @@ buildConfig {
     buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"${googleServerClientId()}\"")
 
     sourceSets.named("androidMain") {
-        buildConfigField("REVENUECAT_KEY", rcReleaseKey("revenuecat.androidKey", "goog_"))
+        buildConfigField("REVENUECAT_KEY", rcReleaseKey("revenuecat.androidKey", "goog_", "android"))
     }
     sourceSets.named("iosMain") {
-        buildConfigField("REVENUECAT_KEY", rcReleaseKey("revenuecat.iosKey", "appl_"))
+        buildConfigField("REVENUECAT_KEY", rcReleaseKey("revenuecat.iosKey", "appl_", "ios"))
     }
 }
 

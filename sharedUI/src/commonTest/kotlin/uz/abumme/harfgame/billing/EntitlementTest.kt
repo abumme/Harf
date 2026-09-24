@@ -32,9 +32,11 @@ class EntitlementTest {
     @Test
     fun offline_shows_cached() = runTest {
         val settings = freshSettings()
-        settings.cacheEntitlements(Entitlements(lifetime = true, ownedThemes = setOf("theme_dusk")))
-        // an unavailable controller (offline / desktop) — repo must show the cached state
+        val ownerId = "user_123"
+        settings.cacheEntitlements(Entitlements(lifetime = true, ownedThemes = setOf("theme_dusk")), ownerId)
+        // an unavailable controller (offline / desktop) — repo must show the cached state for the signed-in account
         val repo = EntitlementRepository(FakePurchaseController(isAvailable = false), settings)
+        repo.onAccountChanged(ownerId)
         assertTrue(repo.entitlements.value.lifetime)
         assertTrue(repo.entitlements.value.ownsTheme("theme_dusk"))
     }
