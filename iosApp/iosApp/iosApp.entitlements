@@ -2,13 +2,9 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>CFBundleLocalizations</key>
+	<key>com.apple.developer.applesignin</key>
 	<array>
-		<string>en</string>
-		<string>ru</string>
-		<string>uz</string>
+		<string>Default</string>
 	</array>
 </dict>
 </plist>
