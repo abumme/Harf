@@ -132,14 +132,18 @@ tasks.withType<Test>().configureEach {
     }
 }
 
-// RevenueCat public SDK keys come from -P gradle property or local.properties (gitignored),
-// never from committed source. Blank => purchases report Unavailable, no crash.
+// RevenueCat public SDK keys come from -P gradle property, revenuecat.properties or local.properties
+// (both gitignored), never from committed source. Blank => purchases report Unavailable, no crash.
 val localProps = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) f.inputStream().use { load(it) }
 }
+val rcProps = Properties().apply {
+    val f = rootProject.file("revenuecat.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
 fun rcKey(name: String): String =
-    providers.gradleProperty(name).orNull ?: localProps.getProperty(name) ?: ""
+    providers.gradleProperty(name).orNull ?: rcProps.getProperty(name) ?: localProps.getProperty(name) ?: ""
 
 // A release build must never ship a RevenueCat Test Store / placeholder key. Real public SDK keys
 // start with a store prefix (goog_ / appl_); a blank key is allowed (purchases report Unavailable).
@@ -164,8 +168,10 @@ fun isReleaseForTarget(target: String): Boolean {
     return if (hasOtherTargetTask && !hasTargetTask) false else true
 }
 
+// `revenuecat.testKey` (a Test Store key) stands in for a missing store key in dev builds only —
+// a release never falls back to it, so a forgotten store key ships as blank, not as a test key.
 fun rcReleaseKey(name: String, prodPrefix: String, target: String): String {
-    val value = rcKey(name)
+    val value = rcKey(name).ifBlank { if (isReleaseForTarget(target)) "" else rcKey("revenuecat.testKey") }
     if (isReleaseForTarget(target) && value.isNotBlank() && !value.startsWith(prodPrefix)) {
         error(
             "Refusing release build for $target: '$name' is not a production RevenueCat key " +
@@ -244,4 +250,16 @@ tasks.register<JavaExec>("refreshCalendarSnapshot") {
     args(apiBaseUrl(), output.absolutePath, resources.absolutePath)
     // The output is the network's answer: never up to date.
     outputs.upToDateWhen { false }
+}
+
+// Prints which RevenueCat key each mobile target would compile in (values masked).
+tasks.register("rcKeyReport") {
+    group = "harf"
+    val android = rcReleaseKey("revenuecat.androidKey", "goog_", "android")
+    val ios = rcReleaseKey("revenuecat.iosKey", "appl_", "ios")
+    doLast {
+        fun mask(v: String) = if (v.isBlank()) "<blank — purchases unavailable>" else v.take(5) + "…"
+        println("android: ${mask(android)}")
+        println("ios:     ${mask(ios)}")
+    }
 }

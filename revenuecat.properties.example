@@ -1,0 +1,11 @@
+# RevenueCat public SDK keys. Copy to `revenuecat.properties` (gitignored) and fill in.
+# Resolution order per key: -P gradle property > revenuecat.properties > local.properties.
+# Blank everywhere => purchases report Unavailable (no crash, cosmetics stay free).
+
+# Production store keys (RevenueCat -> Project -> API Keys). Required for release builds.
+revenuecat.iosKey=appl_xxxxxxxxxxxxxxxxxxxxxxxx
+revenuecat.androidKey=goog_xxxxxxxxxxxxxxxxxxxxxxxx
+
+# Test Store key. Used only when the platform key above is missing, and only in non-release
+# builds — a release with a test key is refused by the build, and never falls back to this.
+revenuecat.testKey=test_xxxxxxxxxxxxxxxxxxxxxxxx

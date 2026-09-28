@@ -54,6 +54,9 @@ build/
 # Local configuration file (sdk path, etc)
 local.properties
 
+# RevenueCat public SDK keys (see revenuecat.properties.example)
+revenuecat.properties
+
 # Deployment secrets
 .env
 
