@@ -165,15 +165,28 @@ Har kuni bitta soʻz. Ertaga yana yangisini toping!
 
 Если в приложении активируется монетизация через RevenueCat, в App Store Connect создаются покупки типа **Non-Consumable** (Нерасходуемые):
 
-| Product ID | Название (RU / EN) | Тип | Описание |
-|---|---|---|---|
-| `harf_lifetime` | Founder's Edition / Набор основателя | Non-Consumable | Открывает все темы оформления и будущие дополнения навсегда |
-| `theme_dusk` | Dusk Theme / Тема "Закат" | Non-Consumable | Тёмная палитра оформления |
-| `theme_sepia` | Sepia Theme / Тема "Сепия" | Non-Consumable | Тёплая книжная палитра оформления |
-| `theme_forest` | Forest Theme / Тема "Лес" | Non-Consumable | Зелёная палитра оформления |
-| `theme_nord` | Nord Theme / Тема "Норд" | Non-Consumable | Холодная арктическая палитра оформления |
-| `theme_matrix` | Matrix Theme / Тема "Матрица" | Non-Consumable | Зелёно-чёрный ретро-стиль |
-| `theme_solar` | Solar Theme / Тема "Солнечная" | Non-Consumable | Яркая контрастная палитра |
+| Product ID | Название (RU / EN) | Тип | Entitlement в RevenueCat | Описание |
+|---|---|---|---|---|
+| `harf_founder` | Founder's Edition / Набор основателя | Non-Consumable | `harf_founder` | Архив прошлых дней, hard mode, бейдж основателя |
+| `theme_press` | Press Red / Тема «Press Red» | Non-Consumable | `theme_press` | Косметическая палитра |
+| `theme_ink` | Ink / Тема «Ink» | Non-Consumable | `theme_ink` | Косметическая палитра |
+| `theme_blueprint` | Blueprint / Тема «Blueprint» | Non-Consumable | `theme_blueprint` | Косметическая палитра |
+| `theme_schoolbook` | Schoolbook / Тема «Schoolbook» | Non-Consumable | `theme_schoolbook` | Косметическая палитра |
+
+### 5.1. Локализация продуктов — English (U.S.)
+
+Display Name ≤ 30 символов, Description ≤ 55 символов (лимиты ASC).
+
+| Product ID | Display Name (en) | Description (en) |
+|---|---|---|
+| `harf_founder` | `Founder Edition` (15) | `Past puzzles, hard mode and a founder badge.` (44) |
+| `theme_press` | `Press Red Theme` (15) | `Press Red colour theme for the game board.` (42) |
+| `theme_ink` | `Ink Theme` (9) | `Ink colour theme for the game board.` (36) |
+| `theme_blueprint` | `Blueprint Theme` (15) | `Blueprint colour theme for the game board.` (42) |
+| `theme_schoolbook` | `Schoolbook Theme` (16) | `Schoolbook colour theme for the game board.` (43) |
+
+Палитра `newsprint` — всегда бесплатная (`EntitlementGate.FREE_PALETTE`), продукта для неё нет.
+Пошаговая настройка ASC + RevenueCat: `docs/store/iap-setup.md`.
 
 ---
 
