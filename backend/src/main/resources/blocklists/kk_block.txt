@@ -1,3 +1,28 @@
 # Offensive-word blocklist — words that must never ship as an answer or guess.
 # One word per line (lowercase). Native reviewers extend this per language.
 # Enforced by WordPackRepository.validate() and the WordPackTest integrity check.
+# Profanity found in the 2026-09-16 review of the generated guess dictionary (pending native review); kept identical
+# to the app blocklist entries so these are rejected as suggestions too.
+жәлеп
+жәләп
+көтке
+көтте
+көтті
+перді
+перер
+персе
+перуі
+періп
+періс
+# Slurs and profanity found in the 2026-09-25 scan of the generated guess dictionary (owner-approved,
+# borderline included); removed from the guess dictionary and rejected as suggestions too.
+боқта
+боқты
+боқша
+боққа
+көтен
+көтім
+көтің
+сігіс
+нәжіс
+шешең
