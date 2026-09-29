@@ -15,6 +15,9 @@ dependencies {
     // The app's own Normalizer / Tokenizer / LaunchLanguages (shared with the server), so generated words tokenize exactly as in play.
     implementation(project(":sharedData"))
     implementation(libs.kotlinx.serialization.json)
+    // Hunspell dictionaries (spell check against the Kazakh one) and word counts from FineWeb-2's Parquet files.
+    implementation(libs.lucene.analysis.common)
+    implementation(libs.duckdb.jdbc)
 
     testImplementation(kotlin("test"))
 }

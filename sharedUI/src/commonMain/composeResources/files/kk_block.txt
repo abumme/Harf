@@ -1,3 +1,33 @@
 # Offensive-word blocklist — words that must never ship as an answer or guess.
 # One word per line (lowercase). Native reviewers extend this per language.
 # Enforced by WordPackRepository.validate() and the WordPackTest integrity check.
+# Not words: broken forms from Wiktionary's conjugation tables (таныа for таный), found in the 2026-09-16 review of
+# the generated guess dictionary (tools/wordlists). Also never shipped; the builder drops them on every rebuild.
+азайа
+қақаа
+таныа
+# Profanity whose Wiktionary entries also carry ordinary senses, so the dictionary rules keep them.
+# From the 2026-09-16 offensive-label scan of the generated guess dictionary; pending native review.
+жәлеп
+жәләп
+көтке
+көтте
+көтті
+перді
+перер
+персе
+перуі
+періп
+періс
+# Slurs and profanity found in the 2026-09-25 scan of the generated guess dictionary (owner-approved,
+# borderline included); removed from the guess dictionary and rejected as suggestions too.
+боқта
+боқты
+боқша
+боққа
+көтен
+көтім
+көтің
+сігіс
+нәжіс
+шешең

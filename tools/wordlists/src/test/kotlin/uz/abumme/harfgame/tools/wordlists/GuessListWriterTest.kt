@@ -68,6 +68,31 @@ class GuessListWriterTest {
     }
 
     @Test
+    fun headerNamesEveryExtraSource() {
+        writer().write("kk", setOf("қалам"), extraSources = listOf("hunspell-kk (MPL 1.1)", "FineWeb-2 (ODC-By 1.0)"))
+
+        val header = backend("kk_guess.txt").readText().lines().takeWhile { it.startsWith("#") }.joinToString("\n")
+        for (part in listOf("Wiktionary", "hunspell-kk (MPL 1.1)", "FineWeb-2 (ODC-By 1.0)")) {
+            assertTrue(part in header, "missing '$part' in:\n$header")
+        }
+    }
+
+    @Test
+    fun spellingVariantsOfOneWordAreWrittenOnce() {
+        // A previous word typed with an ASCII apostrophe or a capital is the same word as its canonical spelling.
+        put(backend("uz-latn_guess.txt"), "o'rdak\nKitob\n")
+        put(bundled("uz-latn_guess.txt"), "o‘rdak\nkitob\n")
+        put(backend("uz-latn_answers.txt"), "Oʻrdak\n")
+
+        writer().write("uz-latn", setOf("oʻrdak", "kitob"))
+
+        val guesses = words(backend("uz-latn_guess.txt"))
+        assertEquals(1, guesses.count { it == "oʻrdak" }, "$guesses")
+        assertEquals(1, guesses.count { it == "kitob" }, "$guesses")
+        assertTrue(guesses.none { it in setOf("o'rdak", "o‘rdak", "Oʻrdak", "Kitob") }, "$guesses")
+    }
+
+    @Test
     fun aPreviousWordOutsideTodaysFiltersIsStillKept() {
         put(backend("en_guess.txt"), "zzz\n")
         put(bundled("en_guess.txt"), "zzz\n")

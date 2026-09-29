@@ -99,6 +99,74 @@ class WordListBuilderTest {
     }
 
     @Test
+    fun uzbekPossessivesEndingInDoubleIAreDropped() {
+        // Wiktionary's declension table writes the possessive of teri (skin) as terii; Uzbek spells it terisi.
+        dump(
+            "Uzbek",
+            """{"word":"teri","lang":"Uzbek","pos":"noun","senses":[{"glosses":["skin"]}],""" +
+                """"forms":[{"form":"terii","tags":["nominative","possessive","singular"]}]}""",
+            """{"word":"kitob","lang":"Uzbek","pos":"noun","senses":[{"glosses":["book"]}]}""",
+        )
+
+        WordListBuilder.build("uz", dumps, writer())
+
+        assertTrue("terii" !in words("uz-latn"), "broken possessive: ${words("uz-latn")}")
+        assertTrue("терии" !in words("uz-cyrl"), "its transliteration: ${words("uz-cyrl")}")
+        assertTrue("kitob" in words("uz-latn") && "китоб" in words("uz-cyrl"))
+    }
+
+    private fun resourceDir(name: String): Path = Path.of(javaClass.getResource("/$name")!!.toURI())
+
+    private fun copyResources(from: String, to: Path) {
+        to.createDirectories()
+        resourceDir(from).toFile().listFiles()!!.forEach { it.copyTo(to.resolve(it.name).toFile()) }
+    }
+
+    @Test
+    fun kazakhAddsCorpusWordsTheHunspellDictionaryAccepts() {
+        dump("Kazakh", """{"word":"кітап","lang":"Kazakh","pos":"noun","senses":[{"glosses":["book"]}]}""")
+        copyResources("hunspell", dumps.resolve("hunspell-kk"))
+        dumps.resolve("hunspell-kk/kk.aff").toFile().renameTo(dumps.resolve("hunspell-kk/kk_KZ.aff").toFile())
+        dumps.resolve("hunspell-kk/kk.dic").toFile().renameTo(dumps.resolve("hunspell-kk/kk_KZ.dic").toFile())
+        dumps.resolve("fineweb-2").createDirectories()
+        dumps.resolve("fineweb-2/kaz_Cyrl.counts.tsv").writeText(
+            "ұлдар\t900\nҰлдар\t100\n" + // an inflected form (ұл + дар)
+                "Асқар\t950\nасқар\t50\n" + // a name: the dictionary lists it, but it's written with a capital
+                "терек\t900\n" + // written, but the dictionary doesn't know it
+                "қала\t900\n" // 4 letters
+        )
+
+        val reports = WordListBuilder.build("kk", dumps, writer())
+
+        assertEquals(listOf("кітап", "ұлдар"), words("kk"))
+        assertEquals(mapOf("Wiktionary" to 1, "hunspell-kk + FineWeb-2" to 1), reports.single().sourceWords)
+    }
+
+    @Test
+    fun uzbekAddsInflectedLemmasTheCorpusAttestsInBothScripts() {
+        dump("Uzbek", """{"word":"kitob","lang":"Uzbek","pos":"noun","senses":[{"glosses":["book"]}]}""")
+        copyResources("uzbek-lemmas", dumps.resolve("uzbek-lemmas/csv/CSV_files"))
+        dumps.resolve("uzbek-lemmas/csv/CSV_files/Verbs.csv").writeText("kel,kel\nyoz,yoz\n")
+        dumps.resolve("fineweb-2").createDirectories()
+        dumps.resolve("fineweb-2/uzn_Latn.counts.tsv").writeText(
+            "uylar\t900\n" + // uy + plural
+                "keldi\t900\n" + // kel + past
+                "yozdim\t900\n" + // 6 Latin tiles, 5 Cyrillic: ёздим
+                "uyxon\t900\n" + // written, but no lemma generates it
+                "abgor\t3\n" // a lemma, too rare to trust
+        )
+
+        WordListBuilder.build("uz", dumps, writer())
+
+        val latin = words("uz-latn")
+        val cyrillic = words("uz-cyrl")
+        assertTrue(listOf("kitob", "uylar", "keldi").all { it in latin }, "$latin")
+        assertTrue(listOf("yozdim", "uyxon", "abgor", "uyning").none { it in latin }, "$latin")
+        assertTrue(listOf("китоб", "уйлар", "келди", "ёздим").all { it in cyrillic }, "$cyrillic")
+        assertTrue("абгор" !in cyrillic, "$cyrillic")
+    }
+
+    @Test
     fun aMissingDumpSaysWhereToDownloadIt() {
         val error = assertFailsWith<IllegalArgumentException> { WordListBuilder.build("kk", dumps, writer()) }
         assertTrue("https://kaikki.org/dictionary/Kazakh/kaikki.org-dictionary-Kazakh.jsonl" in error.message.orEmpty(), error.message)

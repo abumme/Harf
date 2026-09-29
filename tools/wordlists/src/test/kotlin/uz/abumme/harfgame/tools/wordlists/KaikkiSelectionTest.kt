@@ -89,11 +89,34 @@ class KaikkiSelectionTest {
     }
 
     @Test
-    fun anAbbreviationOrMisspellingSenseDropsTheWordEvenBesideOrdinarySenses() {
-        for (tag in listOf("abbreviation", "acronym", "initialism", "misspelling")) {
+    fun ordinaryWordWithAnAbbreviationSenseIsKept() {
+        // Russian общий: ordinary senses plus a slang clipping of общежитие.
+        assertTrue("общий" in EntryFilter.candidates(fixture("one-abbreviation-sense")))
+        for (tag in listOf("abbreviation", "acronym", "initialism")) {
             val mixed = entry("""{"word":"xxxxx","lang":"English","pos":"noun","senses":${senses("", tag)}}""")
-            assertEquals(emptyList(), EntryFilter.candidates(mixed), tag)
+            assertEquals(listOf("xxxxx"), EntryFilter.candidates(mixed), tag)
         }
+    }
+
+    @Test
+    fun wordWhoseEverySenseIsAnAbbreviationIsDropped() {
+        for (tag in listOf("abbreviation", "acronym", "initialism")) {
+            val abbreviation = entry("""{"word":"xxxxx","lang":"English","pos":"noun","senses":${senses(tag, tag)}}""")
+            assertEquals(emptyList(), EntryFilter.candidates(abbreviation), tag)
+        }
+    }
+
+    @Test
+    fun abbreviationTagOnTheEntryItselfDropsTheWord() {
+        val abbreviation = entry("""{"word":"xxxxx","lang":"English","pos":"noun","tags":["initialism"],"senses":${senses("", "")}}""")
+        assertEquals(emptyList(), EntryFilter.candidates(abbreviation))
+    }
+
+    @Test
+    fun aMisspellingSenseDropsTheWordEvenBesideOrdinarySenses() {
+        // English theif: an obsolete spelling of thief, and a misspelling of it.
+        val mixed = entry("""{"word":"xxxxx","lang":"English","pos":"noun","senses":${senses("", "misspelling")}}""")
+        assertEquals(emptyList(), EntryFilter.candidates(mixed))
     }
 
     @Test

@@ -1,6 +1,8 @@
 package uz.abumme.harfgame.engine
 
+import harf_game.sharedui.generated.resources.Res
 import kotlinx.coroutines.test.runTest
+import org.jetbrains.compose.resources.ExperimentalResourceApi
 import uz.abumme.harfgame.lang.LanguageRegistry
 import uz.abumme.harfgame.lang.UzbekDailyWords
 import kotlin.test.Test
@@ -28,6 +30,20 @@ class WordPackTest {
         for (id in languages) {
             val errors = repo.validate(id)
             assertEquals(emptyList(), errors, "pack '$id' integrity")
+        }
+    }
+
+    @OptIn(ExperimentalResourceApi::class)
+    @Test
+    fun guess_dictionaries_list_each_word_once_in_its_canonical_spelling() = runTest {
+        for (id in languages) {
+            val tok = registry.tokenizer(id)!!
+            val lines = Res.readBytes("files/${id}_guess.txt").decodeToString().lines()
+                .map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }
+            val notCanonical = lines.filter { tok.tokenize(it)?.joinToString("") != it }
+            assertEquals(emptyList(), notCanonical.take(20), "$id guesses not in canonical spelling")
+            val duplicates = lines.groupingBy { tok.tokenize(it) }.eachCount().filterValues { it > 1 }.keys
+            assertEquals(emptyList(), duplicates.take(20).map { it?.joinToString("") }, "$id duplicate guesses")
         }
     }
 
