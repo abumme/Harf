@@ -73,6 +73,9 @@ class RevenueCatPurchaseController(apiKey: String) : PurchaseController {
             }
             OfferingsResult.Available(Offerings(lifetime = lifetime, themes = themes))
         } catch (e: PurchasesException) {
+            // An empty paywall is indistinguishable from a broken one on a device: the store's own
+            // reason reaches nothing otherwise, and chasing it cost a day once.
+            println("Harf/billing: offerings failed: ${e.code} ${e.message}")
             OfferingsResult.Unavailable
         }
     }
