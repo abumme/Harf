@@ -46,6 +46,7 @@ import harf_game.sharedui.generated.resources.paywall_owned
 import harf_game.sharedui.generated.resources.paywall_purchased
 import harf_game.sharedui.generated.resources.paywall_restore
 import harf_game.sharedui.generated.resources.paywall_restored
+import harf_game.sharedui.generated.resources.paywall_store_unavailable
 import harf_game.sharedui.generated.resources.paywall_theme_subtitle
 import harf_game.sharedui.generated.resources.settings_support_harf
 import kotlinx.coroutines.delay
@@ -56,6 +57,7 @@ import uz.abumme.harfgame.billing.Entitlements
 import uz.abumme.harfgame.billing.Offerings
 import uz.abumme.harfgame.billing.PurchaseController
 import uz.abumme.harfgame.billing.StoreItem
+import uz.abumme.harfgame.billing.hostedBillingUiSupported
 import uz.abumme.harfgame.theme.GhostButton
 import uz.abumme.harfgame.theme.HarfTheme
 import uz.abumme.harfgame.theme.LocalHarfColors
@@ -149,7 +151,14 @@ fun PaywallContent(
                         Text("• " + stringResource(Res.string.founder_feature_hard_mode), color = colors.ink, fontSize = 14.sp)
                         Text("• " + stringResource(Res.string.founder_feature_future), color = colors.ink, fontSize = 14.sp)
                         Spacer(Modifier.height(8.dp))
-                        Text(stringResource(Res.string.founder_desktop_guidance), color = colors.muted, fontSize = 13.sp)
+                        // A store-less platform is told where to buy; on Android/iOS the store itself is down.
+                        Text(
+                            stringResource(
+                                if (hostedBillingUiSupported) Res.string.paywall_store_unavailable
+                                else Res.string.founder_desktop_guidance
+                            ),
+                            color = colors.muted, fontSize = 13.sp,
+                        )
                     }
                 }
 
