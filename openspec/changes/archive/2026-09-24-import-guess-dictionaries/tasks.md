@@ -26,4 +26,4 @@
 
 - [x] 5.1 Add the Wiktionary CC BY-SA credit to `docs/legal/offer-{en,kk,ru,tr,uz}.md` and create `THIRD_PARTY_NOTICES.md` (source, Wiktextract via kaikki.org, license, dump date); verify by reading the rendered text in each locale.
 - [x] 5.2 Run the full backend suite, `:sharedUI:jvmTest` (the 7 known local screenshot/semantics failures excepted) and `openspec validate import-guess-dictionaries --strict`; all pass.
-- [ ] 5.3 After deploy, confirm each changed language's server pack version advanced exactly once and a synced client accepts a previously rejected inflected form (e.g. `книги`).
+- [x] 5.3 After deploy, confirm each changed language's server pack version advanced exactly once and a synced client accepts a previously rejected inflected form (e.g. `книги`).
