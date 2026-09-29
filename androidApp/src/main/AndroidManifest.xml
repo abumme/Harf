@@ -1,10 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- allowBackup is off until the session store is split out (openspec: split-ksafe-session-store):
+         every durable value lives in one KSafe store encrypted under a non-exportable Keystore key,
+         so a restore on another device finds orphaned ciphertext, drops it, and silently resets stats
+         and the streak to their defaults. -->
     <application
         android:name=".HarfApplication"
         android:icon="@mipmap/ic_launcher"
-        android:label="Harf Game"
+        android:label="Harf"
+        android:allowBackup="false"
         android:theme="@android:style/Theme.Material.NoActionBar">
         <!-- Play Games Services app id (from sharedUI games-ids.xml, merged at build). -->
         <meta-data
