@@ -45,6 +45,7 @@ fun main(args: Array<String>) {
         }
         for (report in reports) {
             println("%-8s %7d words (+%d new), guesses JSON %d bytes".format(report.lang, report.words, report.added, report.packJsonBytes))
+            report.sourceWords.forEach { (source, count) -> println("%-8s %7d from %s".format("", count, source)) }
         }
     }
 }
