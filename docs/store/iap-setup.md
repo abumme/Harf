@@ -123,16 +123,35 @@ CONFIGURATION=Release ./gradlew -q :sharedUI:rcKeyReport   # ios как в ре�
 
 ## 4.1. Скриншот для ревью (Review Information → Screenshot)
 
-Нужен paywall с реальными названиями и ценами. В симуляторе и без `appl_`-ключа экран покажет
-«Store unavailable», поэтому порядок такой:
+Нужен paywall с названиями и ценами. Круг, в который легко попасть: ASC держит продукт в
+**Missing Metadata**, пока нет Review Screenshot; снимок нужен с paywall; sandbox отдаёт продукты
+только со статуса **Ready to Submit**. Разрывается локальным StoreKit (§6) — он подставляет
+метаданные, не спрашивая ASC.
 
-1. Продукты в ASC созданы, цена и локализации заполнены → статус **Ready to Submit**.
-   Sandbox отдаёт продукты уже в этом статусе, ждать одобрения не нужно.
-2. `revenuecat.iosKey=appl_…` в `local.properties`, RC настроен (products + entitlements + offering Current).
-3. Release-билд на физическом устройстве (TestFlight или архив из Xcode).
-4. На устройстве: Settings → App Store → **Sandbox Account** → войти тестовым Apple ID.
-5. В игре: Settings → Manage purchases → paywall со списком продуктов → снимок (Power + Volume Up).
-6. Загрузить файл в Review Information каждого из 5 продуктов.
+Список на paywall приходит из **RevenueCat**, а не из StoreKit: `RevenueCatPurchaseController.offerings()`
+читает `Offerings.current.availablePackages`. Импорт продуктов в RC — это ещё не offering: пока в
+`default` нет packages, экран будет пуст при любом StoreKit. Проверить снаружи:
+
+```sh
+KEY=$(grep '^revenuecat.iosKey=' revenuecat.properties | cut -d= -f2)
+curl -s -H "Authorization: Bearer $KEY" -H "X-Platform: ios" \
+  https://api.revenuecat.com/v1/subscribers/probe/offerings
+```
+
+Порядок:
+
+1. RC → **Products**: 5 продуктов с нужными id (импортируются из ASC или заводятся вручную).
+2. RC → **Entitlements**: 5 entitlement, id как в коде, привязаны к продуктам 1:1.
+3. RC → **Offerings → default** (Current): 5 packages на эти продукты. Только теперь paywall не пуст.
+4. Xcode → Run на физическом устройстве, StoreKit Configuration = `Harf.storekit`. Sandbox-аккаунт и
+   статус Ready to Submit на этом шаге не нужны.
+5. В игре: Settings → Manage purchases → paywall со списком. Снимок с Mac:
+   `xcrun devicectl device capture screenshot --device <UDID> --destination iap-review.png`
+   (iPhone 13 → 1170×2532, минимум Apple 640×920). Или Power + Volume Up на устройстве.
+6. Загрузить файл в Review Information каждого из 5 продуктов → Missing Metadata уходит.
+
+Цены на снимке берутся из `Harf.storekit`. Выставить в ASC те же значения (или поправить файл),
+иначе ревьюер видит одну цену, а магазин отдаёт другую.
 
 Тот же кадр закрывает пункт 6 сценария видеозаписи в `apple-review-reply.md`.
 
