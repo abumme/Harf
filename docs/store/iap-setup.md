@@ -146,3 +146,26 @@ CONFIGURATION=Release ./gradlew -q :sharedUI:rcKeyReport   # ios как в ре�
 - [ ] Offering `default` помечен **Current**, в нём 5 packages
 - [ ] `revenuecat.iosKey=appl_…` в `revenuecat.properties`, `rcKeyReport` показывает `appl_…`, архив собран с ним
 - [ ] Sandbox-аккаунт создан, покупка и Restore проверены на железе
+
+## 6. Локальный StoreKit в симуляторе (`iosApp/iosApp/Harf.storekit`)
+
+Файл конфигурации StoreKit со всеми 5 продуктами и теми же product id, что в коде.
+Подключён как file reference в `iosApp.xcodeproj` (ни в одну build phase не входит, в бандл не
+попадает) и выбран в схеме: Product → Scheme → Edit Scheme → Run → Options → **StoreKit
+Configuration** = `Harf.storekit`. Схема лежит в `xcuserdata/` и не коммитится — на другой машине
+выбрать заново вручную.
+
+Что даёт: настоящий системный sheet покупки в симуляторе, без App Store Connect и sandbox-аккаунта.
+Цены и названия — из этого файла, не из ASC. Xcode → Debug → StoreKit Transactions показывает
+транзакции, оттуда же Refund/Delete.
+
+Границы:
+
+- Работает только при запуске **из Xcode**.
+- Чек подписан локально: RevenueCat валидирует его лишь когда те же продукты созданы на его стороне.
+  Пока продуктов в RC нет, sheet пройдёт, а entitlement останется закрытым — это ожидаемо, не баг.
+- Отмены и возвраты из Manage Transactions в дашборд RC не попадают.
+- **Перед проверкой на железе выставить StoreKit Configuration = None**, иначе локальный StoreKit
+  подменяет sandbox и настоящая покупка не проверится.
+
+Порядок: локальный StoreKit → продукты в ASC + RC → sandbox на физическом iPhone (§4) → запись видео.

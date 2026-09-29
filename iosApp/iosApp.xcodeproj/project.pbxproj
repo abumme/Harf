@@ -20,6 +20,7 @@
 		A93A954129CC810D00F8E227 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		A93A955029CC810D00F8E227 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A93A955229CC810D00F8E227 /* iosApp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = iosApp.entitlements; sourceTree = "<group>"; };
+		A93A956029CC810D00F8E227 /* Harf.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Harf.storekit; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +59,7 @@
 				A93A954029CC810D00F8E227 /* Preview Content */,
 				A93A955029CC810D00F8E227 /* PrivacyInfo.xcprivacy */,
 				A93A955229CC810D00F8E227 /* iosApp.entitlements */,
+				A93A956029CC810D00F8E227 /* Harf.storekit */,
 			);
 			path = iosApp;
 			sourceTree = "<group>";

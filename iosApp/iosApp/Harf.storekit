@@ -1,0 +1,124 @@
+{
+  "identifier" : "A1B2C3D4",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "100000001",
+      "localizations" : [
+        {
+          "description" : "Puzzle archive, hard mode, badge",
+          "displayName" : "Founder Edition",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "Архив, сложный режим, значок",
+          "displayName" : "Founder — навсегда",
+          "locale" : "ru"
+        }
+      ],
+      "productID" : "harf_founder",
+      "referenceName" : "Founder Lifetime Unlock",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "100000002",
+      "localizations" : [
+        {
+          "description" : "Cosmetic colour theme",
+          "displayName" : "Press Red Theme",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "Косметическая тема доски",
+          "displayName" : "Тема Press Red",
+          "locale" : "ru"
+        }
+      ],
+      "productID" : "theme_press",
+      "referenceName" : "Theme — Press Red",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "100000003",
+      "localizations" : [
+        {
+          "description" : "Cosmetic colour theme",
+          "displayName" : "Ink Theme",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "Косметическая тема доски",
+          "displayName" : "Тема Ink",
+          "locale" : "ru"
+        }
+      ],
+      "productID" : "theme_ink",
+      "referenceName" : "Theme — Ink",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "100000004",
+      "localizations" : [
+        {
+          "description" : "Cosmetic colour theme",
+          "displayName" : "Blueprint Theme",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "Косметическая тема доски",
+          "displayName" : "Тема Blueprint",
+          "locale" : "ru"
+        }
+      ],
+      "productID" : "theme_blueprint",
+      "referenceName" : "Theme — Blueprint",
+      "type" : "NonConsumable"
+    },
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "100000005",
+      "localizations" : [
+        {
+          "description" : "Cosmetic colour theme",
+          "displayName" : "Schoolbook Theme",
+          "locale" : "en_US"
+        },
+        {
+          "description" : "Косметическая тема доски",
+          "displayName" : "Тема Schoolbook",
+          "locale" : "ru"
+        }
+      ],
+      "productID" : "theme_schoolbook",
+      "referenceName" : "Theme — Schoolbook",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_developerTeamID" : "3827YQ294K",
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}
