@@ -3,6 +3,49 @@
 For Play Console → Release → "What's new". One entry per language, ≤ 500 chars each.
 First release: **versionCode 1 / versionName 1.0.0**.
 
+# 1.3.1 (versionCode 6)
+
+## en
+
+```
+What's new in 1.3.1
+
+• Thousands more accepted words in Uzbek and Kazakh — your real guesses now count instead of being turned down
+• More words in the daily rotation, so puzzles repeat far less often
+• A fresh install plays the right daily word even with no connection
+• Smaller fixes under the hood
+
+Thanks for playing — see you tomorrow.
+```
+
+## ru
+
+```
+Что нового в 1.3.1
+
+• В узбекском и казахском — тысячи новых принимаемых слов: ваши настоящие догадки больше не отклоняются
+• Больше слов в ежедневной ротации, головоломки повторяются намного реже
+• Свежая установка играет правильное слово дня даже без интернета
+• Мелкие исправления
+
+Спасибо, что играете — до завтра.
+```
+
+## uz
+
+```
+1.3.1 dagi yangiliklar
+
+• O'zbek va qozoq tillarida minglab yangi qabul qilinadigan so'z — haqiqiy topishlaringiz endi rad etilmaydi
+• Kunlik ro'yxatda so'zlar ko'paydi, topishmoqlar ancha kamroq takrorlanadi
+• Yangi o'rnatilgan ilova internetsiz ham to'g'ri kunlik so'zni o'ynaydi
+• Kichik tuzatishlar
+
+O'ynaganingiz uchun rahmat — ertaga ko'rishguncha.
+```
+
+---
+
 # 1.3.0 (versionCode 5)
 
 ## en
