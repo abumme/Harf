@@ -54,7 +54,8 @@ class WordPackServerService(
             ?: return@dbQuery false
         val guesses: List<String> = json.decodeFromString(row[WordPacksTable.guesses])
         val normalized = word.trim()
-        if (guesses.any { it.equals(normalized, ignoreCase = true) }) return@dbQuery false
+        val key = GuessSpelling.key(lang, normalized)
+        if (guesses.any { GuessSpelling.key(lang, it) == key }) return@dbQuery false
         val newGuesses = guesses + normalized
         val newVersion = nextVersion(row[WordPacksTable.version])
         WordPacksTable.update({ WordPacksTable.lang eq lang }) {
@@ -67,32 +68,44 @@ class WordPackServerService(
 
     /**
      * Append-only merge of the bundled guess dictionaries into the stored packs. Every word of a language's
-     * `<lang>_guess.txt` or `<lang>_answers.txt` that its stored pack lacks (compared case-insensitively, as
-     * [addGuess] does) is appended, and the version advances once. Words are never removed and answers,
-     * schedule and effectiveFrom are never touched, so words accepted after the build survive and past days stay
-     * unchanged. Languages without a stored pack are left to [seed]. Returns how many words each changed language gained.
+     * `<lang>_guess.txt` or `<lang>_answers.txt` that its stored pack lacks is appended, and the version advances once.
+     * Words are compared by [GuessSpelling.key], as [addGuess] does, so a spelling variant is the word it spells:
+     * variants are never added, and variants already stored twice collapse to one spelling (the deployed one when it is
+     * among them). No word is otherwise removed, and answers, schedule and effectiveFrom are never touched, so words
+     * accepted after the build survive and past days stay unchanged. Languages without a stored pack are left to [seed].
+     * Returns what changed per changed language.
      */
-    suspend fun mergeGuesses(): Map<String, Int> {
-        val added = LinkedHashMap<String, Int>()
+    suspend fun mergeGuesses(): Map<String, GuessMerge> {
+        val merges = LinkedHashMap<String, GuessMerge>()
         for (lang in languages()) {
             val bundled = readLines("${lang}_guess.txt") + readLines("${lang}_answers.txt")
             if (bundled.isEmpty()) continue
             DatabaseFactory.dbQuery {
                 val row = WordPacksTable.selectAll().where { WordPacksTable.lang eq lang }.single()
-                val guesses: List<String> = json.decodeFromString(row[WordPacksTable.guesses])
-                val known = guesses.mapTo(HashSet()) { it.lowercase() }
-                val missing = bundled.filter { known.add(it.lowercase()) }
-                if (missing.isNotEmpty()) {
+                val stored: List<String> = json.decodeFromString(row[WordPacksTable.guesses])
+                val guesses = collapseVariants(lang, stored, bundled)
+                val known = guesses.mapTo(HashSet()) { GuessSpelling.key(lang, it) }
+                val missing = bundled.filter { known.add(GuessSpelling.key(lang, it)) }
+                val merge = GuessMerge(added = missing.size, variantsRemoved = stored.size - guesses.size)
+                if (merge.added > 0 || merge.variantsRemoved > 0) {
                     WordPacksTable.update({ WordPacksTable.lang eq lang }) {
                         it[WordPacksTable.guesses] = json.encodeToString(guesses + missing)
                         it[WordPacksTable.version] = nextVersion(row[WordPacksTable.version])
                         it[WordPacksTable.updatedAt] = java.time.Instant.ofEpochMilli(System.currentTimeMillis())
                     }
-                    added[lang] = missing.size
+                    merges[lang] = merge
                 }
             }
         }
-        return added
+        return merges
+    }
+
+    /** [stored] with one spelling per word, in stored order: the [bundled] spelling when stored, else the first stored. */
+    private fun collapseVariants(lang: String, stored: List<String>, bundled: List<String>): List<String> {
+        val bundledSpellings = bundled.toHashSet()
+        val chosen = stored.groupBy { GuessSpelling.key(lang, it) }
+            .mapValues { (_, spellings) -> spellings.firstOrNull { it in bundledSpellings } ?: spellings.first() }
+        return stored.filter { chosen[GuessSpelling.key(lang, it)] == it }.distinct()
     }
 
     /** Insert version 1 for every language if absent. Idempotent: existing rows are left untouched. */
@@ -134,6 +147,26 @@ class WordPackServerService(
         resourceLines(name).map { it.trim() }.filter { it.isNotEmpty() && !it.startsWith("#") }
 
     private fun nextVersion(current: String): String = (current.toIntOrNull()?.plus(1) ?: 2).toString()
+}
+
+/** What merging the deployed dictionaries changed in one language's pack. */
+data class GuessMerge(val added: Int, val variantsRemoved: Int = 0)
+
+/**
+ * The identity of a guess word regardless of how it is spelled, matching the app's normalization in LaunchLanguages:
+ * case and surrounding spaces never matter, Russian ё plays as е, and any apostrophe in Uzbek Latin is the tutuq (ʻ).
+ */
+object GuessSpelling {
+    private val apostrophes = setOf('\'', '’', '‘', '`', '´', 'ʼ', 'ʹ', '′')
+
+    fun key(lang: String, word: String): String {
+        val lower = word.trim().lowercase()
+        return when (lang) {
+            "ru" -> lower.replace('ё', 'е')
+            "uz-latn" -> lower.map { if (it in apostrophes) 'ʻ' else it }.joinToString("")
+            else -> lower
+        }
+    }
 }
 
 /** Raw lines of a bundled word-pack resource (`resources/wordpacks/<name>`); empty when the file is absent. */

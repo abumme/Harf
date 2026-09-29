@@ -1,6 +1,7 @@
 package uz.abumme.harfgame.backend
 
 import kotlinx.coroutines.runBlocking
+import uz.abumme.harfgame.backend.service.GuessMerge
 import uz.abumme.harfgame.backend.service.WordPackServerService
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -26,7 +27,7 @@ class WordPackMergeTest {
 
         val added = serviceWith("en_guess.txt" to listOf("apple", "crane", "quilt", "zebra")).mergeGuesses()
 
-        assertEquals(mapOf("en" to 2), added)
+        assertEquals(mapOf("en" to GuessMerge(added = 2)), added)
         assertEquals(setOf("apple", "crane", "quilt", "zebra"), pack("en")!!.guesses.toSet())
         assertEquals("4", pack("en")!!.version)
     }
@@ -69,7 +70,7 @@ class WordPackMergeTest {
     fun answersFileWordsReachTheGuessesToo() = runBlocking {
         insertPack("en", "1", listOf("apple"))
 
-        assertEquals(mapOf("en" to 1), serviceWith("en_answers.txt" to listOf("plumb")).mergeGuesses())
+        assertEquals(mapOf("en" to GuessMerge(added = 1)), serviceWith("en_answers.txt" to listOf("plumb")).mergeGuesses())
         assertEquals(setOf("apple", "plumb"), pack("en")!!.guesses.toSet())
     }
 
@@ -80,6 +81,38 @@ class WordPackMergeTest {
         assertEquals(emptyMap(), serviceWith("en_guess.txt" to listOf("apple", " APPLE ", "", "# header")).mergeGuesses())
         assertEquals(listOf("Apple"), pack("en")!!.guesses)
         assertEquals("2", pack("en")!!.version)
+    }
+
+    @Test
+    fun aSpellingVariantOfAStoredWordIsNotAdded() = runBlocking {
+        insertPack("ru", "4", listOf("актёр")) // ё plays as е, so актер is the same word
+        insertPack("uz-latn", "2", listOf("o'rdak")) // any apostrophe plays as the tutuq
+
+        val service = serviceWith("ru_guess.txt" to listOf("актер"), "uz-latn_guess.txt" to listOf("oʻrdak"))
+
+        assertEquals(emptyMap(), service.mergeGuesses())
+        assertEquals(listOf("актёр"), pack("ru")!!.guesses)
+        assertEquals("4", pack("ru")!!.version)
+    }
+
+    @Test
+    fun storedSpellingVariantsCollapseToTheDeployedSpelling() = runBlocking {
+        // A first-pass list seeded актёр, then a dictionary merge added актер: one word stored twice.
+        insertPack("ru", "4", listOf("актёр", "книга", "актер", "полёт", "полет"))
+
+        val merged = serviceWith("ru_guess.txt" to listOf("актер", "книги")).mergeGuesses()
+
+        assertEquals(mapOf("ru" to GuessMerge(added = 1, variantsRemoved = 2)), merged)
+        assertEquals(listOf("книга", "актер", "полёт", "книги"), pack("ru")!!.guesses)
+        assertEquals("5", pack("ru")!!.version)
+    }
+
+    @Test
+    fun anAcceptedSuggestionSpelledLikeAStoredWordIsNotAdded() = runBlocking {
+        insertPack("ru", "4", listOf("актер"))
+
+        assertEquals(false, WordPackServerService().addGuess("ru", "Актёр"))
+        assertEquals(listOf("актер"), pack("ru")!!.guesses)
     }
 
     @Test

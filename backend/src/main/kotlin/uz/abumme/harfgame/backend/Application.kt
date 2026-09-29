@@ -53,7 +53,9 @@ fun main() {
         wordPackService.seed() // idempotent: seeds version 1 if absent
         // Append-only: deployed guess dictionaries reach stored packs, one version bump per changed language.
         // Runs before the background loops, so it can't race the review worker's addGuess.
-        wordPackService.mergeGuesses().forEach { (lang, count) -> println("Word pack $lang: merged $count new guesses") }
+        wordPackService.mergeGuesses().forEach { (lang, merge) ->
+            println("Word pack $lang: merged ${merge.added} new guesses, removed ${merge.variantsRemoved} duplicate spellings")
+        }
     }
     val suggestionService = SuggestionServerService(wordPackService)
     val telegramBot = telegramBotFromEnv(suggestionService)
