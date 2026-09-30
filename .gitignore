@@ -59,6 +59,9 @@ revenuecat.properties
 
 # Deployment secrets
 .env
+# Sign in with Apple key, mounted into the backend container (docker-compose.prod.yml)
+secrets/
+*.p8
 
 # Log files
 *.log

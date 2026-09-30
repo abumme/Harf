@@ -51,6 +51,11 @@ services:
     container_name: harf-backend
     restart: unless-stopped
     env_file: .env
+    volumes:
+      # Sign in with Apple key (.p8), read-only: APPLE_PRIVATE_KEY_PATH in .env points at the
+      # path *inside* the container, e.g. /run/secrets/apple/AuthKey_<KEYID>.p8. The host's
+      # ./secrets is gitignored; an absent one starts empty and the backend just warns.
+      - ./secrets:/run/secrets/apple:ro
     environment:
       # Point the backend at the db service; overrides anything in .env.
       DB_JDBC_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
