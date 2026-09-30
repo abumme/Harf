@@ -57,7 +57,7 @@ import uz.abumme.harfgame.billing.Entitlements
 import uz.abumme.harfgame.billing.Offerings
 import uz.abumme.harfgame.billing.PurchaseController
 import uz.abumme.harfgame.billing.StoreItem
-import uz.abumme.harfgame.billing.hostedBillingUiSupported
+import uz.abumme.harfgame.billing.hasAppStore
 import uz.abumme.harfgame.theme.GhostButton
 import uz.abumme.harfgame.theme.HarfTheme
 import uz.abumme.harfgame.theme.LocalHarfColors
@@ -154,7 +154,7 @@ fun PaywallContent(
                         // A store-less platform is told where to buy; on Android/iOS the store itself is down.
                         Text(
                             stringResource(
-                                if (hostedBillingUiSupported) Res.string.paywall_store_unavailable
+                                if (hasAppStore) Res.string.paywall_store_unavailable
                                 else Res.string.founder_desktop_guidance
                             ),
                             color = colors.muted, fontSize = 13.sp,

@@ -6,11 +6,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
-import uz.abumme.harfgame.billing.HostedCustomerCenter
 import uz.abumme.harfgame.feature.archive.ArchiveScreen
 import uz.abumme.harfgame.feature.game.GameScreen
 import uz.abumme.harfgame.feature.home.HomeScreen
 import uz.abumme.harfgame.feature.paywall.PaywallScreen
+import uz.abumme.harfgame.feature.purchases.ManagePurchasesScreen
 import uz.abumme.harfgame.feature.settings.SettingsScreen
 import uz.abumme.harfgame.feature.stats.StatsScreen
 
@@ -34,7 +34,7 @@ object Settings
 object Paywall
 
 @Serializable
-object CustomerCenter
+object ManagePurchases
 
 @Composable
 fun AppNavHost() {
@@ -73,14 +73,14 @@ fun AppNavHost() {
             SettingsScreen(
                 onBack = { navController.popBackStack() },
                 onPaywall = { navController.navigate(Paywall) },
-                onCustomerCenter = { navController.navigate(CustomerCenter) },
+                onCustomerCenter = { navController.navigate(ManagePurchases) },
             )
         }
         composable<Paywall> {
             PaywallScreen(onBack = { navController.popBackStack() })
         }
-        composable<CustomerCenter> {
-            HostedCustomerCenter(onDismiss = { navController.popBackStack() })
+        composable<ManagePurchases> {
+            ManagePurchasesScreen(onBack = { navController.popBackStack() })
         }
     }
 }

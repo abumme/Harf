@@ -78,7 +78,6 @@ koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
 ksafe = { module = "eu.anifantakis:ksafe", version.ref = "ksafe" }
 ksafe-compose = { module = "eu.anifantakis:ksafe-compose", version.ref = "ksafe" }
 purchases-kmp-core = { module = "com.revenuecat.purchases:purchases-kmp-core", version.ref = "purchases-kmp" }
-purchases-kmp-ui = { module = "com.revenuecat.purchases:purchases-kmp-ui", version.ref = "purchases-kmp" }
 roborazzi = { module = "io.github.takahirom.roborazzi:roborazzi", version.ref = "roborazzi" }
 roborazzi-composeDesktop = { module = "io.github.takahirom.roborazzi:roborazzi-compose-desktop", version.ref = "roborazzi" }
 ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }

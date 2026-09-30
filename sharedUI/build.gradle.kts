@@ -47,7 +47,6 @@ kotlin {
         iosMain.get().dependsOn(mobileMain)
         mobileMain.dependencies {
             implementation(libs.purchases.kmp.core)
-            implementation(libs.purchases.kmp.ui) // RC hosted Paywall + Customer Center (mobile only)
         }
 
         commonMain.dependencies {

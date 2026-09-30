@@ -38,7 +38,7 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.EntitlementRepository
 import uz.abumme.harfgame.billing.PurchaseController
-import uz.abumme.harfgame.billing.hostedBillingUiSupported
+import uz.abumme.harfgame.billing.hasAppStore
 import uz.abumme.harfgame.data.auth.OAuthClient
 import uz.abumme.harfgame.data.auth.OAuthProvider
 import uz.abumme.harfgame.data.auth.OAuthResult
@@ -132,14 +132,14 @@ fun SettingsScreen(onBack: () -> Unit = {}, onPaywall: () -> Unit = {}, onCustom
                 stringResource(if (ents.lifetime) Res.string.settings_support_harf_themes else Res.string.settings_support_harf),
                 onPaywall, Modifier.fillMaxWidth(),
             )
-            if (hostedBillingUiSupported) {
+            if (hasAppStore) {
                 GhostButton(stringResource(Res.string.settings_manage_purchases), onCustomerCenter, Modifier.fillMaxWidth())
             }
         } else if (!ents.lifetime) {
             // Same split as the paywall: "buy it on mobile" only where this platform has no store.
             Text(
                 stringResource(
-                    if (hostedBillingUiSupported) Res.string.paywall_store_unavailable
+                    if (hasAppStore) Res.string.paywall_store_unavailable
                     else Res.string.founder_desktop_guidance
                 ),
                 color = colors.muted, fontSize = 13.sp, modifier = Modifier.padding(vertical = 4.dp),
