@@ -28,6 +28,11 @@ data class LinkAccountRequest(
     val nonce: String? = null,
     /** User-confirmed display name for the account (from the link-time confirmation step). */
     val displayName: String? = null,
+    /**
+     * Apple's single-use authorization code from the same native sign-in. The server exchanges it for
+     * the refresh token it must revoke when the account is deleted; absent for other providers.
+     */
+    val authorizationCode: String? = null,
 )
 
 @Serializable

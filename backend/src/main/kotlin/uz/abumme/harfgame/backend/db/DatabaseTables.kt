@@ -30,6 +30,11 @@ object OAuthIdentitiesTable : Table("oauth_identities") {
     val providerSubject = varchar("provider_subject", 255)
     /** When the identity was linked; NULL for links made before link times were recorded (analytics). */
     val linkedAt = timestamp("linked_at").nullable()
+    /**
+     * Apple's refresh token from the link-time code exchange, revoked when the account is deleted
+     * (TN3194). NULL for other providers and for Apple links made before the key was configured.
+     */
+    val appleRefreshToken = varchar("apple_refresh_token", 512).nullable()
 
     override val primaryKey = PrimaryKey(id)
 

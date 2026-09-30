@@ -10,8 +10,8 @@ import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.update
 import uz.abumme.harfgame.backend.admin.analytics.AccountEvents
-import uz.abumme.harfgame.backend.auth.oauth.AppleTokenRevoker
-import uz.abumme.harfgame.backend.auth.oauth.NoOpAppleTokenRevoker
+import uz.abumme.harfgame.backend.auth.oauth.AppleAuthClient
+import uz.abumme.harfgame.backend.auth.oauth.NoOpAppleAuthClient
 import uz.abumme.harfgame.backend.auth.oauth.OAuthVerifier
 import uz.abumme.harfgame.backend.db.DatabaseFactory
 import uz.abumme.harfgame.backend.db.OAuthIdentitiesTable
@@ -31,7 +31,7 @@ import java.util.UUID
 class AuthServerService(
     val jwtService: JwtService,
     val verifiers: Map<OAuthProvider, OAuthVerifier> = emptyMap(),
-    val appleRevoker: AppleTokenRevoker = NoOpAppleTokenRevoker,
+    val appleAuth: AppleAuthClient = NoOpAppleAuthClient,
     /** Dates the analytics account events (deletion counts, link times). */
     val clock: Clock = Clock.systemUTC(),
 ) {
@@ -166,6 +166,13 @@ class AuthServerService(
         val providerName = request.provider.name
         val subject = oauthResult.subject
 
+        // Apple's code is single-use and only valid for minutes, so it is exchanged here, outside the
+        // transaction, for the refresh token deletion revokes. A failed exchange never fails the link:
+        // the account is still linked, it simply has nothing to revoke later.
+        val appleRefresh = request.authorizationCode
+            ?.takeIf { request.provider == OAuthProvider.APPLE && it.isNotBlank() }
+            ?.let { appleAuth.exchangeCode(it) }
+
         return DatabaseFactory.dbQuery {
             val existingIdentity = OAuthIdentitiesTable
                 .selectAll()
@@ -183,10 +190,17 @@ class AuthServerService(
                     it[provider] = providerName
                     it[providerSubject] = subject
                     it[linkedAt] = clock.instant()
+                    it[appleRefreshToken] = appleRefresh
                 }
                 targetUserId = currentUserId
             } else {
                 val ownerUserId = existingIdentity[OAuthIdentitiesTable.userId]
+                if (appleRefresh != null) {
+                    // Signing in again mints a new code: keep the newest token, the old one may be spent.
+                    OAuthIdentitiesTable.update({ OAuthIdentitiesTable.id eq existingIdentity[OAuthIdentitiesTable.id] }) {
+                        it[appleRefreshToken] = appleRefresh
+                    }
+                }
                 if (ownerUserId == currentUserId) {
                     targetUserId = currentUserId
                 } else {
@@ -269,16 +283,18 @@ class AuthServerService(
      */
     suspend fun deleteAccount(userId: String, inTransaction: () -> Unit = {}): Boolean {
         // Revoke Apple tokens for any linked Apple identity before removing the account (TN3194).
-        val appleSubjects = DatabaseFactory.dbQuery {
+        // An identity linked before the Sign in with Apple key existed has no token: nothing to revoke,
+        // and the deletion proceeds regardless — Apple's endpoint is not allowed to hold the account.
+        val appleTokens = DatabaseFactory.dbQuery {
             OAuthIdentitiesTable
                 .selectAll()
                 .where {
                     (OAuthIdentitiesTable.userId eq userId) and
                         (OAuthIdentitiesTable.provider eq OAuthProvider.APPLE.name)
                 }
-                .map { it[OAuthIdentitiesTable.providerSubject] }
+                .mapNotNull { it[OAuthIdentitiesTable.appleRefreshToken] }
         }
-        for (subject in appleSubjects) appleRevoker.revoke(subject)
+        for (token in appleTokens) appleAuth.revoke(token)
 
         return DatabaseFactory.dbQuery {
             val deleted = UsersTable.deleteWhere { UsersTable.id eq userId } > 0

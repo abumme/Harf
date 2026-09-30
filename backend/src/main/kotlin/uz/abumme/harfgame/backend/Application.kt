@@ -56,6 +56,9 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import uz.abumme.harfgame.data.api.ApiErrorResponse
+import uz.abumme.harfgame.backend.auth.oauth.AppleAuthClient
+import uz.abumme.harfgame.backend.auth.oauth.HttpAppleAuthClient
+import uz.abumme.harfgame.backend.auth.oauth.NoOpAppleAuthClient
 import uz.abumme.harfgame.data.auth.OAuthProvider
 
 fun main() {
@@ -74,7 +77,7 @@ fun main() {
     val telegramBot = telegramBotFromEnv(suggestionService)
     // One players' auth service for the player API and the staff panel, so an ADMIN's deletion takes the same path.
     val jwtService = JwtService()
-    val authService = AuthServerService(jwtService, oauthVerifiersFromEnv())
+    val authService = AuthServerService(jwtService, oauthVerifiersFromEnv(), appleAuthFromEnv())
     val admin = AdminBackend(
         packLanguages = wordPackService::languages,
         wordPacks = wordPackService,
@@ -197,6 +200,37 @@ internal fun CoroutineScope.superviseForever(intervalMillis: Long, block: suspen
     }
 }
 
+/**
+ * The Sign in with Apple key from `APPLE_TEAM_ID`, `APPLE_KEY_ID` and the `.p8` in
+ * `APPLE_PRIVATE_KEY_PATH` (preferred, a mounted secret) or `APPLE_PRIVATE_KEY`. `APPLE_CLIENT_ID`
+ * defaults to the first `APPLE_AUDIENCES` entry, which for native iOS is the bundle id. Without the
+ * key, linking still works and deletion simply revokes nothing — so a half-configured deploy says so.
+ */
+internal fun appleAuthFromEnv(): AppleAuthClient {
+    val audiences = (System.getenv("APPLE_AUDIENCES") ?: "").split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    val clientId = System.getenv("APPLE_CLIENT_ID")?.takeIf { it.isNotBlank() } ?: audiences.firstOrNull()
+    val teamId = System.getenv("APPLE_TEAM_ID")?.takeIf { it.isNotBlank() }
+    val keyId = System.getenv("APPLE_KEY_ID")?.takeIf { it.isNotBlank() }
+    val key = System.getenv("APPLE_PRIVATE_KEY_PATH")?.takeIf { it.isNotBlank() }
+        ?.let { path -> runCatching { java.io.File(path).readText() }.getOrNull() }
+        ?: System.getenv("APPLE_PRIVATE_KEY")?.takeIf { it.isNotBlank() }
+    if (clientId == null || teamId == null || keyId == null || key == null) {
+        if (audiences.isNotEmpty()) {
+            println(
+                "WARNING: Sign in with Apple is enabled (APPLE_AUDIENCES) but no key is configured " +
+                    "(APPLE_TEAM_ID / APPLE_KEY_ID / APPLE_PRIVATE_KEY[_PATH]): account deletion will not " +
+                    "revoke Apple tokens, which Apple requires."
+            )
+        }
+        return NoOpAppleAuthClient
+    }
+    return runCatching { HttpAppleAuthClient(clientId, teamId, keyId, key) }
+        .getOrElse { e ->
+            println("WARNING: the Sign in with Apple key could not be read (${e.message}); tokens will not be revoked.")
+            NoOpAppleAuthClient
+        }
+}
+
 /** Google and Apple sign-in verifiers from `GOOGLE_CLIENT_IDS` / `APPLE_AUDIENCES`. */
 internal fun oauthVerifiersFromEnv(): Map<OAuthProvider, OAuthVerifier> = mapOf(
     OAuthProvider.GOOGLE to GoogleOAuthVerifier(
@@ -210,7 +244,7 @@ internal fun oauthVerifiersFromEnv(): Map<OAuthProvider, OAuthVerifier> = mapOf(
 fun Application.module(
     jwtService: JwtService = JwtService(),
     verifiers: Map<OAuthProvider, OAuthVerifier> = oauthVerifiersFromEnv(),
-    authService: AuthServerService = AuthServerService(jwtService, verifiers),
+    authService: AuthServerService = AuthServerService(jwtService, verifiers, appleAuthFromEnv()),
     syncService: SyncServerService = SyncServerService(),
     wordPackService: WordPackServerService = WordPackServerService(),
     archiveService: ArchiveServerService = ArchiveServerService(),
