@@ -11,6 +11,8 @@ class FakePurchaseController(
         themes = listOf(StoreItem("theme_dusk", "Dusk", "$0.99")),
     ),
     var nextOutcome: PurchaseOutcome = PurchaseOutcome.Success,
+    /** False mimics a successful restore that found nothing to grant — a player who never bought. */
+    private val grantsOnRestore: Boolean = true,
     initialEntitlements: Entitlements = Entitlements(),
 ) : PurchaseController {
 
@@ -28,7 +30,7 @@ class FakePurchaseController(
     }
 
     override suspend fun restore(): PurchaseOutcome {
-        if (nextOutcome is PurchaseOutcome.Success) grant("lifetime")
+        if (nextOutcome is PurchaseOutcome.Success && grantsOnRestore) grant("lifetime")
         return nextOutcome
     }
 
