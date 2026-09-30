@@ -15,7 +15,9 @@ import org.jetbrains.exposed.v1.jdbc.deleteAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import uz.abumme.harfgame.backend.db.DatabaseFactory
 import uz.abumme.harfgame.backend.db.UsersTable
+import kotlinx.coroutines.test.runTest
 import uz.abumme.harfgame.backend.service.EntitlementServerService
+import uz.abumme.harfgame.backend.service.HttpRevenueCatCustomerClient
 import uz.abumme.harfgame.backend.service.RevenueCatCustomerClient
 import uz.abumme.harfgame.data.api.ApiRoutes
 import uz.abumme.harfgame.data.auth.AnonymousAuthResponse
@@ -100,5 +102,16 @@ class EntitlementBackendTest {
         }.body<AccountEntitlementsDto>()
         assertFalse(refundedResponse.lifetime, "Refunded purchase must revoke entitlement")
         assertTrue(refundedResponse.ownedThemes.isEmpty())
+    }
+
+    // Every other test injects a fake, so the default-argument path — the one module() actually uses —
+    // went unexercised: a bare HttpClient() with no engine on the runtime classpath threw at
+    // construction and crash-looped the server at startup, whether or not the API key was set.
+    @Test
+    fun defaultRevenueCatClientIsConstructibleAndNeedsNoKey() = runTest {
+        val client = HttpRevenueCatCustomerClient(apiKey = "")
+        assertEquals(AccountEntitlementsDto(), client.getCustomerEntitlements("user-1"))
+        // The production wiring, defaults and all.
+        EntitlementServerService()
     }
 }

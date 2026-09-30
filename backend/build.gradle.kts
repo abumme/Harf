@@ -27,6 +27,11 @@ dependencies {
     implementation(libs.ktor.server.cors)
     implementation(libs.ktor.server.conditional.headers)
     implementation(libs.ktor.server.compression) // gzip/deflate word packs and admin JSON when the client accepts it
+    // Ktor CLIENT, for the outbound RevenueCat lookup. An engine must be on the runtime classpath:
+    // HttpClient() with none throws "Failed to find HTTP client engine implementation" the moment it
+    // is constructed, which took the whole server down once.
+    implementation(libs.ktor.client.okhttp)
+    implementation(libs.ktor.client.content.negotiation)
 
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)

@@ -2,11 +2,15 @@ package uz.abumme.harfgame.backend.service
 
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.engine.okhttp.OkHttp
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import uz.abumme.harfgame.data.entitlement.AccountEntitlementsDto
 
@@ -14,9 +18,18 @@ interface RevenueCatCustomerClient {
     suspend fun getCustomerEntitlements(userId: String): AccountEntitlementsDto
 }
 
+/**
+ * The engine is named explicitly: a bare `HttpClient()` resolves one off the runtime classpath and
+ * throws when there is none, and this client is built by [EntitlementServerService]'s default
+ * argument — so a missing engine crashed the whole server at startup, blank API key or not.
+ * ContentNegotiation is what makes [body] work; RevenueCat's payload carries far more fields than
+ * this app reads, hence `ignoreUnknownKeys`.
+ */
 class HttpRevenueCatCustomerClient(
     private val apiKey: String = System.getenv("REVENUECAT_SECRET_KEY") ?: "",
-    private val httpClient: HttpClient = HttpClient(),
+    private val httpClient: HttpClient = HttpClient(OkHttp) {
+        install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+    },
 ) : RevenueCatCustomerClient {
 
     override suspend fun getCustomerEntitlements(userId: String): AccountEntitlementsDto {
