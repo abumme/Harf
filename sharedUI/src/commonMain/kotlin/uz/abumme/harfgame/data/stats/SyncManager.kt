@@ -109,10 +109,11 @@ class SyncManager(
         idToken: String,
         nonce: String? = null,
         displayName: String? = null,
+        authorizationCode: String? = null,
     ): ApiResult<Unit> {
         val token = sessionStore.get().accessToken
             ?: return ApiResult.Error("UNAUTHORIZED", "No active session")
-        val linkResult = authService.linkAccount(token, LinkAccountRequest(provider, idToken, nonce, displayName))
+        val linkResult = authService.linkAccount(token, LinkAccountRequest(provider, idToken, nonce, displayName, authorizationCode))
         return when (linkResult) {
             is ApiResult.Success -> {
                 // Server-wins: adopt the pre-existing account's snapshot and drop any pending marker

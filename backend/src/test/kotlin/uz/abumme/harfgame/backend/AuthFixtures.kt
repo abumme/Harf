@@ -1,18 +1,24 @@
 package uz.abumme.harfgame.backend
 
-import uz.abumme.harfgame.backend.auth.oauth.AppleTokenRevoker
+import uz.abumme.harfgame.backend.auth.oauth.AppleAuthClient
 import uz.abumme.harfgame.backend.auth.oauth.OAuthIdentityResult
 import uz.abumme.harfgame.backend.auth.oauth.OAuthVerifier
 import uz.abumme.harfgame.data.auth.OAuthProvider
 
 // Fakes for the players' sign-in and deletion paths, shared by the account deletion and player admin tests.
 
-/** Records the Apple subject of every revocation a deletion asked for. */
-class RecordingAppleRevoker : AppleTokenRevoker {
+/** Exchanges any code for [refreshToken] and records every token a deletion asked Apple to revoke. */
+class RecordingAppleAuth(private val refreshToken: String? = "apple-refresh-1") : AppleAuthClient {
+    val exchanged = mutableListOf<String>()
     val revoked = mutableListOf<String>()
 
-    override suspend fun revoke(providerSubject: String) {
-        revoked += providerSubject
+    override suspend fun exchangeCode(authorizationCode: String): String? {
+        exchanged += authorizationCode
+        return refreshToken
+    }
+
+    override suspend fun revoke(refreshToken: String) {
+        revoked += refreshToken
     }
 }
 

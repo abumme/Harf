@@ -10,6 +10,8 @@ sealed interface OAuthResult {
         val idToken: String,
         val nonce: String? = null,
         val suggestedName: String? = null,
+        /** Apple's single-use authorization code; the server exchanges it for the token deletion revokes. */
+        val authorizationCode: String? = null,
     ) : OAuthResult
 
     /** The user dismissed the native flow. */

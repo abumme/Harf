@@ -76,6 +76,11 @@ class IosAppleOAuthClient(
                     return
                 }
 
+                // Apple only hands out the authorization code here; the server needs it to obtain the
+                // refresh token it must revoke when the account is deleted.
+                val authorizationCode = credential.authorizationCode
+                    ?.let { NSString.create(data = it, encoding = NSUTF8StringEncoding)?.toString() }
+
                 val fullName = credential.fullName
                 val given = fullName?.givenName
                 val family = fullName?.familyName
@@ -87,6 +92,7 @@ class IosAppleOAuthClient(
                             idToken = idToken,
                             nonce = rawNonce,
                             suggestedName = suggestedName,
+                            authorizationCode = authorizationCode,
                         )
                     )
                 }

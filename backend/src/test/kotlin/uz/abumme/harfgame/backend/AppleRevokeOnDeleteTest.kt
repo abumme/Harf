@@ -38,11 +38,11 @@ class AppleRevokeOnDeleteTest {
 
     @Test
     fun deletingAnAppleLinkedAccountRevokesAppleTokens() = testApplication {
-        val revoker = RecordingAppleRevoker()
+        val apple = RecordingAppleAuth()
         val authService = AuthServerService(
             JwtService(),
             verifiers = mapOf(OAuthProvider.APPLE to FixedOAuthVerifier(OAuthProvider.APPLE, "apple-sub-1")),
-            appleRevoker = revoker,
+            appleAuth = apple,
         )
         application { module(authService = authService) }
 
@@ -52,7 +52,13 @@ class AppleRevokeOnDeleteTest {
         client.post(ApiRoutes.AUTH_LINK) {
             header(HttpHeaders.Authorization, "Bearer ${anon.tokens.accessToken}")
             contentType(ContentType.Application.Json)
-            setBody(LinkAccountRequest(provider = OAuthProvider.APPLE, idToken = "apple-tok"))
+            setBody(
+                LinkAccountRequest(
+                    provider = OAuthProvider.APPLE,
+                    idToken = "apple-tok",
+                    authorizationCode = "apple-code-1",
+                )
+            )
         }
 
         val deleteResp = client.delete(ApiRoutes.ACCOUNT) {
@@ -60,6 +66,7 @@ class AppleRevokeOnDeleteTest {
         }
         assertEquals(HttpStatusCode.OK, deleteResp.status)
 
-        assertTrue(revoker.revoked.contains("apple-sub-1"), "Apple tokens must be revoked on deletion")
+        assertEquals(listOf("apple-code-1"), apple.exchanged, "the link exchanges Apple's code for a refresh token")
+        assertEquals(listOf("apple-refresh-1"), apple.revoked, "deletion revokes the token the exchange returned")
     }
 }

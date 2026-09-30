@@ -6,7 +6,7 @@ import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import uz.abumme.harfgame.backend.FixedOAuthVerifier
-import uz.abumme.harfgame.backend.RecordingAppleRevoker
+import uz.abumme.harfgame.backend.RecordingAppleAuth
 import uz.abumme.harfgame.backend.admin.AdminApiException
 import uz.abumme.harfgame.backend.admin.MutableClock
 import uz.abumme.harfgame.backend.admin.audit.AuditActor
@@ -44,14 +44,14 @@ import kotlin.test.assertTrue
 class PlayerDeleteTest {
 
     private val clock = MutableClock()
-    private val revoker = RecordingAppleRevoker()
+    private val revoker = RecordingAppleAuth()
     private val auth = AuthServerService(
         JwtService(),
         verifiers = mapOf(
             OAuthProvider.APPLE to FixedOAuthVerifier(OAuthProvider.APPLE),
             OAuthProvider.GOOGLE to FixedOAuthVerifier(OAuthProvider.GOOGLE),
         ),
-        appleRevoker = revoker,
+        appleAuth = revoker,
     )
     private val service = PlayersService(clock, AuditLog(clock), auth)
     private lateinit var boss: AuditActor.Staff
@@ -67,7 +67,7 @@ class PlayerDeleteTest {
     /** A player signed in with Apple and Google (the provider subjects are the id tokens), with stats and a suggestion. */
     private fun linkedPlayer(): Player = runBlocking {
         val anon = auth.createAnonymousAccount()
-        val apple = auth.linkAccount(anon.userId, LinkAccountRequest(OAuthProvider.APPLE, "apple-subject-1", displayName = "Grace"))!!
+        val apple = auth.linkAccount(anon.userId, LinkAccountRequest(OAuthProvider.APPLE, "apple-subject-1", displayName = "Grace", authorizationCode = "apple-code-1"))!!
         val google = auth.linkAccount(anon.userId, LinkAccountRequest(OAuthProvider.GOOGLE, "google-subject-1"))!!
         insertStats(anon.userId, listOf(ResultRecordDto("en", 20_000, true, 3)))
         val suggestion = insertSuggestion("en", "crane", author = anon.userId)
@@ -91,7 +91,7 @@ class PlayerDeleteTest {
 
         assertNull(userRow(player.id))
         assertEquals(Triple(0L, 0L, 0L), countFor(player.id))
-        assertEquals(listOf("apple-subject-1"), revoker.revoked, "the linked Apple identity is revoked")
+        assertEquals(listOf("apple-refresh-1"), revoker.revoked, "the linked Apple identity's token is revoked")
         // The suggestion outlives the account, without an author.
         assertNull(suggestionColumn(player.suggestionId, WordSuggestionsTable.suggestedBy))
         assertEquals(SuggestionStatus.PENDING.name, suggestionColumn(player.suggestionId, WordSuggestionsTable.status))

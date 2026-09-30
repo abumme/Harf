@@ -163,7 +163,7 @@ fun SettingsScreen(onBack: () -> Unit = {}, onPaywall: () -> Unit = {}, onCustom
                             is OAuthResult.Token -> {
                                 nameInput = result.suggestedName ?: session?.displayName ?: ""
                                 authMessage = null
-                                pendingLink = PendingLink(provider, label, result.idToken, result.nonce)
+                                pendingLink = PendingLink(provider, label, result.idToken, result.nonce, result.authorizationCode)
                             }
                             OAuthResult.Cancelled -> authMessage = getString(Res.string.signin_cancelled, label)
                             OAuthResult.NotConfigured -> authMessage = getString(Res.string.signin_unavailable, label)
@@ -272,7 +272,7 @@ fun SettingsScreen(onBack: () -> Unit = {}, onPaywall: () -> Unit = {}, onCustom
                         onClick = {
                             val confirmedName = nameInput.trim()
                             scope.launch {
-                                authMessage = when (val r = syncManager.linkAccount(link.provider, link.idToken, link.nonce, confirmedName)) {
+                                authMessage = when (val r = syncManager.linkAccount(link.provider, link.idToken, link.nonce, confirmedName, link.authorizationCode)) {
                                     is uz.abumme.harfgame.data.api.ApiResult.Success -> getString(Res.string.link_success, link.label)
                                     is uz.abumme.harfgame.data.api.ApiResult.Error -> {
                                         println("Link account failed (${link.label}): ${r.message}")
@@ -318,4 +318,6 @@ private data class PendingLink(
     val label: String,
     val idToken: String,
     val nonce: String?,
+    /** Apple only: the code the server exchanges for the token it revokes on account deletion. */
+    val authorizationCode: String? = null,
 )
