@@ -116,7 +116,11 @@ class WordCatalogServiceTest {
     @Test
     fun addingARemovedSpellingRestoresTheSameWord() = runBlocking {
         val added = service.add(admin, "en", "crane")
+        // Distinct instants per action: auditRows() orders by `at` alone, so entries sharing one
+        // come back in any order and the ordering assertion below would flake.
+        clock.advance(Duration.ofMinutes(1))
         service.remove(admin, added.id)
+        clock.advance(Duration.ofMinutes(1))
 
         val restored = service.add(admin, "en", "Crane")
 

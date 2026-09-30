@@ -125,6 +125,9 @@ class PlayerModerationTest {
     fun unblockClearsBothColumnsOnce() {
         val id = insertPlayer("Grace")
         runBlocking { service.blockSuggestions(id, boss) }
+        // auditRows() orders by `at` alone, so two entries sharing an instant come back in any order.
+        // A frozen clock made the ordering assertion below a coin flip; real actions are minutes apart.
+        clock.advance(Duration.ofMinutes(5))
 
         val unblocked = runBlocking { service.unblockSuggestions(id, deputy) }
         runBlocking { service.unblockSuggestions(id, deputy) }
