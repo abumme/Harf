@@ -53,10 +53,14 @@ class KtorAuthService(
 
     override suspend fun linkAccount(token: String, request: LinkAccountRequest): ApiResult<LinkAccountResponse> {
         return try {
-            val response = httpClient.post("$baseUrl${ApiRoutes.AUTH_LINK}") {
-                header(HttpHeaders.Authorization, "Bearer $token")
-                contentType(ContentType.Application.Json)
-                setBody(request)
+            // Refresh once and retry if the access token has merely expired — as deleteAccount does.
+            // Linking is a deliberate, rare action, often the first call after a long idle stretch, and
+            // Apple's authorization code is single-use: losing this attempt to a stale token means the
+            // player sees "couldn't link" until they restart the app.
+            var response = postLink(token, request)
+            if (response.status == HttpStatusCode.Unauthorized) {
+                val refreshed = refreshAccessToken()
+                if (refreshed != null) response = postLink(refreshed, request)
             }
             if (response.status == HttpStatusCode.OK) {
                 val body = response.body<LinkAccountResponse>()
@@ -76,6 +80,13 @@ class KtorAuthService(
             ApiResult.Error("NETWORK_ERROR", e.message ?: "Network error")
         }
     }
+
+    private suspend fun postLink(token: String, request: LinkAccountRequest) =
+        httpClient.post("$baseUrl${ApiRoutes.AUTH_LINK}") {
+            header(HttpHeaders.Authorization, "Bearer $token")
+            contentType(ContentType.Application.Json)
+            setBody(request)
+        }
 
     override suspend fun refreshToken(request: RefreshRequest): ApiResult<RefreshResponse> = refreshMutex.withLock {
         val current = sessionStore.get()

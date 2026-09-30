@@ -71,6 +71,72 @@ class ClientNetworkAdapterTest {
     }
 
     @Test
+    fun testLinkAccountRefreshesExpiredAccessTokenAndRetries() = runTest {
+        val sessionStore = SessionStore(KSafe())
+        sessionStore.saveSession(
+            userId = "user-anon-1",
+            accessToken = "old-access",
+            refreshToken = "valid-refresh"
+        )
+
+        var linkAttempts = 0
+        val mockEngine = MockEngine { request ->
+            when (request.url.encodedPath) {
+                ApiRoutes.AUTH_LINK -> {
+                    linkAttempts++
+                    if (request.headers[HttpHeaders.Authorization] == "Bearer new-access") {
+                        val resp = LinkAccountResponse(
+                            userId = "user-linked-1",
+                            tokens = TokenPairDto(accessToken = "linked-access", refreshToken = "linked-refresh"),
+                            displayName = "Umid",
+                        )
+                        respond(
+                            content = json.encodeToString(resp),
+                            status = HttpStatusCode.OK,
+                            headers = headersOf(HttpHeaders.ContentType, "application/json")
+                        )
+                    } else {
+                        respond(
+                            content = """{"error":"unauthorized","message":"Missing or invalid access token"}""",
+                            status = HttpStatusCode.Unauthorized,
+                            headers = headersOf(HttpHeaders.ContentType, "application/json")
+                        )
+                    }
+                }
+                ApiRoutes.AUTH_REFRESH -> {
+                    val resp = RefreshResponse(
+                        tokens = TokenPairDto(accessToken = "new-access", refreshToken = "new-refresh")
+                    )
+                    respond(
+                        content = json.encodeToString(resp),
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(HttpHeaders.ContentType, "application/json")
+                    )
+                }
+                else -> error("Unexpected route ${request.url.encodedPath}")
+            }
+        }
+
+        val httpClient = HttpClient(mockEngine) {
+            install(ContentNegotiation) { json(json) }
+        }
+        val authService = KtorAuthService(httpClient, baseUrl = "http://test", sessionStore = sessionStore)
+
+        val result = authService.linkAccount(
+            "old-access",
+            LinkAccountRequest(provider = OAuthProvider.APPLE, idToken = "id-token", nonce = "raw-nonce")
+        )
+
+        assertTrue(result is ApiResult.Success, "An expired access token must not fail the link")
+        assertEquals(2, linkAttempts, "Must have retried the link with the refreshed token")
+
+        val session = sessionStore.get()
+        assertEquals("linked-access", session.accessToken)
+        assertEquals("linked-refresh", session.refreshToken)
+        assertTrue(session.isLinked)
+    }
+
+    @Test
     fun testTransparentTokenRefreshOn401() = runTest {
         val sessionStore = SessionStore(KSafe())
         sessionStore.saveSession(
