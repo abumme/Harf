@@ -6,8 +6,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.EntitlementRepository
+import uz.abumme.harfgame.data.auth.SessionStore
 import uz.abumme.harfgame.data.stats.SyncManager
 import uz.abumme.harfgame.feature.cellstyles.MarkStyleHost
 import uz.abumme.harfgame.feature.onboarding.OnboardingIntro
@@ -26,11 +30,17 @@ fun App(onThemeChanged: @Composable (isDark: Boolean) -> Unit = {}) {
     val settings = koinInject<AppSettings>()
     val entitlements = koinInject<EntitlementRepository>()
     val syncManager = koinInject<SyncManager>()
+    val sessionStore = koinInject<SessionStore>()
     val wordPackSync = koinInject<uz.abumme.harfgame.data.wordpack.WordPackSyncManager>()
     LaunchedEffect(Unit) {
         entitlements.refresh() // reconcile with the store on launch (no-op offline)
         syncManager.bootstrap() // non-blocking background anonymous session and stats sync
         wordPackSync.syncAll()  // fetch newer vocab in the background (no-op offline)
+    }
+    LaunchedEffect(Unit) {
+        // Keep the store identity in step with the Harf account: sign-in, link, switch, sign-out.
+        sessionStore.sessionFlow.filterNotNull().map { it.userId }.distinctUntilChanged()
+            .collect { entitlements.bindAccount(it) }
     }
     var onboarded by remember { mutableStateOf(settings.isOnboarded()) }
     HarfTheme(settings) {

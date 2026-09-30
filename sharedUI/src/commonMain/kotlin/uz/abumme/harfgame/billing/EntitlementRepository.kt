@@ -31,6 +31,23 @@ class EntitlementRepository(
         _entitlements.value = cached
     }
 
+    /**
+     * Follows the Harf session: binds the store identity to the account (so a purchase made on one
+     * device is found by "restore" on any device signed into the same account), swaps the cached
+     * grant, and reconciles with the store. Same owner twice is a no-op.
+     */
+    suspend fun bindAccount(userId: String?) {
+        val ownerId = userId ?: ""
+        if (ownerId == currentOwnerId) return
+        onAccountChanged(userId)
+        if (ownerId.isBlank()) {
+            controller.reset() // no account: nothing to reconcile, the empty state is final
+            return
+        }
+        controller.identify(ownerId)
+        refresh()
+    }
+
     /** Pull the latest entitlements from the controller (no-op when unavailable). */
     suspend fun refresh() {
         if (!controller.isAvailable) return

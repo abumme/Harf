@@ -100,4 +100,21 @@ class EntitlementRepositoryTest {
         assertTrue(controller.resetCalled)
         assertEquals(null, controller.identifiedUser)
     }
+
+    @Test
+    fun bindAccount_identifies_store_refreshes_and_resets_on_logout() = runTest {
+        val ksafe = KSafe()
+        val settings = AppSettings(ksafe)
+        val controller = FakePurchaseController(initialEntitlements = Entitlements(lifetime = true))
+        val repo = EntitlementRepository(controller, settings)
+
+        repo.bindAccount("owner-1")
+        assertEquals("owner-1", controller.identifiedUser)
+        assertTrue(repo.entitlements.value.lifetime, "Binding must reconcile with the store")
+        assertTrue(settings.cachedEntitlements("owner-1").lifetime, "Grant must be cached per owner")
+
+        repo.bindAccount(null)
+        assertTrue(controller.resetCalled)
+        assertFalse(repo.entitlements.value.lifetime, "Logout must clear active entitlements")
+    }
 }
