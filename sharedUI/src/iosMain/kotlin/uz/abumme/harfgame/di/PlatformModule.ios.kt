@@ -19,7 +19,7 @@ actual val platformModule: Module = module {
     single { KSafe() }
     single<Sharer> { IosSharer() }
     single<PurchaseController> { RevenueCatPurchaseController(BuildConfig.REVENUECAT_KEY) }
-    single<OAuthClient> { IosAppleOAuthClient(googleClientId = BuildConfig.GOOGLE_SERVER_CLIENT_ID) }
+    single<OAuthClient> { IosAppleOAuthClient() }
     single<GamesServices> { NoOpGamesServices() }
 }
 

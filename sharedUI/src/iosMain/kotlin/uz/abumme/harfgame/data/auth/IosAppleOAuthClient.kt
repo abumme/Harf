@@ -29,11 +29,12 @@ import uz.abumme.harfgame.data.keyWindow
 import kotlin.coroutines.resume
 
 @OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
-class IosAppleOAuthClient(
-    private val googleClientId: String = "",
-) : OAuthClient {
+class IosAppleOAuthClient : OAuthClient {
 
-    override val isGoogleSupported: Boolean get() = googleClientId.isNotBlank()
+    // Sign in with Apple is the only sign-in on iOS: there is no Google flow here, so the settings
+    // screen must not offer one. Reporting it as supported drew a "Link Google Account" button that
+    // could only ever answer "unavailable" — a dead control App Review reads as a broken feature.
+    override val isGoogleSupported: Boolean get() = false
     override val isAppleSupported: Boolean get() = true
 
     override suspend fun signInWithGoogle(): OAuthResult = OAuthResult.NotConfigured
