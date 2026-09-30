@@ -104,4 +104,11 @@
     <string name="result_out_of_tries">Out of tries</string>
     <string name="action_share">Share</string>
     <string name="action_copy">Copy</string>
+    <string name="manage_title">Your purchases</string>
+    <string name="manage_empty_title">No purchases yet</string>
+    <string name="manage_empty_body">Bought on another device or reinstalled? Restore them here.</string>
+    <string name="manage_owned_themes">Themes</string>
+    <string name="manage_nothing_restored">Nothing to restore</string>
+    <string name="manage_refund">Request a refund</string>
+    <string name="manage_refund_note">Refunds are granted by the store, not by us.</string>
 </resources>

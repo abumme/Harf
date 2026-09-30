@@ -104,4 +104,11 @@
     <string name="result_out_of_tries">Urinishlar tugadi</string>
     <string name="action_share">Ulashish</string>
     <string name="action_copy">Nusxa olish</string>
+    <string name="manage_title">Xaridlaringiz</string>
+    <string name="manage_empty_title">Hozircha xarid yo'q</string>
+    <string name="manage_empty_body">Boshqa qurilmada sotib oldingizmi yoki ilovani qayta o'rnatdingizmi? Shu yerda tiklang.</string>
+    <string name="manage_owned_themes">Nashrlar</string>
+    <string name="manage_nothing_restored">Tiklaydigan narsa yo'q</string>
+    <string name="manage_refund">Pulni qaytarishni so'rash</string>
+    <string name="manage_refund_note">Pulni do'kon qaytaradi, biz emas.</string>
 </resources>

@@ -104,4 +104,11 @@
     <string name="result_out_of_tries">Попытки закончились</string>
     <string name="action_share">Поделиться</string>
     <string name="action_copy">Скопировать</string>
+    <string name="manage_title">Ваши покупки</string>
+    <string name="manage_empty_title">Покупок пока нет</string>
+    <string name="manage_empty_body">Покупали на другом устройстве или переустановили игру? Восстановите здесь.</string>
+    <string name="manage_owned_themes">Оформления</string>
+    <string name="manage_nothing_restored">Восстанавливать нечего</string>
+    <string name="manage_refund">Запросить возврат</string>
+    <string name="manage_refund_note">Возврат оформляет магазин, не мы.</string>
 </resources>

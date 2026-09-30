@@ -19,24 +19,16 @@ import com.revenuecat.purchases.kmp.models.PurchasesException
  */
 class RevenueCatPurchaseController(apiKey: String) : PurchaseController {
 
-    override val isAvailable: Boolean
-
-    init {
-        // Configuration must never crash the app. A blank key means "no store"; a bad/rejected key
-        // (e.g. a Test Store key that slipped into a build) degrades to unavailable instead of
-        // throwing out of the Koin graph on startup.
-        isAvailable = if (apiKey.isNotBlank()) {
-            try {
-                if (!Purchases.isConfigured) {
-                    Purchases.configure(PurchasesConfiguration.Builder(apiKey).build())
-                }
-                true
-            } catch (e: Throwable) {
-                false
-            }
-        } else {
-            false
+    // Configuration must never crash the app. A blank key means "no store"; a bad/rejected key
+    // (e.g. a Test Store key that slipped into a build) degrades to unavailable instead of
+    // throwing out of the Koin graph on startup.
+    override val isAvailable: Boolean = apiKey.isNotBlank() && try {
+        if (!Purchases.isConfigured) {
+            Purchases.configure(PurchasesConfiguration.Builder(apiKey).build())
         }
+        true
+    } catch (_: Throwable) {
+        false
     }
 
     override suspend fun identify(userId: String) {
@@ -100,7 +92,7 @@ class RevenueCatPurchaseController(apiKey: String) : PurchaseController {
             Purchases.sharedInstance.awaitRestore()
             PurchaseOutcome.Success
         } catch (e: PurchasesException) {
-            PurchaseOutcome.Error(e.message ?: "Restore failed")
+            PurchaseOutcome.Error(e.message)
         }
     }
 
