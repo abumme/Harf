@@ -59,6 +59,42 @@ In the same `.env`, the staff admin panel needs (see `.env.example` for details)
 
 `ADMIN_WEB_DIR` is set inside the image; don't set it in `.env`.
 
+### Sign in with Apple key
+
+Deleting an account must revoke the user's Apple token (Apple requires it, TN3194), which needs the
+Sign in with Apple `.p8`. Without it linking still works and deletion revokes nothing — the backend
+says so once at startup and carries on.
+
+Create the key in Apple Developer → Certificates, Identifiers & Profiles → Keys with *Sign in with
+Apple* enabled, associated with the primary App ID; the `.p8` downloads **once**. Then, on the box:
+
+```bash
+mkdir -p ~/harf/secrets && chmod 700 ~/harf/secrets
+# scp the key across, then:
+chmod 600 ~/harf/secrets/AuthKey_<KEYID>.p8
+```
+
+`docker-compose.prod.yml` mounts `./secrets` read-only at `/run/secrets/apple`, so `.env` names the
+path **inside the container** — a host path silently reads as nothing:
+
+| Variable | Production value |
+|---|---|
+| `APPLE_AUDIENCES` | `uz.abumme.harfgame` — the iOS bundle id the identity tokens carry |
+| `APPLE_TEAM_ID` | the 10-character team id (Apple Developer → Membership details) |
+| `APPLE_KEY_ID` | the key id, i.e. what sits between `AuthKey_` and `.p8` in the file name |
+| `APPLE_PRIVATE_KEY_PATH` | `/run/secrets/apple/AuthKey_<KEYID>.p8` — the container path, not `~/harf/secrets/...` |
+| `APPLE_PRIVATE_KEY`, `APPLE_CLIENT_ID` | leave empty: the key comes from the file, and the client id defaults to the first `APPLE_AUDIENCES` entry |
+
+Verify after `up -d` — the warning is the only signal, a working key logs nothing:
+
+```bash
+docker compose -f docker-compose.prod.yml logs backend | grep -i "sign in with apple" || echo "key loaded"
+docker compose -f docker-compose.prod.yml exec backend ls -l /run/secrets/apple/   # if it warns
+```
+
+`no key is configured` means the path is wrong; `could not be read` means the file was found but
+doesn't parse as a PKCS#8 EC key (truncated download, or not a `.p8`).
+
 Only ever run this on a **fresh** box. Regenerating `JWT_SECRET` on an existing deployment logs
 every user out, and a new `POSTGRES_PASSWORD` won't match the password already baked into the
 `postgres_data` volume — the backend then fails to connect.
