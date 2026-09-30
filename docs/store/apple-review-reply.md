@@ -2,7 +2,9 @@
 
 Paste section **A** into the App Store Connect review message, and section **B** into
 App Review Information → Notes (it stays there for future submissions).
-Section **C** is the shot list for the required screen recording.
+Section **C** is a shot list for a screen recording — keep it only for a reviewer who asks
+for one. The Beta App Review rejection of 2026-09-30 states plainly that "providing a demo
+video showing your beta app in use is not enough", so A must not lean on a video.
 
 ---
 
@@ -11,123 +13,99 @@ Section **C** is the shot list for the required screen recording.
 ```text
 Hello App Review team,
 
-Thank you for the review. Below is all requested information. A screen recording
-captured on a physical iPhone running the latest iOS is attached, and the same
-information has been added to the Notes field of App Review Information.
+Thank you for the review, and sorry for the trouble accessing the app.
 
-1. SCREEN RECORDING
+1. NO DEMO ACCOUNT EXISTS, AND NONE IS NEEDED
 
-Attached: a single recording made on a physical iPhone (iOS 26), starting from app
-launch. It shows, in order:
-- Cold launch and onboarding / language selection
-- The daily puzzle being played: typed guesses, tile colouring (green = correct
-  letter in the correct position, red = letter present elsewhere, grey = absent),
-  and the win screen
-- The statistics screen (streak, distribution)
-- Settings: theme selection, then the optional paid content flow — opening the
-  purchase screen, the StoreKit purchase sheet for a non-consumable, and
-  "Restore purchases"
-- Account registration and login: "Link Apple Account" (Sign in with Apple) in
-  Settings, and the display-name step
-- Account deletion: Settings -> Delete Account -> confirmation dialog -> account
-  and all of its data removed (the app returns to the signed-out state)
-- The word-suggestion control, which is the only user input the app transmits
-  (see item 4 below on why no reporting/blocking mechanism applies)
+Harf has no username/password system at all, so there are no credentials we can
+put in the Sign-In Information fields. There is no paywalled or account-gated
+area: every feature, including the full daily puzzle, is reachable on a fresh
+install with no sign-up, no login, and no network connection.
 
-2. PURPOSE AND TARGET AUDIENCE
+The only sign-in in the app is Sign in with Apple, and it is entirely optional.
+Its sole purpose is to sync statistics between a player's own devices and to
+restore purchases. Nothing is hidden behind it.
 
-Harf is a daily word puzzle game. Every day there is one puzzle, the same word
-for every player worldwide, to be guessed in six tries. It is a single-player
-game with no ads, no timers and no forced sign-up.
+2. WHAT WENT WRONG, AND WHAT WE FIXED
 
-Target audience: general audience, age 4+, people who enjoy a short daily word
-puzzle. The specific problem it solves: daily word games of this kind exist in
-English but not for the languages of Central Asia. Harf is playable in Uzbek
-(both Latin and Cyrillic script), Russian, Kazakh and English, and it counts
-letters the way a native speaker does - Uzbek digraphs such as "sh" and "oʻ" are
-scored as one letter, not two. The value it provides is a correct, calm,
-fully offline daily puzzle in the player's own language.
+We believe the reviewer met two real defects, both now fixed and verified on a
+physical device against our production server:
 
-3. SETTING UP AND ACCESSING THE MAIN FEATURES
+- The Settings screen offered a "Link Google Account" button on iOS. There is no
+  Google sign-in in the iOS build, so that button could only ever answer
+  "unavailable". It has been removed; iOS now shows Sign in with Apple only.
+- A server-side configuration error made our backend reject every Sign in with
+  Apple token, so "Link Apple Account" failed with an error message. The
+  configuration has been corrected and sign-in, account linking and account
+  deletion (including Apple token revocation, per TN3194) have been retested
+  end to end.
 
-No account and no credentials are required. Everything below works on a fresh
-install, including with the device in Airplane Mode:
+This build contains those fixes.
 
-- Launch the app, pick a language (Oʻzbekcha Latin/Cyrillic, Русский, Қазақша,
-  English). The daily puzzle opens immediately.
-- Type a word with the on-screen keyboard and press Enter. Word length varies by
-  puzzle (4 to 7 letters, shown by the number of tiles). Tiles colour
-  as described above. Six attempts per day. The puzzle changes at local midnight
-  in each language's fixed time zone.
-- Statistics: the chart icon on the home screen (games played, win rate, current
-  and best streak, guess distribution).
-- Settings (gear icon): language and script, theme, legal links, account, and
-  account deletion.
-- Optional sign-in: Settings -> "Link Apple Account" (Sign in with Apple). On iOS
-  this is the only sign-in method. Its sole purpose is syncing statistics and the
-  streak between the player's own devices, and restoring purchases. Nothing in
-  the game is gated behind it.
-- Account deletion: Settings -> Delete Account -> confirm. This deletes the
-  server-side account and all its data, revokes the Apple sign-in token on our
-  server, and clears local statistics. It is available to any signed-in user
-  inside the app, with no support contact required.
-- Paid content: Settings -> Manage purchases. The daily puzzle and all core
-  gameplay are free forever. The in-app purchases are optional non-consumables:
-  cosmetic colour themes, and a "Founder" bundle (puzzle archive, hard mode,
-  supporter badge). "Restore purchases" is on the same screen. All products are
-  configured in App Store Connect and submitted with this build.
+3. HOW TO REACH EVERY FEATURE
 
-No demo account, credentials or sample files are needed. If the review team
-prefers one anyway, we can provide a test Apple ID on request.
+- Launch the app and pick a puzzle language (Oʻzbekcha Latin/Cyrillic, Русский,
+  Қазақша, English). The daily puzzle opens immediately, with no account.
+- Play: type a word on the on-screen keyboard, press Enter. Tiles colour green
+  (right letter, right place), red (letter present elsewhere) or grey (absent).
+  Six attempts. The word length varies by puzzle and is shown by the tile count.
+- Statistics: the chart icon on the home screen.
+- Settings (gear icon): language and script, themes, legal links, account,
+  purchases.
+- Optional sign-in: Settings → "Link Apple Account" → Sign in with Apple →
+  confirm a display name.
+- Account deletion: Settings → Delete Account → confirm. This removes the
+  server-side account and all of its data, revokes the Apple token, and clears
+  local statistics. No support contact is required.
+- Offline: the daily puzzle is fully playable in Airplane Mode.
 
-4. USER-GENERATED CONTENT
+4. TESTING THE IN-APP PURCHASES
+
+Settings → "Manage purchases" lists what the account owns and holds "Restore
+purchases" and "Request a refund". The purchase screen itself is Settings →
+the Edition section.
+
+All products are optional non-consumables — cosmetic colour themes and a
+"Founder" bundle (puzzle archive, hard mode, supporter badge). The daily puzzle
+and all core gameplay are free forever and are never gated.
+
+Every product is submitted together with this version, so the review build can
+complete a purchase in the App Review sandbox at no charge. "Restore purchases"
+on the same screen restores them afterwards. No sandbox credentials are needed
+from us.
+
+5. USER-GENERATED CONTENT
 
 The app has no user-to-user features: no profiles visible to others, no chat, no
-comments, no feeds, no photo or file uploads, no sharing of content between
-players. Consequently there is no in-app content to report or block.
+comments, no feeds, no uploads, no sharing between players. There is therefore
+no in-app content to report or block.
 
-There is exactly one thing a player can submit: when a typed word is not in our
-dictionary, a "Suggest to add" button appears. It sends that single word to our
-own server for our editors to review privately. Suggested words are never shown
-to other players; they only enter the dictionary if our editorial team accepts
-them. A player's display name (used for sign-in) is shown only to that player.
+The single thing a player can submit is a word: when a typed word is missing
+from our dictionary, a "Suggest to add" button appears and sends that one word
+to our editors for private review. Suggested words are never shown to other
+players and enter the dictionary only if our editorial team accepts them. A
+display name is visible only to its own owner.
 
-5. EXTERNAL SERVICES, TOOLS AND PLATFORMS
+6. EXTERNAL SERVICES
 
-- Our own backend server (Ktor + PostgreSQL, hosted on Oracle Cloud,
-  https://api.lazydevs.uz): publishes the daily-word calendar and word lists,
-  stores the optional statistics sync, receives word suggestions. Operated by us.
-- Sign in with Apple (Apple) - optional authentication on iOS.
-- Google Sign-In - used on the Android version only; it is not available in the
-  iOS build.
-- RevenueCat - in-app purchase management on top of Apple's StoreKit / In-App
-  Purchase. Payment processing is Apple's.
-- No advertising SDKs, no third-party analytics or attribution SDKs, no tracking
-  (no IDFA, no ATT prompt), no AI services, no external data providers. All
-  vocabulary and word lists are our own editorial content.
+- Our own backend (Ktor + PostgreSQL on Oracle Cloud, https://api.lazydevs.uz):
+  daily-word calendar, word lists, optional statistics sync, word suggestions.
+- Sign in with Apple — optional authentication, iOS only.
+- RevenueCat — purchase management on top of Apple's StoreKit. Payment
+  processing is Apple's.
+- No advertising SDKs, no third-party analytics or attribution, no tracking (no
+  IDFA, no ATT prompt), no AI services. All vocabulary is our own editorial
+  content.
 
-6. REGIONAL DIFFERENCES
-
-The app functions consistently in all regions. There is no geofencing, no
-region-locked content and no regional pricing logic beyond Apple's standard
-App Store price tiers. The only differences a player can see are chosen by the
-player, not by region: the interface is localized in English, Russian and Uzbek
-and follows the device language, and the playable puzzle language (Uzbek Latin,
-Uzbek Cyrillic, Russian, Kazakh, English) is selected in-app and can be changed
-at any time. Each puzzle language rolls over at midnight in its own fixed time
-zone, so all players of that language share the same word on the same day.
-
-7. REGULATED INDUSTRY / THIRD-PARTY MATERIAL
-
-The app is not in a regulated industry. It contains no protected third-party
-material: the word lists, puzzles, artwork, icon and all text are created and
-owned by us. Fonts in use are licensed for this purpose. The game is an original
-word puzzle and is not affiliated with, or licensed from, any other word game.
+If any part of the app is still unreachable, please tell us which screen or
+action failed and what it showed. We will reproduce and fix it immediately. If
+you would still prefer an account despite none being required, we can supply a
+sandbox Apple ID on request.
 
 Thank you for your time.
 
-Umid Olimzhanov
-uolimzhanov@gmail.com
+Mekhrojbek Islomov
+lazydevscat@gmail.com
 ```
 
 ---
@@ -163,12 +141,15 @@ language (Uzbek Latin/Cyrillic, Russian, Kazakh, English) chosen in-app.
 
 Content rights: all words, art and text are our own original content.
 
-Contact: uolimzhanov@gmail.com
+Contact: lazydevscat@gmail.com
 ```
 
 ---
 
 ## C. Screen recording shot list (one take, physical iPhone, latest iOS)
+
+Only if a reviewer asks for a recording — a video does not satisfy a Beta App Review
+request for credentials, which says so in as many words.
 
 Record with iOS Screen Recording (Control Center) or
 `xcrun devicectl` / QuickTime; upload the .mp4/.mov in Resolution Center.

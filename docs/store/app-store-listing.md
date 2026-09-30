@@ -204,7 +204,7 @@ Display Name ≤ 30 символов, Description ≤ 55 символов (ли�
   3. Optional Sign in with Apple: located in Settings -> Profile for cross-device streak sync.
   4. Multiple themes and offline player statistics.
 
-  Contact: uolimzhanov@gmail.com
+  Contact: lazydevscat@gmail.com
   ```
 
 ---
