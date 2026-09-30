@@ -1,8 +1,11 @@
 # Tasks
 
-Context: the hosted Customer Center works today (its dashboard config was fixed and `2c63ca3` gave it
-a size on iOS). This change replaces it for looks and for one fewer dependency, so it is not urgent —
-land it after the App Store submission, not before it.
+Context: this ships in the build that goes to App Store review, so the screen an Apple reviewer opens
+is ours. The hosted Customer Center works today (`2c63ca3` gave it a size on iOS), which is the safety
+net: if anything here is not ready in time, the route goes back to it and the change waits.
+
+Because it lands before the submission, §3.2 is a gate, not a formality — the screen is on the path
+the reviewer takes through Settings, and a device run has to pass before the archive.
 
 ## 1. The screen
 
