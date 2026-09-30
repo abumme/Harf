@@ -2,7 +2,10 @@ package uz.abumme.harfgame.backend
 
 import uz.abumme.harfgame.backend.config.ServerConfig
 import kotlin.test.Test
+import kotlin.test.assertContains
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class ServerConfigTest {
 
@@ -31,6 +34,27 @@ class ServerConfigTest {
         ServerConfig.requireSecureProductionConfig(
             env = { null },
             production = false,
+        )
+    }
+
+    // An empty audience allowlist makes the verifier reject every token silently, which reads as a
+    // broken client. It cost a debugging round once; the warning is the only signal there is.
+    @Test
+    fun emptyAudienceAllowlistsAreWarnedAbout() {
+        val both = oauthConfigWarnings(googleClientIds = emptyList(), appleAudiences = emptyList())
+        assertTrue(both.any { it.contains("GOOGLE_CLIENT_IDS") }, "Expected a Google warning in $both")
+        assertTrue(both.any { it.contains("APPLE_AUDIENCES") }, "Expected an Apple warning in $both")
+
+        val appleOnly = oauthConfigWarnings(googleClientIds = listOf("google-client"), appleAudiences = emptyList())
+        assertEquals(1, appleOnly.size, "Only the empty allowlist warns: $appleOnly")
+        assertContains(appleOnly.single(), "APPLE_AUDIENCES")
+    }
+
+    @Test
+    fun configuredAudienceAllowlistsAreSilent() {
+        assertEquals(
+            emptyList(),
+            oauthConfigWarnings(googleClientIds = listOf("google-client"), appleAudiences = listOf("uz.abumme.harfgame")),
         )
     }
 }

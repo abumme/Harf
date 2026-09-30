@@ -231,15 +231,31 @@ internal fun appleAuthFromEnv(): AppleAuthClient {
         }
 }
 
-/** Google and Apple sign-in verifiers from `GOOGLE_CLIENT_IDS` / `APPLE_AUDIENCES`. */
-internal fun oauthVerifiersFromEnv(): Map<OAuthProvider, OAuthVerifier> = mapOf(
-    OAuthProvider.GOOGLE to GoogleOAuthVerifier(
-        audiences = (System.getenv("GOOGLE_CLIENT_IDS") ?: "").split(",").map { it.trim() }.filter { it.isNotEmpty() }
-    ),
-    OAuthProvider.APPLE to AppleOAuthVerifier(
-        audiences = (System.getenv("APPLE_AUDIENCES") ?: "").split(",").map { it.trim() }.filter { it.isNotEmpty() }
+/**
+ * Warnings for an audience allowlist that is empty. Both verifiers reject every token when theirs is
+ * — deliberately, so an unconfigured allowlist can't accept an unscoped token — but they reject it
+ * silently, which reads exactly like a broken client. Say it once at startup instead.
+ */
+internal fun oauthConfigWarnings(googleClientIds: List<String>, appleAudiences: List<String>): List<String> =
+    listOfNotNull(
+        "WARNING: GOOGLE_CLIENT_IDS is empty: every Google sign-in will be rejected."
+            .takeIf { googleClientIds.isEmpty() },
+        "WARNING: APPLE_AUDIENCES is empty: every Apple sign-in will be rejected. Set it to the iOS bundle id."
+            .takeIf { appleAudiences.isEmpty() },
     )
-)
+
+/** Google and Apple sign-in verifiers from `GOOGLE_CLIENT_IDS` / `APPLE_AUDIENCES`. */
+internal fun oauthVerifiersFromEnv(): Map<OAuthProvider, OAuthVerifier> {
+    fun list(name: String) =
+        (System.getenv(name) ?: "").split(",").map { it.trim() }.filter { it.isNotEmpty() }
+    val googleClientIds = list("GOOGLE_CLIENT_IDS")
+    val appleAudiences = list("APPLE_AUDIENCES")
+    oauthConfigWarnings(googleClientIds, appleAudiences).forEach { println(it) }
+    return mapOf(
+        OAuthProvider.GOOGLE to GoogleOAuthVerifier(audiences = googleClientIds),
+        OAuthProvider.APPLE to AppleOAuthVerifier(audiences = appleAudiences),
+    )
+}
 
 fun Application.module(
     jwtService: JwtService = JwtService(),
