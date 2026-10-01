@@ -69,6 +69,8 @@ kotlin {
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtime)
             implementation(libs.androidx.navigation.compose)
+            // Swipe-edge constants for the predictive back transitions (already pulled in by navigation-compose).
+            implementation(libs.androidx.navigationevent.compose)
             api(libs.kotlinx.serialization.json)
             api(libs.kotlinx.datetime)
             implementation(libs.koin.core)

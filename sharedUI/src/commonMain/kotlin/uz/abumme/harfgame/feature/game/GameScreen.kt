@@ -87,13 +87,10 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.PurchaseController
-import uz.abumme.harfgame.data.stats.InProgressRound
 import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.data.stats.RoundStore
 import uz.abumme.harfgame.engine.Mark
-import uz.abumme.harfgame.engine.WordPack
 import uz.abumme.harfgame.engine.WordPackRepository
-import uz.abumme.harfgame.feature.daily.DailyPuzzle
 import uz.abumme.harfgame.feature.daily.DailyPuzzleProvider
 import uz.abumme.harfgame.feature.onboarding.MarkLegend
 import uz.abumme.harfgame.feature.result.ShareGrid
@@ -106,13 +103,6 @@ import uz.abumme.harfgame.theme.LocalHarfPaletteId
 import uz.abumme.harfgame.theme.marks.LocalMarkStyle
 import kotlin.time.Duration.Companion.milliseconds
 
-private data class Loaded(
-    val puzzle: DailyPuzzle,
-    val config: LanguageConfig,
-    val pack: WordPack,
-    val restore: InProgressRound?,
-)
-
 @Composable
 fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Unit = {}) {
     val provider = koinInject<DailyPuzzleProvider>()
@@ -124,23 +114,29 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
     val gamesServices = koinInject<uz.abumme.harfgame.games.GamesServices>()
     val scope = rememberCoroutineScope()
 
-    // active script (Uzbek can switch latn <-> cyrl for the same daily lexeme)
-    var script by remember { mutableStateOf(languageId) }
-    var loaded by remember { mutableStateOf<Loaded?>(null) }
-
-    LaunchedEffect(script) {
-        loaded = null
-        val puzzle = provider.daily(script)
-        val pack = packs.load(script)
-        val config = registry.config(script)!!
-        val restore = roundStore.load(script, puzzle.epochDay)
-        loaded = Loaded(puzzle, config, pack, restore)
+    // The round lives in the Game entry, outside composition: a return from the paywall finds it ready, and an
+    // Uzbek script switch keeps the current board until the other script's round is ready.
+    val loader = viewModel {
+        GameLoadViewModel { s ->
+            val puzzle = provider.daily(s)
+            Loaded(puzzle, registry.config(s)!!, packs.load(s), roundStore.load(s, puzzle.epochDay))
+        }.also { it.select(languageId) }
     }
+    val loaded by loader.loaded.collectAsState()
+    val selectedScript by loader.selected.collectAsState()
 
-    val data = loaded ?: return
+    val data = loaded ?: run {
+        // Not ready yet: still a real page, so the transition moves the game's frame rather than an empty one.
+        GameSkeleton(onBack)
+        return
+    }
     val (puzzle, config, pack, restore) = data
+    // The script on the board (Uzbek can switch latn <-> cyrl for the same daily lexeme).
+    val script = puzzle.languageId
 
-    val vm = viewModel(key = script) {
+    // Keyed by the round, not the script: switching there and back must build the VM from the converted round
+    // instead of reusing the stale one from the first visit. A paywall round trip keeps the same round, so the same VM.
+    val vm = viewModel(key = "$script#${data.generation}") {
         GameViewModel(puzzle, pack, restore) { record ->
             scope.launch {
                 resultLog.record(record)
@@ -155,6 +151,9 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
         }
     }
     val state by vm.state.collectAsState()
+    // Set while a script switch is converting the round: input then would be lost with the board it was typed on.
+    var switching by remember(data.generation) { mutableStateOf(false) }
+    val act: (GameAction) -> Unit = { if (!switching) vm.onAction(it) }
     val colors = LocalHarfColors.current
     var showHelp by remember { mutableStateOf(false) }
 
@@ -247,10 +246,7 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
             verticalAlignment = Alignment.CenterVertically,
         ) {
           Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            val backLabel = stringResource(Res.string.action_back)
-            TextButton(onClick = onBack, modifier = Modifier.semantics { contentDescription = backLabel }) {
-                Text("‹", color = colors.ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            }
+            BackControl(onBack)
             // Hard Mode toggle (pre-round only, gated by Founder entitlement)
             if (state.submitted.isEmpty() && state.status == GameStatus.Playing) {
                 val isFounder = uz.abumme.harfgame.billing.EntitlementGate.lifetimeExtrasUnlocked(
@@ -264,7 +260,7 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
                             .clip(hardShape)
                             .background(if (on) colors.accent.copy(alpha = 0.14f) else Color.Transparent)
                             .border(1.dp, if (on) colors.accent else colors.rule, hardShape)
-                            .clickable { vm.onAction(GameAction.ToggleHardMode) }
+                            .clickable { act(GameAction.ToggleHardMode) }
                             .padding(horizontal = 12.dp, vertical = 7.dp),
                     ) {
                         Text(
@@ -302,25 +298,28 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
             }
           }
 
-            val helpLabel = stringResource(Res.string.help)
-            TextButton(onClick = { showHelp = true }, modifier = Modifier.semantics { contentDescription = helpLabel }) {
-                Text("?", color = colors.muted)
-            }
+            HelpControl(onClick = { showHelp = true })
         }
     }
     val switchScript: (String) -> Unit = { targetScript ->
-        if (targetScript != script) {
+        if (targetScript != selectedScript) {
+            switching = true
             val currentSnapshot = vm.snapshot()
             scope.launch {
-                roundStore.save(currentSnapshot)
-                val targetPuzzle = provider.daily(targetScript)
-                val converted = uz.abumme.harfgame.lang.UzbekScriptConverter.convertRound(
-                    round = currentSnapshot,
-                    targetScript = targetScript,
-                    targetAnswer = targetPuzzle.answer,
-                )
-                roundStore.save(converted)
-                script = targetScript
+                try {
+                    roundStore.save(currentSnapshot)
+                    val targetPuzzle = provider.daily(targetScript)
+                    val converted = uz.abumme.harfgame.lang.UzbekScriptConverter.convertRound(
+                        round = currentSnapshot,
+                        targetScript = targetScript,
+                        targetAnswer = targetPuzzle.answer,
+                    )
+                    roundStore.save(converted)
+                    loader.select(targetScript)
+                } catch (e: Exception) {
+                    switching = false // the switch did not happen; keep playing this board
+                    if (e is kotlinx.coroutines.CancellationException) throw e
+                }
             }
         }
     }
@@ -328,7 +327,7 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
         if (languageId.startsWith("uz")) {
             uz.abumme.harfgame.theme.SegmentedSwitch(
                 options = listOf("uz-latn" to "Lotin", "uz-cyrl" to "Кирилл"),
-                selectedKey = script,
+                selectedKey = selectedScript ?: script,
                 onSelect = { switchScript(it) },
             )
         }
@@ -368,9 +367,9 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
             KeyboardView(
                 config = config,
                 keyStates = state.keyStates,
-                onKey = { vm.onAction(GameAction.Input(it)) },
-                onDelete = { vm.onAction(GameAction.Delete) },
-                onEnter = { vm.onAction(GameAction.Submit) },
+                onKey = { act(GameAction.Input(it)) },
+                onDelete = { act(GameAction.Delete) },
+                onEnter = { act(GameAction.Submit) },
             )
         } else {
             ResultView(state, config.displayName, puzzle.epochDay, onPaywall)
@@ -392,7 +391,6 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
         modifier = Modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing)
-            .background(colors.paper)
             .padding(16.dp)
             .focusRequester(focusRequester)
             .onPreviewKeyEvent { ev ->
@@ -400,12 +398,12 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
                     return@onPreviewKeyEvent false
                 }
                 when (ev.key) {
-                    Key.Enter, Key.NumPadEnter -> { vm.onAction(GameAction.Submit); true }
-                    Key.Backspace -> { vm.onAction(GameAction.Delete); true }
+                    Key.Enter, Key.NumPadEnter -> { act(GameAction.Submit); true }
+                    Key.Backspace -> { act(GameAction.Delete); true }
                     else -> {
                         val key = ev.utf16CodePoint.takeIf { it != 0 }
                             ?.let { keyLookup[it.toChar().toString().lowercase()] }
-                        if (key != null) { vm.onAction(GameAction.Input(key)); true } else false
+                        if (key != null) { act(GameAction.Input(key)); true } else false
                     }
                 }
             }
@@ -442,6 +440,56 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
                 feedback()
                 playArea()
             }
+        }
+    }
+}
+
+/** The header's back control; the skeleton draws the same one, so it does not move when the round arrives. */
+@Composable
+private fun BackControl(onBack: () -> Unit) {
+    val backLabel = stringResource(Res.string.action_back)
+    TextButton(onClick = onBack, modifier = Modifier.semantics { contentDescription = backLabel }) {
+        Text("‹", color = LocalHarfColors.current.ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+private fun HelpControl(onClick: () -> Unit) {
+    val helpLabel = stringResource(Res.string.help)
+    TextButton(onClick = onClick, modifier = Modifier.semantics { contentDescription = helpLabel }) {
+        Text("?", color = LocalHarfColors.current.muted)
+    }
+}
+
+/**
+ * The game page before its round is ready: the same insets, padding and header row as the loaded screen (back works;
+ * help waits for the round), so the transition moves a real page and the header stays put when the board appears.
+ */
+@Composable
+private fun GameSkeleton(onBack: () -> Unit) {
+    val header: @Composable () -> Unit = {
+        Row(
+            Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                BackControl(onBack)
+                Spacer(Modifier.width(1.dp))
+            }
+            HelpControl(onClick = {})
+        }
+    }
+    BoxWithConstraints(
+        Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(16.dp),
+    ) {
+        if (maxWidth > maxHeight) {
+            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(Modifier.weight(1f).fillMaxHeight()) { header() }
+                Spacer(Modifier.weight(1f))
+            }
+        } else {
+            Column(Modifier.fillMaxSize()) { header() }
         }
     }
 }

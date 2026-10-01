@@ -24,6 +24,8 @@ import uz.abumme.harfgame.lang.LanguageRegistry
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 class WordPackClientTest {
@@ -105,6 +107,23 @@ class WordPackClientTest {
         // empty cache offline → bundle
         val bundled = WordPackRepository(registry, WordPackCache(KSafe())).load("en")
         assertTrue(bundled.schedule.isNotEmpty(), "bundled baseline yields a schedule offline")
+    }
+
+    @Test
+    fun anAdoptedPackIsLoadedWithoutARebuild() = runTest {
+        val repo = WordPackRepository(registry, snapshots = { null })
+        val pack = assertNotNull(repo.build(validEnPack("1")))
+        repo.adopt(pack)
+        assertSame(pack, repo.load("en"), "load returns the adopted instance, not a rebuilt one")
+    }
+
+    @Test
+    fun aRejectedPackLeavesTheResolvedOneInUse() = runTest {
+        val repo = WordPackRepository(registry, snapshots = { null })
+        val current = repo.load("en")
+        val tooLong = validEnPack("2").copy(answers = listOf("waytoolongword"), schedule = listOf("waytoolongword"))
+        assertNull(repo.build(tooLong), "integrity rejects the pack")
+        assertSame(current, repo.load("en"), "the previously resolved pack stays active")
     }
 
     /** A calendar snapshot for English as the refresh task writes it. */

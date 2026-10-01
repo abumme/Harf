@@ -11,13 +11,16 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.EntitlementGate
 import uz.abumme.harfgame.billing.EntitlementRepository
 import uz.abumme.harfgame.data.auth.SessionStore
+import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.data.stats.SyncManager
 import uz.abumme.harfgame.feature.cellstyles.MarkStyleHost
 import uz.abumme.harfgame.feature.onboarding.OnboardingIntro
+import uz.abumme.harfgame.engine.WordPackRepository
 import uz.abumme.harfgame.navigation.AppNavHost
 import uz.abumme.harfgame.settings.AppSettings
 import uz.abumme.harfgame.theme.HarfTheme
@@ -35,7 +38,15 @@ fun App(onThemeChanged: @Composable (isDark: Boolean) -> Unit = {}) {
     val syncManager = koinInject<SyncManager>()
     val sessionStore = koinInject<SessionStore>()
     val wordPackSync = koinInject<uz.abumme.harfgame.data.wordpack.WordPackSyncManager>()
+    val packs = koinInject<WordPackRepository>()
+    val resultLog = koinInject<ResultLog>()
     LaunchedEffect(Unit) {
+        // Resolve the packs of the languages the player plays while Home is still on screen, so opening a game
+        // never waits for one. Unplayed languages are left for their first open (keeps their memory unspent).
+        launch {
+            val played = resultLog.all().sortedByDescending { it.puzzleDay }.map { it.language }.distinct()
+            for (lang in played) runCatching { packs.load(lang) }
+        }
         entitlements.refresh() // reconcile with the store on launch (no-op offline)
         syncManager.bootstrap() // non-blocking background anonymous session and stats sync
         wordPackSync.syncAll()  // fetch newer vocab in the background (no-op offline)
