@@ -277,6 +277,8 @@ class WordCatalogServiceTest {
         service.remove(admin, crane.id) // already removed: nothing to publish
         assertEquals("3", pack().version)
 
+        // Its own instant: auditRows() orders by `at` alone, and the removal's entry shares the current one.
+        clock.advance(Duration.ofMinutes(1))
         val restored = service.restore(admin, crane.id)
         assertEquals(WordStatus.ACTIVE, restored.status)
         assertNull(restored.removedAt)
