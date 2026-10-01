@@ -108,6 +108,16 @@ kotlin {
             implementation(libs.kotlinx.datetime)
         }
 
+        // In the browser kotlinx-datetime resolves named zones (PuzzleDays' Asia/Tashkent, Europe/Moscow, ...) through
+        // js-joda, which ships without the IANA database; each web platform module loads it (JsJodaTimeZoneModule).
+        jsMain.dependencies {
+            implementation(npm("@js-joda/timezone", libs.versions.js.joda.timezone.get()))
+        }
+
+        wasmJsMain.dependencies {
+            implementation(npm("@js-joda/timezone", libs.versions.js.joda.timezone.get()))
+        }
+
 
     }
 

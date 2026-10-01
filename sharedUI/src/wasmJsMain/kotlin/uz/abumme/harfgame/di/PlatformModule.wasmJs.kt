@@ -13,6 +13,13 @@ import uz.abumme.harfgame.feature.share.Sharer
 import uz.abumme.harfgame.games.GamesServices
 import uz.abumme.harfgame.games.NoOpGamesServices
 
+// Registers the IANA timezone database with js-joda; without it TimeZone.of("Europe/Moscow") throws and the daily
+// puzzle never loads. Initialised with this file, i.e. on the first access to platformModule.
+@JsModule("@js-joda/timezone")
+external object JsJodaTimeZoneModule
+
+private val jsJodaTz = JsJodaTimeZoneModule
+
 actual val platformModule: Module = module {
     single { KSafe() }
     single<Sharer> { WebSharer() }
