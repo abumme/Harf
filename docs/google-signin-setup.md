@@ -35,6 +35,13 @@ against the **Web** client ID.
    `openid/email/profile` scopes need no verification review).
 3. **Android OAuth client** (Credentials → Create → OAuth client ID → Android):
    package `uz.abumme.harfgame`, plus the SHA-1 of the signing cert (below).
+4. **Web client, for the browser game** (`WebGoogleOAuthClient`: a popup with
+   `response_type=id_token`, answered by `webApp`'s `oauth-callback.html`):
+   Authorized JavaScript origin `https://harf.lazydevs.uz`, Authorized redirect URI
+   `https://harf.lazydevs.uz/oauth-callback.html`. The redirect URI is derived from
+   the page's address, so a copy served elsewhere (a local `http://localhost:<port>/`)
+   needs its own `…/oauth-callback.html` entry, or Google answers
+   `redirect_uri_mismatch` in the popup.
 
 ## SHA-1 fingerprints
 
@@ -90,6 +97,7 @@ SELECT provider, user_id FROM oauth_identities;   -- GOOGLE row = linked
 
 ## Production
 
-Release build bakes `apiBaseUrl=https://api.lazydevs.uz/harf` (no override
-needed) and refuses loopback URLs. The Oracle box's `~/harf/.env` carries
+Release builds bake the production URL (no override needed: Android
+`https://api.lazydevs.uz/harf`, web/iOS/desktop `https://harf.lazydevs.uz`) and
+refuse loopback URLs. The Oracle box's `~/harf/.env` carries
 `GOOGLE_CLIENT_IDS`; see `docs/deploy-oracle.md`.

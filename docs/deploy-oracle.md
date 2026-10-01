@@ -207,11 +207,12 @@ the first sign-in). A `404` there means the running image predates the panel.
 
 ## 9. Point the app at it
 
-The release default is already `https://api.lazydevs.uz/harf` (baked into the build), so a plain
-release build targets production:
+The production URL is baked into the build, so a plain release build targets production: Android calls
+`https://api.lazydevs.uz/harf` (its published builds already do), web, iOS and desktop call the game's own domain
+`https://harf.lazydevs.uz` (§15). Both reach the same backend.
 ```bash
 ./gradlew :androidApp:assembleRelease
-# or override: -Pharf.apiBaseUrl=https://api.lazydevs.uz/harf
+# or override every target: -Pharf.apiBaseUrl=https://api.lazydevs.uz/harf
 ```
 `GOOGLE_CLIENT_IDS` is already set in `.env`, so the server trusts Google sign-in tokens.
 
@@ -450,8 +451,9 @@ snapshot** workflow, which opens a pull request with them.
 ## 15. Web app
 
 The browser build (`:webApp:composeCompatibilityBrowserDistribution`: Wasm, falling back to JS) is static files
-served by the host's Caddy at `https://api.lazydevs.uz/harf/play/`, from `/srv/harf-web/current`. That is the API's own
-origin, so the app's calls to `/harf/api/v1/...` need no CORS (the backend allows none in production).
+served by the host's Caddy at `https://harf.lazydevs.uz/`, from `/srv/harf-web/current`. The same site proxies `/api/*`
+to the backend, and the web build calls `https://harf.lazydevs.uz/api/v1/...` (the default for web, iOS and desktop,
+§9), so its calls are same-origin and need no CORS (the backend allows none in production).
 
 **Continuous deployment.** On a push to `main` that touches web app inputs (`webApp`, `sharedUI`, `sharedData`, the
 Gradle build), or on **Run workflow**, `client-tests` builds the distribution and uploads it as the `web-app` artifact,
@@ -467,19 +469,26 @@ The web root belongs to the CI user from §13, so deploys need no sudo:
 sudo install -d -o <CI user> -g <CI user> -m 755 /srv/harf-web
 ```
 
-Add to the existing `api.lazydevs.uz { ... }` block in `/etc/caddy/Caddyfile`, then validate and reload as in §6:
+Point a `harf.lazydevs.uz` **A record** at the instance, add this site to `/etc/caddy/Caddyfile`, then validate and
+reload as in §6:
 ```
-    redir /harf/play /harf/play/ 308
-
-    handle_path /harf/play/* {
+harf.lazydevs.uz {
+    handle /api/* {
+        reverse_proxy 127.0.0.1:8081
+    }
+    handle {
         root * /srv/harf-web/current
         header Cache-Control "no-cache"
         file_server
     }
+}
 ```
-Caddy orders `handle_path` blocks by path length, so `/harf/play/*` wins over the backend's `/harf/*` wherever it
-sits in the block. The redirect matters: `index.html` loads `./webApp.js` relative to the URL, so `/harf/play` without
-the slash would look for it under `/harf/`. Every file is revalidated on each load (a cheap `304` when unchanged):
+Only `/api/*` reaches the backend here: the staff panel stays on `api.lazydevs.uz/harf/admin/` with its `/harf` cookie
+path. Keep the `handle_path /harf/*` block of `api.lazydevs.uz` too — Android builds and the panel use it, and the
+backend answers the same on both doors. Builds before the move also served the game at `api.lazydevs.uz/harf/play/`;
+`redir /harf/play/* https://harf.lazydevs.uz/ 308` in that block sends old links over.
+
+Every file is revalidated on each load (a cheap `304` when unchanged):
 most of the bundle (`webApp.js`, `originWasmWebApp.js`, `skiko.*`, `composeResources/`) keeps its name across
 builds, so a cached copy would mix old and new code after a deploy.
 
@@ -489,7 +498,10 @@ builds, so a cached copy would mix old and new code after a deploy.
 - **Roll back by hand:** `ls /srv/harf-web/releases`, then
   `ln -sfn /srv/harf-web/releases/<older> /srv/harf-web/current.next && mv -Tf /srv/harf-web/current.next /srv/harf-web/current`.
   No Caddy reload is needed.
-- Purchases are unavailable on the web (the no-op billing). Sign-in on the web is not configured yet.
+- Purchases are unavailable on the web (the no-op billing). Paid themes and Founder extras stay locked there unless
+  the signed-in account bought them on a phone (read from `GET /api/v1/entitlements`, which needs
+  `REVENUECAT_SECRET_KEY`). Google sign-in on the web is a popup returning to `/oauth-callback.html`; its origin and
+  redirect URI are registered on the Web client (`docs/google-signin-setup.md`).
 
 ## Notes
 
