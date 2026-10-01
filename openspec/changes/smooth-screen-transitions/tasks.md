@@ -28,6 +28,19 @@ The order follows the design: fix opacity and input first (it removes the visibl
   - with a result log containing `ru`, a cold start resolves `ru` before Game is opened (log or debugger), and an unplayed language (e.g. `kk`) is not resolved until it is opened;
   - a fresh install (empty log) resolves nothing at launch.
 - [ ] 2.5 Measure the Game-open stall before and after groups 1–2 on a release-like build (Android: non-debuggable build plus `adb shell dumpsys gfxinfo uz.abumme.harfgame framestats`, first Game open for `en` after a cold start; iOS: Release scheme with Instruments → Animation Hitches). Verify no frame during the Home → Game transition shows `WordPackIntegrity.check`/`Tokenizer.tokenize` on the main thread, and record the numbers in this task.
+  - Android, 2026-10-01, Pixel 4a 5G (Android 14, 60 Hz), release builds (R8, signed with the debug key), 4 cold starts each, longest gap between rendered frames from `gfxinfo framestats`:
+
+    | Build | Home → Game (en) | Home → Stats |
+    |---|---|---|
+    | base `f89438e`, as installed (JIT) | 84–167 ms, during the 700 ms fade | 67 ms |
+    | change, as installed (JIT) | 84–100 ms at ~300 ms | 50–67 ms |
+    | base, `cmd package compile -m speed` | 84–100 ms at ~200 ms | 33 ms |
+    | change, `compile -m speed` | ≤ 50 ms at ~200 ms | 33 ms |
+
+  - With AOT code (what a Play install with profiles approaches), the pack stall during the transition is gone. A 50 ms gap (3 frames) remains when the board and keyboard compose mid-slide; it is smaller for played languages, which are warmed.
+  - Uncompiled (adb-installed) code still pays ~85 ms of main-thread time for the Game screen's first composition (atrace: one 86 ms UI-thread burst). Follow-up: an app Baseline Profile.
+  - A 100 ms gap at ~940 ms is after the transition and identical in base (idle main thread).
+  - iOS part pending.
 
 ## 3. Explicit transitions (Android/iOS slide, desktop/web instant)
 
@@ -59,6 +72,16 @@ The order follows the design: fix opacity and input first (it removes the visibl
 
 - [ ] 5.1 Run `./gradlew :sharedUI:jvmTest` and `:sharedUI:verifyRoborazziJvm`, and push to a branch so CI runs the canonical goldens. Verify CI is green. If a golden changed, review the diff and take it from the `roborazzi-goldens` artifact per CLAUDE.md.
 - [ ] 5.2 Run `openspec validate smooth-screen-transitions --strict` and walk every scenario in the three delta specs on Android and iOS release-like builds (plus the desktop/web instant-switch scenario). Verify each scenario passes and note any that do not.
+  - Android, 2026-10-01, Pixel 4a 5G (Android 14, gesture navigation), release build. All pass:
+    - slide with quarter parallax forward and back (frames captured at 10× animator scale), opaque pages, paper-colored system-bar strips;
+    - system back gesture from the left edge;
+    - triple tap on Stats back lands on Home, never on an empty screen;
+    - triple tap on English opens one Game, and one back returns to Home;
+    - a tap on the Paywall's empty area mid-pop does not type into the Game keyboard underneath;
+    - Game → Paywall → back keeps the typed "WER";
+    - Uzbek Lotin "kitob" → Кирилл "қалам" → Lotin shows both rows (no stale VM).
+  - Not reproducible on this device: Android 14 runs in-app predictive back only with `android:enableOnBackInvokedCallback="true"`, which the manifest does not set, so the right-edge predictive scenario (6.1) needs Android 16+.
+  - iOS pending.
 
 ## 6. Review follow-ups (found by the adversarial review of the implementation)
 
