@@ -60,9 +60,10 @@ class WordPackSyncManager(
             }
             if (response.status == HttpStatusCode.OK) {
                 val dto = response.body<WordPackDto>()
-                if (repository.isAdoptable(dto)) {
-                    cache.put(dto)
-                    repository.invalidate(lang)
+                // Adopt the pack the integrity check built rather than evicting it and rebuilding on the next open.
+                repository.build(dto)?.let { pack ->
+                    cache.put(dto) // persist first: memory never runs ahead of what a restart would load
+                    repository.adopt(pack)
                 }
             }
             // 304 / other statuses: keep the current cache
@@ -73,7 +74,12 @@ class WordPackSyncManager(
         }
     }
 
-    override suspend fun hasCachedPack(lang: String): Boolean = cache.get(lang) != null
+    /**
+     * Once [lang]'s first sync of the session has ended, [awaitFirstSync] returns at once whatever is cached, so this
+     * skips decoding the whole cached pack just to null-check it.
+     */
+    override suspend fun hasCachedPack(lang: String): Boolean =
+        firstSyncs[lang]?.isCompleted == true || cache.get(lang) != null
 
     override suspend fun awaitFirstSync(lang: String, timeout: Duration) {
         val first = firstSyncs[lang] ?: return
