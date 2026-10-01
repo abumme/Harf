@@ -100,9 +100,9 @@ import uz.abumme.harfgame.feature.result.ShareGrid
 import uz.abumme.harfgame.feature.share.Sharer
 import uz.abumme.harfgame.lang.LanguageConfig
 import uz.abumme.harfgame.lang.LanguageRegistry
-import uz.abumme.harfgame.settings.AppSettings
 import uz.abumme.harfgame.theme.HarfColors
 import uz.abumme.harfgame.theme.LocalHarfColors
+import uz.abumme.harfgame.theme.LocalHarfPaletteId
 import uz.abumme.harfgame.theme.marks.LocalMarkStyle
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -632,10 +632,10 @@ private fun ActionCap(label: String, c: HarfColors, height: Dp, onClick: () -> U
 @Composable
 private fun ResultView(state: GameState, languageDisplay: String, puzzleNumber: Long, onPaywall: () -> Unit = {}) {
     val c = LocalHarfColors.current
-    val settings = koinInject<AppSettings>()
     val sharer = koinInject<Sharer>()
     val purchases = koinInject<PurchaseController>()
-    val paletteId by settings.paletteId.collectAsState()
+    // The palette on screen, so the shared colours match the board (an unowned choice draws as the free one).
+    val paletteId = LocalHarfPaletteId.current
     val scope = rememberCoroutineScope()
 
     Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(10.dp)) {
