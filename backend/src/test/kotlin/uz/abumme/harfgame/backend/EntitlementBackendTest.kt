@@ -19,6 +19,12 @@ import kotlinx.coroutines.test.runTest
 import uz.abumme.harfgame.backend.service.EntitlementServerService
 import uz.abumme.harfgame.backend.service.HttpRevenueCatCustomerClient
 import uz.abumme.harfgame.backend.service.RevenueCatCustomerClient
+import uz.abumme.harfgame.backend.service.activeEntitlements
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import java.time.Instant
+import uz.abumme.harfgame.data.api.ApiErrorResponse
 import uz.abumme.harfgame.data.api.ApiRoutes
 import uz.abumme.harfgame.data.auth.AnonymousAuthResponse
 import uz.abumme.harfgame.data.entitlement.AccountEntitlementsDto
@@ -26,12 +32,17 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class FakeRevenueCatCustomerClient : RevenueCatCustomerClient {
     val store = mutableMapOf<String, AccountEntitlementsDto>()
 
-    override suspend fun getCustomerEntitlements(userId: String): AccountEntitlementsDto {
+    /** True mimics RevenueCat being unreachable. */
+    var unreachable = false
+
+    override suspend fun getCustomerEntitlements(userId: String): AccountEntitlementsDto? {
+        if (unreachable) return null
         return store[userId] ?: AccountEntitlementsDto()
     }
 }
@@ -104,13 +115,60 @@ class EntitlementBackendTest {
         assertTrue(refundedResponse.ownedThemes.isEmpty())
     }
 
+    @Test
+    fun onlyActiveRevenueCatEntitlementsAreGranted() {
+        val now = Instant.parse("2026-10-01T12:00:00Z")
+        fun entitlement(vararg fields: Pair<String, String?>) =
+            JsonObject(fields.associate { (k, v) -> k to (v?.let(::JsonPrimitive) ?: JsonNull) })
+        val grant = activeEntitlements(
+            mapOf(
+                "harf_founder" to entitlement("expires_date" to null),
+                "theme_dusk" to entitlement("expires_date" to "2026-12-01T00:00:00Z"),
+                // A time-limited promotional grant that has run out: the phone already locks it.
+                "theme_press" to entitlement("expires_date" to "2026-09-01T00:00:00Z"),
+                "theme_aurora" to entitlement(
+                    "expires_date" to "2026-09-30T00:00:00Z",
+                    "grace_period_expires_date" to "2026-10-05T00:00:00Z",
+                ),
+                "theme_broken" to entitlement("expires_date" to "not a date"),
+            ),
+            now,
+        )
+        assertTrue(grant.lifetime)
+        assertEquals(setOf("theme_dusk", "theme_aurora"), grant.ownedThemes)
+    }
+
+    @Test
+    fun testUnreachableRevenueCatIsAnErrorNotAnEmptyGrant() = testApplication {
+        val fakeRevenueCat = FakeRevenueCatCustomerClient()
+        application {
+            module(entitlementService = EntitlementServerService(fakeRevenueCat))
+        }
+        val client = createClient {
+            install(ContentNegotiation) {
+                json(Json { ignoreUnknownKeys = true })
+            }
+        }
+        val anon = client.post(ApiRoutes.AUTH_ANONYMOUS).body<AnonymousAuthResponse>()
+        fakeRevenueCat.store[anon.userId] = AccountEntitlementsDto(ownedThemes = setOf("theme_press"))
+        fakeRevenueCat.unreachable = true
+
+        // An empty 200 would make the client drop the theme the player paid for.
+        val response = client.get(ApiRoutes.ENTITLEMENTS) {
+            header(HttpHeaders.Authorization, "Bearer ${anon.tokens.accessToken}")
+        }
+        assertEquals(HttpStatusCode.ServiceUnavailable, response.status)
+        assertEquals("entitlements_unavailable", response.body<ApiErrorResponse>().error)
+    }
+
     // Every other test injects a fake, so the default-argument path — the one module() actually uses —
     // went unexercised: a bare HttpClient() with no engine on the runtime classpath threw at
     // construction and crash-looped the server at startup, whether or not the API key was set.
     @Test
     fun defaultRevenueCatClientIsConstructibleAndNeedsNoKey() = runTest {
         val client = HttpRevenueCatCustomerClient(apiKey = "")
-        assertEquals(AccountEntitlementsDto(), client.getCustomerEntitlements("user-1"))
+        // No key: nothing verified, so "unknown" (503) rather than an empty grant that would wipe client caches.
+        assertNull(client.getCustomerEntitlements("user-1"))
         // The production wiring, defaults and all.
         EntitlementServerService()
     }
