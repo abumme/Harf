@@ -47,7 +47,8 @@ sealed interface PaywallEvent : UiEvent {
 
 /**
  * Drives the paywall: loads offerings, runs purchase/restore through [PurchaseController], and
- * refreshes entitlements from the controller on success (never self-granting).
+ * refreshes entitlements from the controller on success (never self-granting). Without a store,
+ * restore re-reads the account's purchases from the server instead.
  */
 class PaywallViewModel(
     private val controller: PurchaseController,
@@ -94,6 +95,14 @@ class PaywallViewModel(
 
     private fun restore() = viewModelScope.launch {
         setState { copy(busyProductId = RESTORE) }
+        if (!controller.isAvailable) {
+            // No store here (web, desktop): restoring re-reads what the account bought on a phone, via the server.
+            val restored = entitlements.refresh()
+            setState { copy(busyProductId = null) }
+            if (restored) sendEvent(PaywallEvent.Restored)
+            else sendEvent(PaywallEvent.Failed(getString(Res.string.purchases_unavailable)))
+            return@launch
+        }
         val outcome = controller.restore()
         setState { copy(busyProductId = null) }
         when (outcome) {
