@@ -192,11 +192,16 @@ fun rcReleaseKey(name: String, prodPrefix: String, target: String): String {
 }
 
 // Backend API base URL. Production is the default for every build; to debug against a local server
-// override with `-Pharf.apiBaseUrl=http://localhost:8080` or run the `:androidApp:installLocalDebug`
-// task (which defaults the URL to localhost). A release build additionally requires non-loopback HTTPS.
+// override with `-Pharf.apiBaseUrl=http://localhost:8080` (every target) or run the
+// `:androidApp:installLocalDebug` task (which defaults the URL to localhost). A release build additionally
+// requires non-loopback HTTPS.
+// Production has two front doors to the same backend: the game's own domain (the browser build is served
+// there, so its calls stay same-origin and need no CORS; iOS and desktop use it too), and api.lazydevs.uz/harf,
+// which Android keeps because its published builds already call it (it also hosts the staff panel).
 val localBackend = gradle.startParameter.taskNames.any { it.contains("Local", ignoreCase = true) }
-fun apiBaseUrl(): String {
-    val prodDefault = "https://api.lazydevs.uz/harf"
+val gameApiBaseUrl = "https://harf.lazydevs.uz"
+val sharedApiBaseUrl = "https://api.lazydevs.uz/harf"
+fun apiBaseUrl(prodDefault: String = gameApiBaseUrl): String {
     val value = (providers.gradleProperty("harf.apiBaseUrl").orNull
         ?: localProps.getProperty("harf.apiBaseUrl")
         ?: "").ifBlank { if (localBackend) "http://localhost:8080" else prodDefault }
@@ -223,11 +228,13 @@ buildConfig {
     // Single expect-ed RevenueCat key: blank default (⇒ purchases Unavailable) for every
     // non-store target (desktop/web/jvm); android & ios provide the real store key as `actual`.
     buildConfigField("REVENUECAT_KEY", expect(""))
-    buildConfigField("String", "API_BASE_URL", "\"${apiBaseUrl()}\"")
+    // Expect-ed the same way: the game's domain for web, iOS and desktop; Android overrides it below.
+    buildConfigField("API_BASE_URL", expect(apiBaseUrl()))
     buildConfigField("String", "GOOGLE_SERVER_CLIENT_ID", "\"${googleServerClientId()}\"")
 
     sourceSets.named("androidMain") {
         buildConfigField("REVENUECAT_KEY", rcReleaseKey("revenuecat.androidKey", "goog_", "android"))
+        buildConfigField("API_BASE_URL", apiBaseUrl(sharedApiBaseUrl))
     }
     sourceSets.named("iosMain") {
         buildConfigField("REVENUECAT_KEY", rcReleaseKey("revenuecat.iosKey", "appl_", "ios"))

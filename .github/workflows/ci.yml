@@ -351,7 +351,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
-      WEB_URL: https://api.lazydevs.uz/harf/play/
+      WEB_URL: https://harf.lazydevs.uz/
     steps:
       - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
@@ -391,6 +391,6 @@ jobs:
       - name: Check the published page
         run: |
           if ! curl -fsS --retry 3 --retry-delay 5 "$WEB_URL" | grep -q 'webApp.js'; then
-            echo "::error::$WEB_URL does not serve the web app. Is the Caddy block from docs/deploy-oracle.md §15 in place?"
+            echo "::error::$WEB_URL does not serve the web app. Is the harf.lazydevs.uz Caddy site from docs/deploy-oracle.md §15 in place?"
             exit 1
           fi
