@@ -1,8 +1,11 @@
 package uz.abumme.harfgame.engine
 
 import harf_game.sharedui.generated.resources.Res
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.ExperimentalResourceApi
 import kotlinx.serialization.json.Json
 import uz.abumme.harfgame.data.wordpack.CalendarSnapshotDto
@@ -12,6 +15,7 @@ import uz.abumme.harfgame.data.wordpack.WordPackIntegrity
 import uz.abumme.harfgame.data.wordpack.WordPackSchedule
 import uz.abumme.harfgame.lang.LanguageRegistry
 import uz.abumme.harfgame.lang.UzbekDailyWords
+import kotlin.concurrent.Volatile
 
 /**
  * Tokenized vocabulary for a language: curated answers + the full guess set (includes answers) plus
@@ -44,9 +48,16 @@ class WordPackRepository(
     private val cache: WordPackCache? = null,
     /** The raw calendar snapshot of a language, or null (or a failure) when the build has none. */
     private val snapshots: suspend (lang: String) -> String? = ::bundledSnapshot,
+    /**
+     * Where packs are read, tokenized and checked: tens of thousands of guesses must never be
+     * tokenized on the UI thread, where they would stall a navigation transition.
+     */
+    private val buildDispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) {
 
-    private val cached = HashMap<String, WordPack>()
+    // Replaced, never mutated: the fast path reads it outside the mutex.
+    @Volatile
+    private var cached: Map<String, WordPack> = emptyMap()
     private val mutex = Mutex()
 
     suspend fun load(id: String): WordPack {
@@ -55,16 +66,25 @@ class WordPackRepository(
             cached[id]?.let { return@withLock it } // re-check inside the lock
             val tokenizer = registry.tokenizer(id) ?: error("Unknown language: $id")
 
-            val fromServer = cache?.get(id)?.let { buildFromDto(id, it) }
-            (fromServer ?: buildBundled(id, tokenizer)).also { cached[id] = it }
+            withContext(buildDispatcher) {
+                val fromServer = cache?.get(id)?.let { buildFromDto(id, it) }
+                // Stored here, still under the lock: a caller cancelled after the build must not waste it.
+                (fromServer ?: buildBundled(id, tokenizer)).also { cached = cached + (id to it) }
+            }
         }
     }
 
     /** Force a re-resolve on next load (e.g. after a new pack is cached). */
-    suspend fun invalidate(id: String) = mutex.withLock { cached.remove(id) }
+    suspend fun invalidate(id: String) = mutex.withLock { cached = cached - id }
 
-    /** True if a fetched pack passes integrity and can replace the current one. */
-    fun isAdoptable(dto: WordPackDto): Boolean = buildFromDto(dto.lang, dto) != null
+    /**
+     * The pack a fetched [dto] describes, built off the UI thread, or null when the shared
+     * [WordPackIntegrity] check rejects it. Hand a non-null result to [adopt] instead of rebuilding it.
+     */
+    suspend fun build(dto: WordPackDto): WordPack? = withContext(buildDispatcher) { buildFromDto(dto.lang, dto) }
+
+    /** Makes an already-built (and integrity-checked) [pack] the active one for its language. */
+    suspend fun adopt(pack: WordPack) = mutex.withLock { cached = cached + (pack.languageId to pack) }
 
     /** The pack [dto] describes, or null when the shared [WordPackIntegrity] check (the server runs it too) rejects it. */
     private fun buildFromDto(id: String, dto: WordPackDto): WordPack? {

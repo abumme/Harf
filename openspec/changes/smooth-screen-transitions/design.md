@@ -29,6 +29,7 @@ See proposal.md (Why) for the four causes. Constraints that shape the design:
 A private `NavGraphBuilder.screen<T>()` helper wraps every `composable<T>` body in `Box(Modifier.fillMaxSize().background(LocalHarfColors.current.paper))`. The box sits outside the screen's `windowInsetsPadding`, so the inset strips are painted too.
 
 - **Why here:** one place covers every current and future destination, and the screen composables used by the Roborazzi goldens do not change.
+- **Hit target:** the box also carries a non-consuming `pointerInput`. Without it, a tap on an empty part of the top page falls through to the sibling page sliding underneath, because Compose hit-tests the next sibling when the top one has no pointer node.
 - **GameScreen:** its own `.background(colors.paper)` after the insets becomes redundant and is removed.
 - **Alternative:** add `.background` to each screen root. Rejected: seven edits, easy to forget on the next screen, and it changes the golden-rendered composables.
 - **Alternative:** `Surface` per destination. Rejected: it also sets `contentColor` and adds tonal-elevation machinery for no benefit. `HarfTheme` already provides `contentColor`.
@@ -57,7 +58,7 @@ When `animatesNavigation` is false, every lambda returns `EnterTransition.None`/
 | `exit` | `slideOutOfContainer(Start, targetOffset = width / 4)` |
 | `popEnter` | `slideIntoContainer(End, initialOffset = width / 4)` |
 | `popExit` | `slideOutOfContainer(End)` |
-| `predictivePopEnter` / `predictivePopExit` | same as `popEnter` / `popExit`, but with `LinearEasing` so the gesture maps 1:1 to position |
+| `predictivePopEnter` / `predictivePopExit` | same geometry as `popEnter` / `popExit`, but with `LinearEasing` so the gesture maps 1:1 to position, and the direction taken from the swipe edge: `EDGE_LEFT` → right, `EDGE_RIGHT` → left, no edge → `End`. Android accepts a back swipe from either edge, and the page must move with the finger. The constants come from `navigationevent-compose`, declared explicitly at the version navigation-compose already pulls in. |
 
 - All use `tween(300)` with `FastOutSlowInEasing`, except the predictive pair.
 - `slideIntoContainer`/`slideOutOfContainer` use the container's layout direction, so RTL is handled by `Start`/`End`.
@@ -102,7 +103,8 @@ New `feature/game/GameLoadViewModel.kt`:
 What changes in `GameScreen`:
 - **Skeleton instead of an empty return.** `loaded ?: return` becomes a skeleton: the same root box (insets and padding) and the same `helpRow` back control, with an empty play area.
 - **No reset on script switch.** `switchScript` keeps the current `Loaded` until the new script's one is published. The `loaded = null` reset is gone.
-- **Existing VM keying is unchanged.** `GameViewModel` is still created with `viewModel(key = script)` after loading, which keeps per-script VMs and their snapshot/restore behavior.
+- **VM keyed by round.** `GameViewModel` is created with `viewModel(key = "$script#$generation")`, where `generation` is stamped on `Loaded` by each `select`. Keying by script alone reused the first visit's VM after switching there and back, which hid the converted round. A paywall round trip keeps the same `Loaded`, so it keeps the same VM.
+- **Input frozen during a switch.** While a script switch converts the round, game input is ignored, because anything typed then would be lost with the board it was typed on.
 
 - **Why a separate small VM instead of folding loading into `GameViewModel`:** `GameViewModel` is constructed with an immutable puzzle and pack and is well covered by tests. Making it nullable or async would touch every test. The loader is a thin, separately testable step.
 - **Why not `rememberSaveable`:** `Loaded` holds a `WordPack` (thousands of entries) and is not saveable.
