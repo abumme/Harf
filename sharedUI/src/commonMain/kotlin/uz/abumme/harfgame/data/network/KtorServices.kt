@@ -7,6 +7,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.contentType
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import uz.abumme.harfgame.data.api.ApiErrorResponse
@@ -17,8 +18,10 @@ import uz.abumme.harfgame.data.archive.ArchiveRunDto
 import uz.abumme.harfgame.data.archive.ArchiveUploadRequest
 import uz.abumme.harfgame.data.archive.ArchiveUploadResponse
 import uz.abumme.harfgame.data.auth.*
+import uz.abumme.harfgame.data.entitlement.AccountEntitlementsDto
 import uz.abumme.harfgame.data.service.ArchiveService
 import uz.abumme.harfgame.data.service.AuthService
+import uz.abumme.harfgame.data.service.EntitlementService
 import uz.abumme.harfgame.data.service.SyncService
 import uz.abumme.harfgame.data.sync.UserStatsDto
 
@@ -357,5 +360,89 @@ class KtorArchiveService(
 
     private companion object {
         val UNAUTHORIZED = ApiResult.Error("unauthorized", "Unauthorized")
+    }
+}
+
+class KtorEntitlementService(
+    private val httpClient: HttpClient,
+    private val baseUrl: String = "http://localhost:8080",
+    private val sessionStore: SessionStore,
+    private val authService: AuthService,
+) : EntitlementService {
+
+    override suspend fun getEntitlements(userId: String): ApiResult<AccountEntitlementsDto> {
+        return executeWithAuthRetry(userId) { currentToken ->
+            val response = httpClient.get("$baseUrl${ApiRoutes.ENTITLEMENTS}") {
+                header(HttpHeaders.Authorization, "Bearer $currentToken")
+            }
+            when {
+                response.status == HttpStatusCode.OK -> ApiResult.Success(response.body<AccountEntitlementsDto>())
+                response.status == HttpStatusCode.Unauthorized -> UNAUTHORIZED
+                else -> errorFrom(response, "Failed to fetch entitlements")
+            }
+        }
+    }
+
+    /**
+     * Like the other services' retry, but bound to [userId]: another account's token is never sent (the answer
+     * would be that account's grant), and a failed refresh leaves the session alone. This is a background check,
+     * and [KtorAuthService.refreshToken] already clears the session when the server really rejects it.
+     */
+    private suspend fun <T> executeWithAuthRetry(
+        userId: String,
+        block: suspend (accessToken: String) -> ApiResult<T>
+    ): ApiResult<T> {
+        val session = sessionStore.get()
+        if (session.userId != userId) return ACCOUNT_CHANGED
+        val accessToken = session.accessToken
+            ?: return ApiResult.Error("unauthorized", "No active session")
+
+        val firstAttempt = try {
+            block(accessToken)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            return ApiResult.Error("NETWORK_ERROR", e.message ?: "Network error")
+        }
+
+        if (!(firstAttempt is ApiResult.Error && firstAttempt.code == "unauthorized")) {
+            return firstAttempt
+        }
+
+        val newAccessToken = refreshOnce(userId, accessToken) ?: return firstAttempt
+        return try {
+            block(newAccessToken)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            ApiResult.Error("NETWORK_ERROR", e.message ?: "Network error")
+        }
+    }
+
+    private suspend fun refreshOnce(userId: String, usedAccessToken: String): String? {
+        val current = sessionStore.get()
+        if (current.userId != userId) return null
+        val currentAccess = current.accessToken
+        if (currentAccess != null && currentAccess != usedAccessToken) {
+            return currentAccess
+        }
+        val refreshToken = current.refreshToken ?: return null
+        val result = authService.refreshToken(RefreshRequest(refreshToken))
+        return (result as? ApiResult.Success)?.data?.tokens?.accessToken
+    }
+
+    private suspend fun errorFrom(
+        response: io.ktor.client.statement.HttpResponse,
+        fallbackMessage: String,
+    ): ApiResult.Error = try {
+        val error = response.body<ApiErrorResponse>()
+        ApiResult.Error(error.error, error.message ?: fallbackMessage)
+    } catch (_: Exception) {
+        ApiResult.Error("http_${response.status.value}", fallbackMessage)
+    }
+
+    private companion object {
+        val UNAUTHORIZED = ApiResult.Error("unauthorized", "Unauthorized")
+        val ACCOUNT_CHANGED = ApiResult.Error("account_changed", "The session belongs to another account now")
     }
 }
