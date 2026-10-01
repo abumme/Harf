@@ -224,4 +224,7 @@ object HarfPalettes {
 }
 
 val LocalHarfColors = staticCompositionLocalOf { HarfPalettes.Newsprint.colors }
+
+/** Id of the palette [HarfTheme] is drawing — not necessarily the saved choice, which may be unowned. */
+val LocalHarfPaletteId = staticCompositionLocalOf { HarfPalettes.Newsprint.id }
 val LocalHarfMarkStyle = staticCompositionLocalOf { HarfMarkStyle.Scribble }

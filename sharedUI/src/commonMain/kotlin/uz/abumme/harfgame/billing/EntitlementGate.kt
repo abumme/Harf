@@ -15,14 +15,16 @@ object EntitlementGate {
     fun themeEntitlementId(paletteId: String): String = ENTITLEMENT_THEME_PREFIX + paletteId
 
     /**
-     * Whether a palette may be applied to the board. When purchases are unavailable
-     * (desktop/web, or an unconfigured store) cosmetics are free — we never lock what
-     * cannot be bought. Otherwise: the free palette and owned themes only.
+     * Whether a palette may be applied to the board: the free palette and owned themes only, on every
+     * platform. Where the store is unavailable (web, desktop) the account's purchases still count —
+     * [EntitlementRepository] reads them from the server — but nothing is unlocked for lack of a store.
      */
-    fun canApplyTheme(paletteId: String, entitlements: Entitlements, purchasesAvailable: Boolean): Boolean =
-        !purchasesAvailable ||
-            paletteId == FREE_PALETTE ||
-            entitlements.ownsTheme(themeEntitlementId(paletteId))
+    fun canApplyTheme(paletteId: String, entitlements: Entitlements): Boolean =
+        paletteId == FREE_PALETTE || entitlements.ownsTheme(themeEntitlementId(paletteId))
+
+    /** The palette to actually draw: the chosen one if the account may use it, else the free one. */
+    fun paletteToApply(paletteId: String, entitlements: Entitlements): String =
+        if (canApplyTheme(paletteId, entitlements)) paletteId else FREE_PALETTE
 
     /** Lifetime-only extras (archive, hard mode, Founder badge) — active with the lifetime unlock. */
     fun lifetimeExtrasUnlocked(entitlements: Entitlements): Boolean = entitlements.lifetime
