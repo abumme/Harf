@@ -13,18 +13,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -58,6 +54,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -66,22 +63,13 @@ import harf_game.sharedui.generated.resources.action_copy
 import harf_game.sharedui.generated.resources.action_back
 import harf_game.sharedui.generated.resources.action_got_it
 import harf_game.sharedui.generated.resources.action_share
-import harf_game.sharedui.generated.resources.game_hard_mode
-import harf_game.sharedui.generated.resources.game_suggest_word
-import harf_game.sharedui.generated.resources.hard_mode_correct_position
-import harf_game.sharedui.generated.resources.hard_mode_minimum_count
-import harf_game.sharedui.generated.resources.hard_mode_missing_grapheme
-import harf_game.sharedui.generated.resources.hard_mode_present_position
+import harf_game.sharedui.generated.resources.game_hard_mode_short
 import harf_game.sharedui.generated.resources.help
 import harf_game.sharedui.generated.resources.howto_body
 import harf_game.sharedui.generated.resources.howto_title
-import harf_game.sharedui.generated.resources.not_enough_letters
-import harf_game.sharedui.generated.resources.not_in_word_list
 import harf_game.sharedui.generated.resources.result_out_of_tries
 import harf_game.sharedui.generated.resources.result_solved
 import harf_game.sharedui.generated.resources.settings_support_harf
-import harf_game.sharedui.generated.resources.suggest_failed
-import harf_game.sharedui.generated.resources.suggest_sent
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
@@ -158,57 +146,32 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
     val colors = LocalHarfColors.current
     var showHelp by remember { mutableStateOf(false) }
 
-    // transient feedback for rejected submissions (too short / not in dictionary)
-    var message by remember { mutableStateOf<String?>(null) }
-    var hardViolation by remember { mutableStateOf<uz.abumme.harfgame.engine.HardModeViolation?>(null) }
-    // the just-rejected unknown word, offered for suggestion until the player edits or sends it
-    var suggestCandidate by remember { mutableStateOf<String?>(null) }
-    var suggestBusy by remember { mutableStateOf(false) }
-    val incompleteMsg = stringResource(Res.string.not_enough_letters)
-    val invalidMsg = stringResource(Res.string.not_in_word_list)
-    val suggestSentMsg = stringResource(Res.string.suggest_sent)
-    val suggestFailedMsg = stringResource(Res.string.suggest_failed)
-
-    val hardViolationMsg = hardViolation?.let { v ->
-        when (v) {
-            is uz.abumme.harfgame.engine.HardModeViolation.CorrectPositionChanged ->
-                stringResource(Res.string.hard_mode_correct_position, v.position + 1, v.expected.uppercase())
-            is uz.abumme.harfgame.engine.HardModeViolation.PresentGraphemeAtSamePosition ->
-                stringResource(Res.string.hard_mode_present_position, v.grapheme.uppercase(), v.position + 1)
-            is uz.abumme.harfgame.engine.HardModeViolation.MinimumCountNotSatisfied ->
-                if (v.requiredCount <= 1) {
-                    stringResource(Res.string.hard_mode_missing_grapheme, v.grapheme.uppercase())
-                } else {
-                    stringResource(Res.string.hard_mode_minimum_count, v.requiredCount, v.grapheme.uppercase())
-                }
-        }
-    }
-
+    // Feedback lives in a fixed-height status strip (see GameContent), so it never moves the board or
+    // the keyboard. StripReducer holds the rules; this screen only runs the timer and the suggest call.
+    var strip by remember { mutableStateOf<StripMessage?>(null) }
     LaunchedEffect(vm) {
         vm.events.collect { ev ->
-            when (ev) {
-                GameEvent.Incomplete -> message = incompleteMsg
-                GameEvent.InvalidGuess -> {
-                    message = invalidMsg
-                    suggestCandidate = vm.state.value.current.joinToString("")
-                }
-                is GameEvent.HardModeViolation -> hardViolation = ev.violation
-                is GameEvent.RoundEnded -> {}
-            }
+            strip = StripReducer.onEvent(ev, vm.state.value.current.joinToString(""))
         }
     }
-    LaunchedEffect(message) {
-        if (message != null) {
-            delay(1500.milliseconds); message = null }
+    LaunchedEffect(strip) {
+        if (strip?.transient == true) {
+            delay(1500.milliseconds)
+            strip = StripReducer.onExpired(strip)
+        }
     }
-    LaunchedEffect(hardViolation) {
-        if (hardViolation != null) {
-            delay(1500.milliseconds); hardViolation = null }
-    }
-    // A new/edited guess invalidates the pending suggestion offer.
+    // A new/edited guess withdraws the pending suggestion offer.
     LaunchedEffect(state.current) {
-        if (suggestCandidate != null && state.current.joinToString("") != suggestCandidate) {
-            suggestCandidate = null
+        strip = StripReducer.onGuessChanged(strip, state.current.joinToString(""))
+    }
+    val onSuggest: () -> Unit = {
+        val offer = strip as? StripMessage.UnknownWord
+        if (offer != null && !offer.sending) {
+            strip = StripReducer.onSuggestStarted(strip)
+            scope.launch {
+                val result = syncManager.suggestWord(script, offer.word)
+                strip = StripReducer.onSuggestResult(result is uz.abumme.harfgame.data.api.ApiResult.Success)
+            }
         }
     }
 
@@ -236,78 +199,9 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
     // game input. A typed char maps to a single-grapheme key of the current language; multi-char
     // graphemes (Uzbek sh/ch/oʻ/gʻ/ng) have no single physical key and stay on-screen only.
     val focusRequester = remember { FocusRequester() }
-    val keyLookup = remember(config) { config.keyboard.flatten().associateBy { it.lowercase() } }
+    val keyLookup = remember(config) { (config.keyboard.flatten() + config.actionRowKeys).associateBy { it.lowercase() } }
     LaunchedEffect(script) { runCatching { focusRequester.requestFocus() } }
 
-    // Reusable pieces so the tall and wide layouts share one source of truth.
-    val helpRow: @Composable () -> Unit = {
-        Row(
-            Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-          Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            val backLabel = stringResource(Res.string.action_back)
-            TextButton(onClick = onBack, modifier = Modifier.semantics { contentDescription = backLabel }) {
-                Text("‹", color = colors.ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            }
-            // Hard Mode toggle (pre-round only, gated by Founder entitlement)
-            if (state.submitted.isEmpty() && state.status == GameStatus.Playing) {
-                val isFounder = uz.abumme.harfgame.billing.EntitlementGate.lifetimeExtrasUnlocked(
-                    koinInject<uz.abumme.harfgame.billing.EntitlementRepository>().entitlements.collectAsState().value
-                )
-                val hardShape = uz.abumme.harfgame.theme.LocalHarfShapes.current.button
-                if (isFounder) {
-                    val on = state.hardMode
-                    Box(
-                        modifier = Modifier
-                            .clip(hardShape)
-                            .background(if (on) colors.accent.copy(alpha = 0.14f) else Color.Transparent)
-                            .border(1.dp, if (on) colors.accent else colors.rule, hardShape)
-                            .clickable { vm.onAction(GameAction.ToggleHardMode) }
-                            .padding(horizontal = 12.dp, vertical = 7.dp),
-                    ) {
-                        Text(
-                            stringResource(Res.string.game_hard_mode),
-                            color = if (on) colors.accent else colors.muted,
-                            fontWeight = if (on) FontWeight.Bold else FontWeight.Medium,
-                            fontSize = 13.sp,
-                        )
-                    }
-                } else {
-                    Box(
-                        modifier = Modifier
-                            .clip(hardShape)
-                            .border(1.dp, colors.rule, hardShape)
-                            .clickable(onClick = onPaywall)
-                            .padding(horizontal = 12.dp, vertical = 7.dp),
-                    ) {
-                        Text(
-                            stringResource(Res.string.game_hard_mode) + " 🔒",
-                            color = colors.muted,
-                            fontSize = 13.sp,
-                        )
-                    }
-                }
-            } else if (state.hardMode) {
-                Text(
-                    stringResource(Res.string.game_hard_mode),
-                    color = colors.accent,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                    modifier = Modifier.padding(start = 12.dp),
-                )
-            } else {
-                Spacer(Modifier.width(1.dp))
-            }
-          }
-
-            val helpLabel = stringResource(Res.string.help)
-            TextButton(onClick = { showHelp = true }, modifier = Modifier.semantics { contentDescription = helpLabel }) {
-                Text("?", color = colors.muted)
-            }
-        }
-    }
     val switchScript: (String) -> Unit = { targetScript ->
         if (targetScript != script) {
             val currentSnapshot = vm.snapshot()
@@ -324,76 +218,51 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
             }
         }
     }
-    val chips: @Composable () -> Unit = {
-        if (languageId.startsWith("uz")) {
+    // Uzbek switches script mid-round; the switch lives in the top bar so it costs no board height.
+    val scriptSwitch: (@Composable () -> Unit)? = if (languageId.startsWith("uz")) {
+        {
             uz.abumme.harfgame.theme.SegmentedSwitch(
                 options = listOf("uz-latn" to "Lotin", "uz-cyrl" to "Кирилл"),
                 selectedKey = script,
                 onSelect = { switchScript(it) },
             )
         }
-    }
-    val feedback: @Composable () -> Unit = {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            MarkLegend(Modifier.padding(vertical = 2.dp), compact = true)
-            val displayMsg = hardViolationMsg ?: message
-            Box(Modifier.height(20.dp), contentAlignment = Alignment.Center) {
-                displayMsg?.let { Text(it, color = colors.accent, fontSize = 13.sp, fontWeight = FontWeight.Medium) }
-            }
-            // Offer to suggest an unknown full-length word for editor review.
-            if (state.status == GameStatus.Playing && suggestCandidate != null) {
-                val candidate = suggestCandidate!!
-                TextButton(
-                    enabled = !suggestBusy,
-                    onClick = {
-                        scope.launch {
-                            suggestBusy = true
-                            val result = syncManager.suggestWord(script, candidate)
-                            message = if (result is uz.abumme.harfgame.data.api.ApiResult.Success) suggestSentMsg else suggestFailedMsg
-                            suggestCandidate = null
-                            suggestBusy = false
-                        }
-                    },
-                ) {
-                    Text(stringResource(Res.string.game_suggest_word), color = colors.accent, fontSize = 13.sp)
-                }
-            }
-        }
-    }
-    val playArea: @Composable () -> Unit = {
-        if (state.status == GameStatus.Playing) {
-            KeyboardView(
-                config = config,
-                keyStates = state.keyStates,
-                onKey = { vm.onAction(GameAction.Input(it)) },
-                onDelete = { vm.onAction(GameAction.Delete) },
-                onEnter = { vm.onAction(GameAction.Submit) },
-            )
-        } else {
-            ResultView(state, config.displayName, puzzle.epochDay, onPaywall)
-        }
-    }
-    // Board sized to fully fit whatever space it is given; capped at 64.dp so the board grows to
-    // use spare height on tall phones instead of leaving a large empty margin.
-    val board: @Composable (maxW: Dp, maxH: Dp) -> Unit = { maxW, maxH ->
-        val gap = 6.dp
-        val ts = minOf(
-            64.dp,
-            (maxW - gap * (state.tileCount - 1)) / state.tileCount,
-            (maxH - gap * (state.maxAttempts - 1)) / state.maxAttempts,
-        )
-        BoardView(state, tileSize = ts)
+    } else {
+        null
     }
 
-    BoxWithConstraints(
+    GameContent(
+        state = state,
+        config = config,
+        strip = strip,
+        onKey = { vm.onAction(GameAction.Input(it)) },
+        onDelete = { vm.onAction(GameAction.Delete) },
+        onEnter = { vm.onAction(GameAction.Submit) },
+        onSuggest = onSuggest,
+        leading = {
+            val backLabel = stringResource(Res.string.action_back)
+            TextButton(
+                onClick = onBack,
+                modifier = Modifier.size(40.dp).semantics { contentDescription = backLabel },
+                contentPadding = PaddingValues(0.dp),
+            ) {
+                Text("‹", color = colors.ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            }
+            HardModeControl(state, onToggle = { vm.onAction(GameAction.ToggleHardMode) }, onPaywall = onPaywall)
+        },
+        center = scriptSwitch,
+        trailing = {
+            val helpLabel = stringResource(Res.string.help)
+            TextButton(
+                onClick = { showHelp = true },
+                modifier = Modifier.size(40.dp).semantics { contentDescription = helpLabel },
+                contentPadding = PaddingValues(0.dp),
+            ) {
+                Text("?", color = colors.muted)
+            }
+        },
+        result = { ResultView(state, config.displayName, puzzle.epochDay, onPaywall) },
         modifier = Modifier
-            .fillMaxSize()
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .background(colors.paper)
-            .padding(16.dp)
             .focusRequester(focusRequester)
             .onPreviewKeyEvent { ev ->
                 if (ev.type != KeyEventType.KeyDown || state.status != GameStatus.Playing) {
@@ -410,39 +279,61 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
                 }
             }
             .focusable(),
-    ) {
-        val wide = maxWidth > maxHeight
-        if (wide) {
-            // Board and keyboard side by side, each using half the width and the full height.
-            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                Column(
-                    Modifier.weight(1f).fillMaxHeight(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    helpRow(); chips()
-                    BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        board(maxWidth, maxHeight)
-                    }
-                    feedback()
-                }
-                Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) { playArea() }
+    )
+}
+
+/**
+ * Hard Mode in the top bar: a toggle before the first guess (Founder entitlement; a locked chip that opens
+ * the paywall otherwise), a plain label once the round is under way in hard mode, nothing otherwise.
+ */
+@Composable
+private fun HardModeControl(state: GameState, onToggle: () -> Unit, onPaywall: () -> Unit) {
+    val colors = LocalHarfColors.current
+    if (state.submitted.isEmpty() && state.status == GameStatus.Playing) {
+        val isFounder = uz.abumme.harfgame.billing.EntitlementGate.lifetimeExtrasUnlocked(
+            koinInject<uz.abumme.harfgame.billing.EntitlementRepository>().entitlements.collectAsState().value
+        )
+        val hardShape = uz.abumme.harfgame.theme.LocalHarfShapes.current.button
+        if (isFounder) {
+            val on = state.hardMode
+            Box(
+                modifier = Modifier
+                    .clip(hardShape)
+                    .background(if (on) colors.accent.copy(alpha = 0.14f) else Color.Transparent)
+                    .border(1.dp, if (on) colors.accent else colors.rule, hardShape)
+                    .clickable(onClick = onToggle)
+                    .padding(horizontal = 12.dp, vertical = 7.dp),
+            ) {
+                Text(
+                    stringResource(Res.string.game_hard_mode_short),
+                    color = if (on) colors.accent else colors.muted,
+                    fontWeight = if (on) FontWeight.Bold else FontWeight.Medium,
+                    fontSize = 13.sp,
+                )
             }
         } else {
-            // Vertical stack; the board fills the space left between the chrome and the keyboard.
-            Column(
-                Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+            Box(
+                modifier = Modifier
+                    .clip(hardShape)
+                    .border(1.dp, colors.rule, hardShape)
+                    .clickable(onClick = onPaywall)
+                    .padding(horizontal = 12.dp, vertical = 7.dp),
             ) {
-                helpRow(); chips()
-                BoxWithConstraints(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    board(maxWidth, maxHeight)
-                }
-                feedback()
-                playArea()
+                Text(
+                    stringResource(Res.string.game_hard_mode_short) + " 🔒",
+                    color = colors.muted,
+                    fontSize = 13.sp,
+                )
             }
         }
+    } else if (state.hardMode) {
+        Text(
+            stringResource(Res.string.game_hard_mode_short),
+            color = colors.accent,
+            fontWeight = FontWeight.Bold,
+            fontSize = 13.sp,
+            modifier = Modifier.padding(start = 4.dp),
+        )
     }
 }
 
@@ -531,59 +422,48 @@ fun KeyboardView(
     onDelete: () -> Unit,
     onEnter: () -> Unit,
     modifier: Modifier = Modifier,
+    keyHeight: Dp = GameLayout.KEY_HEIGHTS.first().dp,
 ) {
     val c = LocalHarfColors.current
-    val spacing = 4.dp
-    val rows = config.keyboard
-    val lastIdx = rows.lastIndex
-    // System-keyboard layout: delete at the trailing end of the top row, enter at the trailing
-    // end of the last row. Action keys are 1.5x a letter key. When appending them would shrink a
-    // key below a tappable minimum (e.g. the 12-key Uzbek-Cyrillic rows on a narrow phone), fall
-    // back to a separate action row so nothing clips.
-    val actionW = 1.5f
-    BoxWithConstraints(modifier) {
-        // Smallest letter width any row demands once its inline action (if any) is included.
-        val inlineKeyW = rows.indices.minOf { i ->
-            val actions = (if (i == 0) 1 else 0) + (if (i == lastIdx) 1 else 0)
-            val units = rows[i].size + actions * actionW
-            val gaps = rows[i].size + actions - 1
-            (maxWidth - spacing * gaps) / units
-        }
-        val inline = inlineKeyW >= 24.dp
-        val keyW = if (inline) {
-            inlineKeyW.coerceAtMost(56.dp)
-        } else {
-            val maxKeys = rows.maxOf { it.size }
-            ((maxWidth - spacing * (maxKeys - 1)) / maxKeys).coerceAtMost(56.dp)
-        }
-        // Key height is set to a real on-screen keyboard height (~Gboard), independent of the
-        // narrow per-key width that a 12-key Cyrillic row forces, so the keyboard doesn't sit
-        // short under a large empty gap. Cyrillic keys are legitimately narrow — Gboard's are too.
-        val keyH = 48.dp
+    val shape = remember(config) { KeyboardShape.of(config) }
+    // The structure is fixed per language (letter rows + one action row); only the key size follows the
+    // width. Measured against the full slot width so the sizes match GameLayout's plan for the viewport.
+    BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
+        val metrics = GameLayout.keyboard(maxWidth.value, shape, keyHeight.value)
+        val keyW = metrics.keyWidth.dp
+        val actionW = metrics.actionKeyWidth.dp
+        val label = GameLayout.keyLabelSp(metrics.keyWidth).sp
+        // Wrap the widest letter row rather than a fixed dp width: per-key pixel rounding would
+        // otherwise clip the last key of a 12-key row on fractional densities.
         Column(
-            Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            Modifier.width(IntrinsicSize.Max),
+            verticalArrangement = Arrangement.spacedBy(GameLayout.ROW_GAP.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            rows.forEachIndexed { i, rowKeys ->
-                Row(horizontalArrangement = Arrangement.spacedBy(spacing)) {
-                    for (k in rowKeys) KeyCap(k, keyStates[k], c, keyW, keyH) { onKey(k) }
-                    if (inline && i == 0) ActionKey("⌫", c, keyW * actionW, keyH, onDelete)
-                    if (inline && i == lastIdx) ActionKey("⏎", c, keyW * actionW, keyH, onEnter)
+            for (row in shape.letterRows) {
+                Row(horizontalArrangement = Arrangement.spacedBy(GameLayout.KEY_GAP.dp)) {
+                    for (k in row) KeyCap(k, keyStates[k], c, keyW, keyHeight, label) { onKey(k) }
                 }
             }
-            if (!inline) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ActionCap("ENTER", c, keyH, onEnter)
-                    ActionCap("⌫", c, keyH, onDelete)
+            // ENTER leads and ⌫ trails, at the keyboard's edges; a language's action-row graphemes
+            // (Uzbek Latin oʻ gʻ) sit between them like the symbols beside a system space bar.
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ActionKey("ENTER", c, actionW, keyHeight, 12.sp, onEnter)
+                Row(horizontalArrangement = Arrangement.spacedBy(GameLayout.KEY_GAP.dp)) {
+                    for (k in shape.actionRowKeys) KeyCap(k, keyStates[k], c, keyW, keyHeight, label) { onKey(k) }
                 }
+                ActionKey("⌫", c, actionW, keyHeight, 16.sp, onDelete)
             }
         }
     }
 }
 
 @Composable
-private fun ActionKey(label: String, c: HarfColors, width: Dp, height: Dp, onClick: () -> Unit) {
+private fun ActionKey(label: String, c: HarfColors, width: Dp, height: Dp, fontSize: TextUnit, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(width = width, height = height)
@@ -591,11 +471,11 @@ private fun ActionKey(label: String, c: HarfColors, width: Dp, height: Dp, onCli
             .background(c.key)
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
-    ) { Text(label, color = c.ink, fontSize = 16.sp, fontWeight = FontWeight.Medium) }
+    ) { Text(label, color = c.ink, fontSize = fontSize, fontWeight = FontWeight.Medium, maxLines = 1) }
 }
 
 @Composable
-private fun KeyCap(label: String, mark: Mark?, c: HarfColors, width: Dp, height: Dp, onClick: () -> Unit) {
+private fun KeyCap(label: String, mark: Mark?, c: HarfColors, width: Dp, height: Dp, fontSize: TextUnit, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .size(width = width, height = height)
@@ -609,24 +489,12 @@ private fun KeyCap(label: String, mark: Mark?, c: HarfColors, width: Dp, height:
         Text(
             label.uppercase(),
             color = letterColor,
-            fontSize = 13.sp,
+            fontSize = fontSize,
             fontWeight = FontWeight.Medium,
+            maxLines = 1,
             style = glyphHalo(mark, letterColor, c, 6f),
         )
     }
-}
-
-@Composable
-private fun ActionCap(label: String, c: HarfColors, height: Dp, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .height(height)
-            .clip(RoundedCornerShape(5.dp))
-            .background(c.key)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp),
-        contentAlignment = Alignment.Center,
-    ) { Text(label, color = c.ink, fontSize = 12.sp, fontWeight = FontWeight.Medium) }
 }
 
 @Composable
