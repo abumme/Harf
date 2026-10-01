@@ -40,11 +40,13 @@ The order follows the design: fix opacity and input first (it removes the visibl
   - With AOT code (what a Play install with profiles approaches), the pack stall during the transition is gone. A 50 ms gap (3 frames) remains when the board and keyboard compose mid-slide; it is smaller for played languages, which are warmed.
   - Uncompiled (adb-installed) code still pays ~85 ms of main-thread time for the Game screen's first composition (atrace: one 86 ms UI-thread burst). Follow-up: an app Baseline Profile.
   - A 100 ms gap at ~940 ms is after the transition and identical in base (idle main thread).
-  - iOS part pending.
+  - iOS part pending: no physical iPhone was available for Instruments → Animation Hitches, so no iOS numbers yet. On the simulator (Release), the transitions looked smoother than before by eye.
 
 ## 3. Explicit transitions (Android/iOS slide, desktop/web instant)
 
-- [ ] 3.1 Add `navigation/NavTransitions.kt` with `internal expect val animatesNavigation: Boolean` and the actuals: `true` in androidMain and iosMain, `false` in jvmMain, jsMain and wasmJsMain. Verify JVM → Android → Wasm/JS → iOS compile, in that order (`:sharedUI:compileKotlinJvm`, `:androidApp:assembleDebug`, `:webApp:wasmJsBrowserDistribution`/`jsBrowserDistribution`, iOS framework link). — JVM, Android (`assembleDebug`) and Wasm/JS (`compileKotlinWasmJs`/`compileKotlinJs`) pass; the iOS link cannot run on the Windows dev box, so this stays open until a macOS or CI build.
+- [x] 3.1 Add `navigation/NavTransitions.kt` with `internal expect val animatesNavigation: Boolean` and the actuals: `true` in androidMain and iosMain, `false` in jvmMain, jsMain and wasmJsMain. Verify JVM → Android → Wasm/JS → iOS compile, in that order (`:sharedUI:compileKotlinJvm`, `:androidApp:assembleDebug`, `:webApp:wasmJsBrowserDistribution`/`jsBrowserDistribution`, iOS framework link). — JVM, Android (`assembleDebug`) and Wasm/JS (`compileKotlinWasmJs`/`compileKotlinJs`) pass. macOS, 2026-10-01 (Xcode 27.0): `:sharedUI:compileKotlinIosArm64` and `:sharedUI:linkDebugFrameworkIosSimulatorArm64` pass, and the app builds with `xcodebuild` Debug and Release for the iOS 27 simulator.
+  - Release for the simulator needs `ONLY_ACTIVE_ARCH=YES` when built with a local user scheme, otherwise `validateArchitecturesForEmbedAndSignAppleFrameworkForXcode` fails with `Unknown iOS simulator arch: 'x86_64'`. Base `f89438e` fails the same way, so this is not caused by the change.
+  - `:sharedUI:iosSimulatorArm64Test` does not link on base or change (the RevenueCat cinterop klib points at an `Xcode-16.4.app` Swift library path). With that path added outside the repo, the new `GameLoadViewModelTest` and `WordPackClientTest` cases and `FirstSyncWaitTest` pass on iOS. The same 33 tests fail on base and change (31 are KSafe `Keychain error -25291` in the unsigned test binary).
 - [x] 3.2 Define the six transitions per design D3 (`tween(300, FastOutSlowInEasing)` slide with a quarter-width parallax; the predictive pair with `LinearEasing`; `None` when `animatesNavigation` is false) and pass all six to `NavHost`. Verify:
   - Android: button back and predictive back gesture move the same way, and the gesture tracks the finger;
   - iOS: push and edge-swipe show no darkening and no final-frame snap;
@@ -81,7 +83,7 @@ The order follows the design: fix opacity and input first (it removes the visibl
     - Game → Paywall → back keeps the typed "WER";
     - Uzbek Lotin "kitob" → Кирилл "қалам" → Lotin shows both rows (no stale VM).
   - Not reproducible on this device: Android 14 runs in-app predictive back only with `android:enableOnBackInvokedCallback="true"`, which the manifest does not set, so the right-edge predictive scenario (6.1) needs Android 16+.
-  - iOS pending.
+  - iOS, 2026-10-01, simulator (iOS 27), Release build: transitions checked by eye and look smoother. The scenarios were not walked one by one, so iOS stays open.
 
 ## 6. Review follow-ups (found by the adversarial review of the implementation)
 
