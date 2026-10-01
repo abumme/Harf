@@ -42,6 +42,11 @@ against the **Web** client ID.
    the page's address, so a copy served elsewhere (a local `http://localhost:<port>/`)
    needs its own `…/oauth-callback.html` entry, or Google answers
    `redirect_uri_mismatch` in the popup.
+   The desktop app (`JvmGoogleOAuthClient`) uses the same page: it opens the
+   system browser with that redirect URI and a `state` of
+   `desktop-<port>-<random>`, and the page forwards Google's answer to the app's
+   one-shot server on `http://127.0.0.1:<port>/callback`. So desktop sign-in
+   needs the deployed page; the Web client accepts no loopback redirect itself.
 
 ## SHA-1 fingerprints
 
