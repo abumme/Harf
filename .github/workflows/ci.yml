@@ -122,10 +122,12 @@ jobs:
       # Goldens are canonical as rendered on this runner (fonts, emoji fallback and locale all
       # differ on dev machines). After an intended UI change, download this artifact over
       # sharedUI/roborazzi/, review the diff, and commit it.
+      # Without the build cache: a cached record-mode jvmTest restores its reports but writes no PNGs, so the
+      # artifact would carry the old goldens.
       - name: Re-record goldens on the runner
         if: failure()
         continue-on-error: true
-        run: ./gradlew :sharedUI:recordRoborazziJvm
+        run: ./gradlew --no-build-cache :sharedUI:recordRoborazziJvm
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
