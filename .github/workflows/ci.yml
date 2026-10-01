@@ -3,14 +3,15 @@
 #   pull_request -> main   backend-tests + client-tests + admin-web
 #   push -> main           the tests; then, if backend inputs changed (the image also carries the exported
 #                          staff panel), publish the backend image to GHCR and deploy it to the Oracle box
-#                          (docs/deploy-oracle.md §13)
+#                          (docs/deploy-oracle.md §13); if web app inputs changed, publish the browser build to the
+#                          Oracle box's Caddy web root (docs/deploy-oracle.md §15)
 #   push tag v*            the tests; publish the image tagged with the git tag (no deploy)
-#   workflow_dispatch      the tests; publish; on main also deploy
+#   workflow_dispatch      the tests; publish; on main also deploy the backend and the web app
 #   workflow_dispatch with refresh_calendar_snapshot
 #                          only refresh-calendar-snapshot: takes the published daily-word calendar from production
 #                          and opens a pull request with the app's bundled snapshots (a release-checklist step)
 #
-# Deploy needs repository secrets ORACLE_SSH_HOST, ORACLE_SSH_USER, ORACLE_SSH_KEY and
+# Both deploys need repository secrets ORACLE_SSH_HOST, ORACLE_SSH_USER, ORACLE_SSH_KEY and
 # ORACLE_SSH_KNOWN_HOSTS (docs/deploy-oracle.md §13).
 name: CI
 
@@ -99,6 +100,18 @@ jobs:
           :androidApp:assembleDebug
           :webApp:compileKotlinJs
           :webApp:compileKotlinWasmJs
+      # The deployable browser build (Wasm, falling back to JS), reusing the compilation above. Not on pull requests,
+      # which never deploy.
+      - name: Build the web app
+        if: github.event_name != 'pull_request'
+        run: ./gradlew :webApp:composeCompatibilityBrowserDistribution
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: web-app
+          path: webApp/build/dist/composeWebCompatibility/productionExecutable/
+          if-no-files-found: error
+          retention-days: 7
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
@@ -162,7 +175,7 @@ jobs:
           path: adminWeb/build/reports/tests/
 
   changes:
-    name: Backend changed?
+    name: Backend or web app changed?
     # Compared against the last green main run rather than this push's `before`, so a run that was
     # superseded while queued, or failed, can't strand a backend change undeployed.
     if: github.event_name != 'pull_request' && !inputs.refresh_calendar_snapshot
@@ -173,6 +186,7 @@ jobs:
       actions: read
     outputs:
       backend: ${{ steps.diff.outputs.backend }}
+      web: ${{ steps.diff.outputs.web }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -184,20 +198,27 @@ jobs:
           BACKEND_PATHS: >-
             backend sharedData adminWeb gradle gradlew build.gradle.kts settings.gradle.kts gradle.properties
             .dockerignore .github/workflows/ci.yml .github/scripts/deploy-backend.sh
+          # Inputs of the browser build.
+          WEB_PATHS: >-
+            webApp sharedUI sharedData gradle gradlew build.gradle.kts settings.gradle.kts gradle.properties
+            .github/workflows/ci.yml .github/scripts/deploy-web.sh
         run: |
-          changed=true
+          backend=true
+          web=true
           if [[ "$GITHUB_EVENT_NAME" == push && "$GITHUB_REF" == refs/heads/main ]]; then
             base=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --branch main \
               --event push --status success --limit 1 --json headSha --jq '.[0].headSha // empty')
             if [[ -n "$base" ]] && git cat-file -e "$base^{commit}" 2>/dev/null; then
               echo "Comparing against the last green main run: $base"
               read -ra paths <<< "$BACKEND_PATHS"
-              git diff --quiet "$base" "$GITHUB_SHA" -- "${paths[@]}" && changed=false
+              git diff --quiet "$base" "$GITHUB_SHA" -- "${paths[@]}" && backend=false
+              read -ra paths <<< "$WEB_PATHS"
+              git diff --quiet "$base" "$GITHUB_SHA" -- "${paths[@]}" && web=false
             else
-              echo "No green main run to compare against; treating the backend as changed."
+              echo "No green main run to compare against; treating the backend and the web app as changed."
             fi
           fi
-          echo "backend=$changed" | tee -a "$GITHUB_OUTPUT"
+          { echo "backend=$backend"; echo "web=$web"; } | tee -a "$GITHUB_OUTPUT"
 
   refresh-calendar-snapshot:
     name: Refresh calendar snapshot
@@ -320,3 +341,54 @@ jobs:
           ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
             -o ConnectTimeout=20 -o ServerAliveInterval=15 \
             "$SSH_USER@$SSH_HOST" bash -s -- "$IMAGE" < .github/scripts/deploy-backend.sh
+
+  deploy-web:
+    name: Deploy web app to Oracle
+    needs: [client-tests, changes]
+    if: github.ref == 'refs/heads/main' && needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      WEB_URL: https://api.lazydevs.uz/harf/play/
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
+        with:
+          name: web-app
+          path: web-app
+      - name: Deploy
+        env:
+          SSH_HOST: ${{ secrets.ORACLE_SSH_HOST }}
+          SSH_USER: ${{ secrets.ORACLE_SSH_USER }}
+          SSH_KEY: ${{ secrets.ORACLE_SSH_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.ORACLE_SSH_KNOWN_HOSTS }}
+        run: |
+          missing=()
+          for name in SSH_HOST SSH_USER SSH_KEY SSH_KNOWN_HOSTS; do
+            [[ -n "${!name}" ]] || missing+=("ORACLE_$name")
+          done
+          if (( ${#missing[@]} )); then
+            echo "::error::Missing repository secrets: ${missing[*]}. See docs/deploy-oracle.md §13."
+            exit 1
+          fi
+
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+          # Host key is pinned by ORACLE_SSH_KNOWN_HOSTS; never trust-on-first-use.
+          remote() {
+            ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes \
+              -o ConnectTimeout=20 -o ServerAliveInterval=15 "$SSH_USER@$SSH_HOST" "$@"
+          }
+          tar -C web-app -czf web-app.tgz .
+          archive=$(remote 'f=$(mktemp /tmp/harf-web.XXXXXX); cat > "$f"; echo "$f"' < web-app.tgz)
+          remote bash -s -- "$archive" "${GITHUB_SHA::7}" < .github/scripts/deploy-web.sh
+      # Through Caddy, as a player reaches it: proves the route is in place, not just the files.
+      - name: Check the published page
+        run: |
+          if ! curl -fsS --retry 3 --retry-delay 5 "$WEB_URL" | grep -q 'webApp.js'; then
+            echo "::error::$WEB_URL does not serve the web app. Is the Caddy block from docs/deploy-oracle.md §15 in place?"
+            exit 1
+          fi

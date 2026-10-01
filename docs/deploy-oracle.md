@@ -447,6 +447,50 @@ published schedule, which it never changes.
 and commit `sharedUI/src/commonMain/composeResources/files/<lang>_calendar.json`, or run the **Refresh calendar
 snapshot** workflow, which opens a pull request with them.
 
+## 15. Web app
+
+The browser build (`:webApp:composeCompatibilityBrowserDistribution`: Wasm, falling back to JS) is static files
+served by the host's Caddy at `https://api.lazydevs.uz/harf/play/`, from `/srv/harf-web/current`. That is the API's own
+origin, so the app's calls to `/harf/api/v1/...` need no CORS (the backend allows none in production).
+
+**Continuous deployment.** On a push to `main` that touches web app inputs (`webApp`, `sharedUI`, `sharedData`, the
+Gradle build), or on **Run workflow**, `client-tests` builds the distribution and uploads it as the `web-app` artifact,
+then the `deploy-web` job ships it over the same SSH secrets as §13 and runs
+[`.github/scripts/deploy-web.sh`](../.github/scripts/deploy-web.sh) on the box. That script unpacks it into
+`/srv/harf-web/releases/<time>-<sha>`, swaps the `current` symlink atomically and keeps the last 5 releases. The job then
+fetches the public URL through Caddy and fails if it doesn't serve the app.
+
+### One-time setup
+
+The web root belongs to the CI user from §13, so deploys need no sudo:
+```bash
+sudo install -d -o <CI user> -g <CI user> -m 755 /srv/harf-web
+```
+
+Add to the existing `api.lazydevs.uz { ... }` block in `/etc/caddy/Caddyfile`, then validate and reload as in §6:
+```
+    redir /harf/play /harf/play/ 308
+
+    handle_path /harf/play/* {
+        root * /srv/harf-web/current
+        header Cache-Control "no-cache"
+        file_server
+    }
+```
+Caddy orders `handle_path` blocks by path length, so `/harf/play/*` wins over the backend's `/harf/*` wherever it
+sits in the block. The redirect matters: `index.html` loads `./webApp.js` relative to the URL, so `/harf/play` without
+the slash would look for it under `/harf/`. Every file is revalidated on each load (a cheap `304` when unchanged):
+most of the bundle (`webApp.js`, `originWasmWebApp.js`, `skiko.*`, `composeResources/`) keeps its name across
+builds, so a cached copy would mix old and new code after a deploy.
+
+### Operating it
+
+- **Redeploy:** Actions → CI → Run workflow on `main`.
+- **Roll back by hand:** `ls /srv/harf-web/releases`, then
+  `ln -sfn /srv/harf-web/releases/<older> /srv/harf-web/current.next && mv -Tf /srv/harf-web/current.next /srv/harf-web/current`.
+  No Caddy reload is needed.
+- Purchases are unavailable on the web (the no-op billing). Sign-in on the web is not configured yet.
+
 ## Notes
 
 - Backend and Postgres listen on `127.0.0.1` only; the sole public entry is Caddy (80/443).
