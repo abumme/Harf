@@ -1,6 +1,7 @@
 package uz.abumme.harfgame.data
 
 import io.ktor.http.Url
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
@@ -40,6 +41,7 @@ class FakeGoogleSignInWindow(
     fun param(name: String): String = Url(assertNotNull(openedUrl)).parameters[name]!!
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class WebGoogleOAuthClientTest {
 
     @OptIn(ExperimentalEncodingApi::class)
