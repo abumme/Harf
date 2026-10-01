@@ -7,12 +7,14 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.runDesktopComposeUiTest
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.dp
 import uz.abumme.harfgame.engine.Mark.ABSENT
 import uz.abumme.harfgame.engine.Mark.CORRECT
@@ -26,7 +28,10 @@ import uz.abumme.harfgame.feature.game.StripMessage
 import uz.abumme.harfgame.lang.LaunchLanguages
 import uz.abumme.harfgame.theme.HarfTheme
 import kotlin.test.Test
+import java.util.Locale
+import kotlin.math.ceil
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -116,14 +121,42 @@ class GameContentTest {
     }
 
     @Test
-    fun suggest_link_is_never_cut_on_a_narrow_phone() = runDesktopComposeUiTest {
-        content(300, 568, { playing }, { StripMessage.UnknownWord("chaxyz") })
-        val message = onNodeWithTag("strip-message").getBoundsInRoot()
-        val action = onNodeWithTag("strip-action").getBoundsInRoot()
-        // the message yields (ellipsizes) so the action keeps its full single-line width
-        assertTrue((message.right - message.left).value < 115f, "message ellipsized: ${message.right - message.left}")
-        assertTrue((action.right - action.left).value > 185f, "action keeps its full width: ${action.right - action.left}")
-        assertTrue(action.right <= 284.dp, "action inside the strip padding")
+    fun suggest_link_is_never_cut_on_a_narrow_phone() {
+        // Every UI language, since widths are the text's: Russian's long link makes the message ellipsize, English's
+        // short one fits beside it. Whatever the language, the action shows whole on one line inside the strip.
+        val original = Locale.getDefault()
+        val links = mutableSetOf<String>()
+        try {
+            for (language in listOf("en", "ru", "uz")) {
+                Locale.setDefault(Locale.forLanguageTag(language))
+                runDesktopComposeUiTest {
+                    content(300, 568, { playing }, { StripMessage.UnknownWord("chaxyz") })
+                    val message = onNodeWithTag("strip-message").getBoundsInRoot()
+                    val action = onNodeWithTag("strip-action").getBoundsInRoot()
+                    val link = textLayout("strip-action")
+                    links += link.layoutInput.text.text
+                    assertEquals(1, link.lineCount, "$language: the action stays on one line")
+                    // Not hasVisualOverflow: with softWrap off the paragraph is laid out wider than the box even when
+                    // the whole text fits. What matters: no ellipsis, and the box is as wide as the text needs.
+                    assertFalse(link.isLineEllipsized(0), "$language: the action is not ellipsized")
+                    assertTrue(
+                        link.size.width >= ceil(link.multiParagraph.maxIntrinsicWidth),
+                        "$language: the action keeps its full width (${link.size.width} of ${link.multiParagraph.maxIntrinsicWidth})",
+                    )
+                    assertTrue(action.right <= 284.dp, "$language: action inside the strip padding")
+                    assertTrue(message.right <= action.left, "$language: the message yields to the action")
+                }
+            }
+        } finally {
+            Locale.setDefault(original)
+        }
+        assertEquals(3, links.size, "each language rendered its own link: $links")
+    }
+
+    private fun ComposeUiTest.textLayout(tag: String): TextLayoutResult {
+        val layouts = mutableListOf<TextLayoutResult>()
+        onNodeWithTag(tag).fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action!!(layouts)
+        return layouts.single()
     }
 
     @Test
