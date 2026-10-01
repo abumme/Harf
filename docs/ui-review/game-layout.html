@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Harf — игровой экран: сетка + клавиатура на разных размерах</title>
+<style>
+  :root {
+    --paper: #FBFCFE; --paper2: #EEF2F6; --card: #fff; --ink: #12161B; --muted: #59626D;
+    --rule: #D8DEE6; --accent: #1C3F63; --correct: #1C3F63; --present: #B3282D; --absent: #8a8a8a;
+    --key: #E7ECF1; --keyAbsent: #DCE1E7; --zoom: 0.5;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: var(--ink); background: #f4f5f7; }
+  header { padding: 20px 28px 8px; }
+  h1 { font: 700 24px/1.2 Georgia, "Times New Roman", serif; margin: 0 0 6px; }
+  h2 { font: 700 18px/1.2 Georgia, serif; margin: 28px 0 4px; }
+  h3 { font: 600 14px/1.3 sans-serif; margin: 14px 0 6px; color: var(--muted); }
+  p.lead { color: var(--muted); margin: 0 0 8px; max-width: 900px; }
+  section { padding: 4px 28px 16px; }
+  .controls { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; padding: 8px 0; font-size: 13px; color: var(--muted); }
+  .controls label { display: inline-flex; gap: 6px; align-items: center; }
+  .grid { display: flex; flex-wrap: wrap; gap: 20px 18px; align-items: flex-start; }
+  .cell { display: flex; flex-direction: column; gap: 6px; }
+  .cap { font-size: 12px; color: var(--muted); max-width: 230px; }
+  .cap b { color: var(--ink); }
+  .cap .warn { color: var(--present); font-weight: 600; }
+  .cap .ok { color: var(--correct); font-weight: 600; }
+
+  /* phone frame; 1 CSS px = 1 dp, scaled with zoom */
+  .phone { zoom: var(--zoom); position: relative; background: var(--paper); border: 2px solid #2a2f36; border-radius: 22px;
+           overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,.12); display: flex; flex-direction: column; }
+  .inset { flex: none; background: rgba(0,0,0,.035); display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 11px; }
+  .inset.bottom::after { content: ""; width: 110px; height: 4px; border-radius: 2px; background: #c3c8cf; }
+  .content { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  .wide .content { flex-direction: row; }
+
+  .topbar { flex: none; display: flex; align-items: center; justify-content: space-between; }
+  .ibtn { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; color: var(--ink); font-weight: 700; font-size: 22px; }
+  .ibtn.q { color: var(--muted); font-size: 18px; font-weight: 600; }
+  .tbtn { height: 40px; min-width: 58px; padding: 0 12px; display: flex; align-items: center; justify-content: center; }
+  .tbtn.q { color: var(--muted); }
+  .chip { border: 1px solid var(--rule); border-radius: 10px; padding: 7px 12px; font-size: 13px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+  .seg { display: inline-flex; gap: 3px; padding: 3px; background: var(--paper2); border: 1px solid var(--rule); border-radius: 10px; }
+  .seg span { padding: 8px 16px; border-radius: 7px; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .seg span.on { background: var(--accent); color: var(--paper); }
+  .seg.compact span { padding: 6px 14px; }
+
+  .boardbox { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+  .board { display: flex; flex-direction: column; gap: 6px; }
+  .brow { display: flex; gap: 6px; }
+  .tile { position: relative; border: 1px solid var(--rule); border-radius: 3px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--ink); text-transform: uppercase; }
+  .tile.active { border: 2px solid rgba(28,63,99,.75); }
+  .mark { position: absolute; pointer-events: none; }
+  .mark.C { inset: 10%; border: solid var(--correct); border-radius: 50%; transform: rotate(-7deg); }
+  .mark.P { left: 16%; right: 16%; bottom: 16%; background: var(--present); transform: rotate(-2deg); }
+  .mark.A { left: 12%; right: 12%; top: 50%; background: var(--absent); transform: rotate(-9deg); }
+
+  .strip { flex: none; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; color: var(--accent); white-space: nowrap; }
+  .strip .link { text-decoration: underline; margin-left: 6px; }
+  .strip.ghost { outline: 1px dashed rgba(28,63,99,.25); outline-offset: -1px; }
+
+  .legend { display: flex; gap: 10px; justify-content: center; padding: 2px 0; }
+  .legend .it { display: flex; flex-direction: column; align-items: center; font-size: 9px; color: var(--muted); }
+  .legend .sw { position: relative; width: 22px; height: 22px; }
+
+  .slot { flex: none; display: flex; align-items: center; justify-content: center; }
+  .kb { display: flex; flex-direction: column; align-items: center; }
+  .krow { display: flex; justify-content: center; }
+  .key { position: relative; display: flex; align-items: center; justify-content: center; background: var(--key); border-radius: 5px; font-weight: 500; color: var(--ink); text-transform: uppercase; }
+  .key.A { background: var(--keyAbsent); }
+  .key .mark { inset: 12%; }
+  .key .mark.P { left: 18%; right: 18%; bottom: 18%; top: auto; }
+  .key .mark.A { left: 14%; right: 14%; top: 50%; bottom: auto; }
+  .key.act { text-transform: none; }
+  .arow { display: flex; justify-content: space-between; align-items: center; }
+  .arow .mid { display: flex; }
+
+  .result { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .result .t { font-weight: 700; font-size: 18px; }
+  .btn { padding: 10px 24px; border-radius: 10px; font-weight: 600; font-size: 14px; }
+  .btn.p { background: var(--accent); color: var(--paper); }
+  .btn.g { border: 1px solid var(--rule); color: var(--ink); }
+  .btn.t { color: var(--muted); font-size: 13px; }
+
+  .custom { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; font-size: 13px; margin-bottom: 12px; }
+  .custom input, .custom select { font: inherit; padding: 4px 6px; }
+  table.nums { border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+  table.nums th, table.nums td { border: 1px solid var(--rule); padding: 3px 8px; text-align: right; }
+  table.nums th { background: var(--paper2); font-weight: 600; }
+  table.nums td:first-child, table.nums th:first-child { text-align: left; }
+  code { background: #e9ecf0; padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Игровой экран: сетка + клавиатура на разных размерах</h1>
+  <p class="lead">Рамки 1 px = 1 dp (масштаб ниже). Инсеты: статус-бар 24, жестовая навигация 24. Сетка 5×6, зазор тайлов 6 dp, тайл ≤ 64 dp.
+     Метки — стиль Scribble (петля = на месте, подчёркивание = есть в слове, зачёркивание = нет), палитра Newsprint.
+     Числа под рамками считаются скриптом по тем же формулам, что пойдут в <code>GameLayout.plan</code>.</p>
+  <div class="controls">
+    <label>Масштаб <select id="zoom"><option value="0.4">40%</option><option value="0.5" selected>50%</option><option value="0.65">65%</option><option value="0.8">80%</option><option value="1">100%</option></select></label>
+    <label><input type="checkbox" id="ghost" checked> показывать границу полосы статуса (пунктир — в приложении её не видно)</label>
+  </div>
+</header>
+
+<section id="now">
+  <h2>01 · Сейчас: структура зависит от ширины, сетка — остаток</h2>
+  <p class="lead">Та же логика, что в <code>GameScreen.kt</code>: inline-действия включаются при ширине клавиши ≥ 24 dp (порог ≈ 404 dp для ru/uz-cyrl, 376 dp для kk), иначе 4-й ряд; легенда + сообщение + чипсы + паддинги 16 съедают высоту; кнопка «Предложить» уменьшает сетку.</p>
+  <div class="grid" id="grid-now"></div>
+</section>
+
+<section id="after">
+  <h2>02 · Предложение: структура фиксирована на язык, бюджет высоты по лестнице</h2>
+  <p class="lead">Верхняя полоса 44 (‹ · Сложно · Lotin|Кирилл · ?), сетка в остатке, полоса статуса 28 (всегда), клавиатура full-bleed (паддинг 4, зазор 2), 3 буквенных ряда + ряд действий
+     (ENTER слева, ⌫ справа по 3 юнита; oʻ gʻ между ними в uz-latn). Высота клавиши 48 → 44 → 40, когда тайл упал бы ниже 40 / 36 dp.</p>
+  <div class="grid" id="grid-after"></div>
+  <table class="nums" id="nums"></table>
+</section>
+
+<section id="states">
+  <h2>03 · Полоса статуса и слот результата — ничего не двигается</h2>
+  <p class="lead">393×852, uz-latn. Полоса занимает 28 dp всегда; сообщение + ссылка в одну строку. Результат живёт в слоте высотой с клавиатуру.</p>
+  <div class="grid" id="grid-states"></div>
+</section>
+
+<section id="wide">
+  <h2>04 · Широкие окна: сетка слева, клавиатура справа</h2>
+  <p class="lead">Те же правила клавиш от половины ширины; слот результата — та же правая половина.</p>
+  <div class="grid" id="grid-wide"></div>
+</section>
+
+<section id="custom-sec">
+  <h2>05 · Произвольный размер</h2>
+  <div class="custom">
+    <label>W <input id="cw" type="number" value="360" style="width:70px"></label>
+    <label>H <input id="ch" type="number" value="640" style="width:70px"></label>
+    <label>Язык <select id="cl"></select></label>
+    <label>Режим <select id="cm"><option value="after">предложение</option><option value="before">сейчас</option></select></label>
+    <label><input type="checkbox" id="cs"> «Предложить» показана (сейчас)</label>
+    <button id="cgo">Показать</button>
+  </div>
+  <div class="grid" id="grid-custom"></div>
+</section>
+
+<script>
+// ---------- data: keyboard rows exactly as in LaunchLanguages.kt ----------
+const LANGS = {
+  'uz-latn': { title: 'uz-latn', uz: true, sel: 0,
+    rowsBefore: [['q','e','r','t','y','u','i','o','p'],['a','s','d','f','g','h','j','k','l'],['sh','ch','ng','z','x','v','b','n','m'],['oʻ','gʻ']],
+    rows: [['q','e','r','t','y','u','i','o','p'],['a','s','d','f','g','h','j','k','l'],['sh','ch','ng','z','x','v','b','n','m']],
+    extras: ['oʻ','gʻ'],
+    board: [[['k','A'],['i','P'],['t','A'],['o','C'],['b','A']],[['sh','C'],['a','P'],['h','A'],['a','C'],['r','A']]], current: ['ch','a'] },
+  'uz-cyrl': { title: 'uz-cyrl', uz: true, sel: 1,
+    rowsBefore: [['й','ц','у','к','е','н','г','ш','ў','з','х','ъ'],['ф','қ','в','а','п','р','о','л','д','ж','э','ё'],['я','ч','с','м','и','т','ь','б','ю','ғ','ҳ']],
+    rows: [['й','ц','у','к','е','н','г','ш','ў','з','х','ъ'],['ф','қ','в','а','п','р','о','л','д','ж','э','ё'],['я','ч','с','м','и','т','ь','б','ю','ғ','ҳ']],
+    extras: [],
+    board: [[['к','A'],['и','P'],['т','A'],['о','C'],['б','A']],[['ш','C'],['а','P'],['ҳ','A'],['а','C'],['р','A']]], current: ['ч','а'] },
+  'ru': { title: 'ru', uz: false,
+    rowsBefore: [['й','ц','у','к','е','н','г','ш','щ','з','х','ъ'],['ф','ы','в','а','п','р','о','л','д','ж','э'],['я','ч','с','м','и','т','ь','б','ю']],
+    rows: [['й','ц','у','к','е','н','г','ш','щ','з','х','ъ'],['ф','ы','в','а','п','р','о','л','д','ж','э'],['я','ч','с','м','и','т','ь','б','ю']],
+    extras: [],
+    board: [[['п','A'],['а','P'],['р','A'],['а','C'],['д','A']],[['с','C'],['л','A'],['о','P'],['в','A'],['о','A']]], current: ['с','т'] },
+  'kk': { title: 'kk', uz: false,
+    rowsBefore: [['а','ә','б','г','ғ','д','е','ж','з','и','й'],['к','қ','л','м','н','ң','о','ө','п','р','с'],['т','у','ұ','ү','х','һ','ы','і','ш']],
+    rows: [['а','ә','б','г','ғ','д','е','ж','з','и','й'],['к','қ','л','м','н','ң','о','ө','п','р','с'],['т','у','ұ','ү','х','һ','ы','і','ш']],
+    extras: [],
+    board: [[['қ','A'],['а','P'],['л','A'],['а','C'],['м','A']],[['к','C'],['і','A'],['т','P'],['а','C'],['п','A']]], current: ['б','а'] },
+  'en': { title: 'en', uz: false,
+    rowsBefore: [['q','w','e','r','t','y','u','i','o','p'],['a','s','d','f','g','h','j','k','l'],['z','x','c','v','b','n','m']],
+    rows: [['q','w','e','r','t','y','u','i','o','p'],['a','s','d','f','g','h','j','k','l'],['z','x','c','v','b','n','m']],
+    extras: [],
+    board: [[['c','A'],['r','P'],['a','A'],['n','A'],['e','P']],[['s','C'],['l','A'],['a','C'],['t','A'],['e','P']]], current: ['s','t'] },
+};
+const TILES = 5, ATTEMPTS = 6, TILE_GAP = 6, INSET_TOP = 24, INSET_BOTTOM = 24;
+const RANK = { C: 3, P: 2, A: 1 };
+function keyStates(lang) {
+  const m = {};
+  for (const row of lang.board) for (const [g, mk] of row) if (!m[g] || RANK[mk] > RANK[m[g]]) m[g] = mk;
+  return m;
+}
+
+// ---------- current layout (GameScreen.kt today) ----------
+function planBefore(W, H, lang, suggest) {
+  const availH = H - INSET_TOP - INSET_BOTTOM - 32, mw = W - 32;
+  const rows = lang.rowsBefore, n = rows.length;
+  let inlineW = Infinity;
+  rows.forEach((r, i) => {
+    const actions = (i === 0 ? 1 : 0) + (i === n - 1 ? 1 : 0);
+    const units = r.length + actions * 1.5, gaps = r.length + actions - 1;
+    inlineW = Math.min(inlineW, (mw - 4 * gaps) / units);
+  });
+  const inline = inlineW >= 24;
+  const maxKeys = Math.max(...rows.map(r => r.length));
+  const keyW = inline ? Math.min(inlineW, 56) : Math.min((mw - 4 * (maxKeys - 1)) / maxKeys, 56);
+  const kbH = inline ? n * 48 + (n - 1) * 8 : (n + 1) * 48 + n * 8;
+  const chips = lang.uz ? 36 : 0, spacing = 12 * (lang.uz ? 5 : 4), feedback = 68 + (suggest ? 48 : 0);
+  const boardH = availH - 40 - chips - feedback - spacing - kbH;
+  const tile = Math.min(64, (mw - TILE_GAP * (TILES - 1)) / TILES, (boardH - TILE_GAP * (ATTEMPTS - 1)) / ATTEMPTS);
+  return { inline, keyW, keyH: 48, kbH, tile, boardH };
+}
+
+// ---------- proposed layout (GameLayout.plan) ----------
+const TOPBAR = 44, STRIP = 28, GAP = 8, PAD_V = 8, KB_PAD = 4, KEY_GAP = 2, ROW_GAP = 6, ACTION_UNITS = 3;
+function keyWidthFor(width, lang) {
+  const maxUnits = Math.max(...lang.rows.map(r => r.length), 2 * ACTION_UNITS + lang.extras.length);
+  return { maxUnits, keyW: Math.min(56, (width - 2 * KB_PAD - KEY_GAP * (maxUnits - 1)) / maxUnits) };
+}
+function tileFor(boardW, boardH) {
+  return Math.min(64, (boardW - TILE_GAP * (TILES - 1)) / TILES, (boardH - TILE_GAP * (ATTEMPTS - 1)) / ATTEMPTS);
+}
+function planAfter(W, H, lang) {
+  const availH = H - INSET_TOP - INSET_BOTTOM - 2 * PAD_V;
+  const rows = lang.rows.length + 1;
+  const { maxUnits, keyW } = keyWidthFor(W, lang);
+  let keyH = 48, kbH, tile;
+  for (const kh of [48, 44, 40]) {
+    keyH = kh; kbH = rows * kh + (rows - 1) * ROW_GAP;
+    tile = tileFor(W - 32, availH - TOPBAR - STRIP - 3 * GAP - kbH);
+    if (tile >= 40 || (kh === 44 && tile >= 36)) break;
+  }
+  return { keyW, keyH, kbH, tile, maxUnits, wide: false };
+}
+function planWide(W, H, lang) {
+  const availH = H - INSET_TOP - INSET_BOTTOM - 2 * PAD_V;
+  const half = (W - 16 - 16) / 2;
+  const rows = lang.rows.length + 1;
+  const { maxUnits, keyW } = keyWidthFor(half, lang);
+  const keyH = 48, kbH = rows * keyH + (rows - 1) * ROW_GAP;
+  const tile = tileFor(half - 16, availH - TOPBAR - STRIP - 2 * GAP);
+  return { keyW, keyH, kbH, tile, maxUnits, wide: true, half };
+}
+function keyFont(keyW) { return Math.max(12, Math.min(16, keyW * 0.48)); }
+
+// ---------- renderers ----------
+function el(tag, cls, style, kids) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (style) Object.assign(e.style, style);
+  if (kids != null) for (const k of [].concat(kids)) e.append(k instanceof Node ? k : document.createTextNode(String(k)));
+  return e;
+}
+function mark(mk, size) {
+  const m = el('div', 'mark ' + mk);
+  const t = Math.max(1.5, size * 0.05) + 'px';
+  if (mk === 'C') m.style.borderWidth = t; else m.style.height = t;
+  return m;
+}
+function board(lang, tile, playing = true) {
+  const b = el('div', 'board');
+  for (let r = 0; r < ATTEMPTS; r++) {
+    const row = el('div', 'brow');
+    const done = lang.board[r];
+    const isCur = playing && r === lang.board.length;
+    for (let c = 0; c < TILES; c++) {
+      const g = done ? done[c][0] : (isCur ? lang.current[c] : null);
+      const t = el('div', 'tile' + (isCur && c === lang.current.length ? ' active' : ''), { width: tile + 'px', height: tile + 'px', fontSize: (tile * 20 / 46) + 'px' });
+      if (done) t.append(mark(done[c][1], tile));
+      if (g) t.append(el('span', '', { position: 'relative' }, g));
+      row.append(t);
+    }
+    b.append(row);
+  }
+  return b;
+}
+function key(label, w, h, mk, cls = '') {
+  const k = el('div', 'key ' + (mk || '') + ' ' + cls, { width: w + 'px', height: h + 'px', fontSize: keyFont(w) + 'px' });
+  if (mk) k.append(mark(mk, Math.min(w, h)));
+  k.append(el('span', '', { position: 'relative' }, label));
+  return k;
+}
+function keyboardAfter(lang, p) {
+  const ks = keyStates(lang);
+  const kb = el('div', 'kb', { gap: ROW_GAP + 'px' });
+  for (const r of lang.rows) {
+    const row = el('div', 'krow', { gap: KEY_GAP + 'px' });
+    for (const g of r) row.append(key(g, p.keyW, p.keyH, ks[g]));
+    kb.append(row);
+  }
+  const totalW = p.maxUnits * p.keyW + (p.maxUnits - 1) * KEY_GAP;
+  const actW = ACTION_UNITS * p.keyW + (ACTION_UNITS - 1) * KEY_GAP;
+  const arow = el('div', 'arow', { width: totalW + 'px' });
+  arow.append(key('ENTER', actW, p.keyH, null, 'act'));
+  const mid = el('div', 'mid', { gap: KEY_GAP + 'px' });
+  for (const g of lang.extras) mid.append(key(g, p.keyW, p.keyH, ks[g]));
+  arow.append(mid);
+  arow.append(key('⌫', actW, p.keyH, null, 'act'));
+  kb.append(arow);
+  return kb;
+}
+function keyboardBefore(lang, p) {
+  const ks = keyStates(lang);
+  const kb = el('div', 'kb', { gap: '8px' });
+  const n = lang.rowsBefore.length;
+  lang.rowsBefore.forEach((r, i) => {
+    const row = el('div', 'krow', { gap: '4px' });
+    for (const g of r) row.append(key(g, p.keyW, 48, ks[g]));
+    if (p.inline && i === 0) row.append(key('⌫', p.keyW * 1.5, 48, null, 'act'));
+    if (p.inline && i === n - 1) row.append(key('⏎', p.keyW * 1.5, 48, null, 'act'));
+    kb.append(row);
+  });
+  if (!p.inline) {
+    const row = el('div', 'krow', { gap: '8px' });
+    row.append(el('div', 'key act', { height: '48px', padding: '0 14px', fontSize: '12px' }, 'ENTER'));
+    row.append(el('div', 'key act', { height: '48px', padding: '0 14px', fontSize: '16px' }, '⌫'));
+    kb.append(row);
+  }
+  return kb;
+}
+function legend() {
+  const l = el('div', 'legend');
+  for (const [mk, t] of [['C', 'на месте'], ['P', 'есть'], ['A', 'нет']]) {
+    const it = el('div', 'it');
+    const sw = el('div', 'sw'); sw.append(mark(mk, 22));
+    it.append(sw, el('span', '', null, t));
+    l.append(it);
+  }
+  return l;
+}
+function seg(lang, compact) {
+  const s = el('div', 'seg' + (compact ? ' compact' : ''));
+  ['Lotin', 'Кирилл'].forEach((t, i) => s.append(el('span', i === lang.sel ? 'on' : '', null, t)));
+  return s;
+}
+function frame(W, H, wide) {
+  const ph = el('div', 'phone' + (wide ? ' wide' : ''), { width: W + 'px', height: H + 'px' });
+  ph.append(el('div', 'inset top', { height: INSET_TOP + 'px' }, '9:41'));
+  const content = el('div', 'content');
+  ph.append(content, el('div', 'inset bottom', { height: INSET_BOTTOM + 'px' }));
+  return { ph, content };
+}
+function topbarAfter(lang, hard = true) {
+  const tb = el('div', 'topbar', { height: TOPBAR + 'px', padding: '0 8px' });
+  const left = el('div', '', { display: 'flex', alignItems: 'center', gap: '4px' });
+  left.append(el('div', 'ibtn', null, '‹'));
+  if (hard) left.append(el('div', 'chip', null, 'Сложно 🔒'));
+  tb.append(left);
+  if (lang.uz) tb.append(seg(lang, true));
+  tb.append(el('div', 'ibtn q', null, '?'));
+  return tb;
+}
+function stripText(text, link) {
+  const s = el('div', 'strip ghost', { height: STRIP + 'px' });
+  if (text) s.append(el('span', '', null, text));
+  if (link) s.append(el('span', 'link', null, link));
+  return s;
+}
+function resultView() {
+  const r = el('div', 'result');
+  r.append(el('div', 't', null, 'Решено за 3/6'));
+  r.append(el('div', 'btn p', null, 'Поделиться'));
+  r.append(el('div', 'btn g', null, 'Скопировать'));
+  r.append(el('div', 'btn t', null, 'Поддержать Harf'));
+  return r;
+}
+function renderAfter(W, H, lang, opts = {}) {
+  const p = planAfter(W, H, lang);
+  const { ph, content } = frame(W, H);
+  content.style.padding = PAD_V + 'px 0';
+  content.style.gap = GAP + 'px';
+  content.append(topbarAfter(lang, !opts.result));
+  const bb = el('div', 'boardbox', { padding: '0 16px' });
+  bb.append(board(lang, p.tile, !opts.result));
+  content.append(bb);
+  content.append(stripText(opts.strip, opts.link));
+  const slot = el('div', 'slot', { height: p.kbH + 'px', padding: '0 ' + KB_PAD + 'px' });
+  slot.append(opts.result ? resultView() : keyboardAfter(lang, p));
+  content.append(slot);
+  return { ph, p };
+}
+function renderWide(W, H, lang, opts = {}) {
+  const p = planWide(W, H, lang);
+  const { ph, content } = frame(W, H, true);
+  content.style.padding = PAD_V + 'px 16px';
+  content.style.gap = '16px';
+  const left = el('div', '', { flex: '1', display: 'flex', flexDirection: 'column', gap: GAP + 'px', minWidth: 0 });
+  left.append(topbarAfter(lang, !opts.result));
+  const bb = el('div', 'boardbox'); bb.append(board(lang, p.tile, !opts.result)); left.append(bb);
+  left.append(stripText(opts.strip, opts.link));
+  const right = el('div', 'slot', { flex: '1' });
+  right.append(opts.result ? resultView() : keyboardAfter(lang, p));
+  content.append(left, right);
+  return { ph, p };
+}
+function renderBefore(W, H, lang, suggest) {
+  const p = planBefore(W, H, lang, suggest);
+  const { ph, content } = frame(W, H);
+  content.style.padding = '16px';
+  content.style.gap = '12px';
+  const tb = el('div', 'topbar', { height: '40px' });
+  const left = el('div', '', { display: 'flex', alignItems: 'center', gap: '4px' });
+  left.append(el('div', 'tbtn', { fontSize: '22px', fontWeight: '700' }, '‹'), el('div', 'chip', null, 'Сложно 🔒'));
+  tb.append(left, el('div', 'tbtn q', null, '?'));
+  content.append(tb);
+  if (lang.uz) content.append(el('div', '', { display: 'flex', justifyContent: 'center', height: '36px' }, seg(lang, true)));
+  const bb = el('div', 'boardbox'); bb.append(board(lang, Math.max(p.tile, 4))); content.append(bb);
+  const fb = el('div', '', { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' });
+  fb.append(legend());
+  fb.append(el('div', 'strip', { height: '20px' }, suggest ? 'Нет в списке слов' : ''));
+  if (suggest) fb.append(el('div', 'tbtn', { color: 'var(--accent)', fontSize: '13px' }, 'Предложить к добавлению'));
+  content.append(fb);
+  const slot = el('div', 'slot'); slot.append(keyboardBefore(lang, p)); content.append(slot);
+  return { ph, p };
+}
+function cell(ph, capHtml) {
+  const c = el('div', 'cell');
+  const cap = el('div', 'cap'); cap.innerHTML = capHtml;
+  c.append(ph, cap);
+  return c;
+}
+const f1 = x => (Math.round(x * 10) / 10).toString();
+
+// ---------- 01: now ----------
+(function () {
+  const g = document.getElementById('grid-now');
+  const add = (W, H, id, suggest, note) => {
+    const lang = LANGS[id];
+    const { ph, p } = renderBefore(W, H, lang, suggest);
+    const tileCls = p.tile < 36 ? 'warn' : 'ok';
+    g.append(cell(ph, `<b>${W}×${H} · ${id}</b><br>тайл <span class="${tileCls}">${f1(p.tile)}</span> · клавиша ${f1(p.keyW)}×48 · клавиатура ${p.inline ? lang.rowsBefore.length : lang.rowsBefore.length + 1} ряда, ${p.kbH} dp<br>${note}`));
+  };
+  add(360, 640, 'uz-latn', false, '<span class="warn">сетка схлопнулась</span>: 4 ряда клавиш + чипсы + легенда');
+  add(393, 852, 'uz-cyrl', false, 'iPhone 15: клавиша была бы 23.4 &lt; 24 → <span class="warn">отдельный ряд действий</span>');
+  add(412, 915, 'uz-cyrl', false, 'Pixel 7: клавиша 24.6 ≥ 24 → <span class="warn">действия inline</span>. Та же игра, другая клавиатура');
+  add(360, 740, 'en', false, 'Galaxy S8: сообщение пустое');
+  add(360, 740, 'en', true, 'появилась «Предложить» → <span class="warn">сетка сжалась</span> (52 → 44) и сдвинулась');
+})();
+
+// ---------- 02: proposal matrix ----------
+(function () {
+  const g = document.getElementById('grid-after');
+  const devices = [[320, 568, 'iPhone SE 1'], [360, 640, '16:9'], [360, 800, 'Galaxy A'], [393, 852, 'iPhone 15'], [412, 915, 'Pixel 7']];
+  const ids = ['uz-latn', 'uz-cyrl', 'en'];
+  const rowsOut = {};
+  for (const id of ids) {
+    for (const [W, H, name] of devices) {
+      const lang = LANGS[id];
+      const { ph, p } = renderAfter(W, H, lang);
+      const tileCls = p.tile < 36 ? 'warn' : 'ok';
+      g.append(cell(ph, `<b>${W}×${H} · ${id}</b> (${name})<br>тайл <span class="${tileCls}">${f1(p.tile)}</span> · клавиша ${f1(p.keyW)}×${p.keyH} · клавиатура ${p.kbH} dp`));
+      (rowsOut[id] = rowsOut[id] || []).push(p);
+    }
+  }
+  const t = document.getElementById('nums');
+  let html = '<tr><th>язык</th>' + devices.map(d => `<th>${d[0]}×${d[1]}</th>`).join('') + '</tr>';
+  for (const id of ['uz-latn', 'uz-cyrl', 'ru', 'kk', 'en']) {
+    const ps = devices.map(([W, H]) => planAfter(W, H, LANGS[id]));
+    html += `<tr><td>${id} · тайл / клавиша Ш×В</td>` + ps.map(p => `<td>${f1(p.tile)} / ${f1(p.keyW)}×${p.keyH}</td>`).join('') + '</tr>';
+  }
+  t.innerHTML = html;
+})();
+
+// ---------- 03: states ----------
+(function () {
+  const g = document.getElementById('grid-states');
+  const lang = LANGS['uz-latn'];
+  const add = (opts, note) => { const { ph } = renderAfter(393, 852, lang, opts); g.append(cell(ph, note)); };
+  add({}, 'полоса пустая — просто воздух 28 dp');
+  add({ strip: 'Недостаточно букв' }, '1.5 с, fade');
+  add({ strip: 'Нет в списке слов ·', link: 'Предложить к добавлению' }, 'висит, пока слово не изменено; ссылка в той же строке');
+  add({ strip: 'Отправлено на проверку' }, 'после тапа по ссылке, 1.5 с');
+  add({ strip: '3-я буква должна быть O' }, 'hard mode, 1.5 с');
+  add({ result: true }, 'раунд окончен: результат в слоте высотой с клавиатуру, сетка не двигается');
+})();
+
+// ---------- 04: wide ----------
+(function () {
+  const g = document.getElementById('grid-wide');
+  let r = renderWide(915, 412, LANGS['uz-latn']);
+  g.append(cell(r.ph, `<b>915×412 · uz-latn</b> (Pixel 7 ландшафт)<br>тайл ${f1(r.p.tile)} · клавиша ${f1(r.p.keyW)}×${r.p.keyH}`));
+  r = renderWide(1100, 720, LANGS['en']);
+  g.append(cell(r.ph, `<b>1100×720 · en</b> (десктоп / веб)<br>тайл ${f1(r.p.tile)} · клавиша ${f1(r.p.keyW)}×${r.p.keyH} (cap 56)`));
+})();
+
+// ---------- 05: custom ----------
+(function () {
+  const sel = document.getElementById('cl');
+  for (const id of Object.keys(LANGS)) { const o = el('option', '', null, id); o.value = id; sel.append(o); }
+  const go = () => {
+    const W = +document.getElementById('cw').value, H = +document.getElementById('ch').value;
+    const lang = LANGS[sel.value], mode = document.getElementById('cm').value, suggest = document.getElementById('cs').checked;
+    const g = document.getElementById('grid-custom'); g.innerHTML = '';
+    const r = mode === 'before' ? renderBefore(W, H, lang, suggest) : (W > H ? renderWide(W, H, lang) : renderAfter(W, H, lang));
+    g.append(cell(r.ph, `<b>${W}×${H} · ${lang.title}</b> · тайл ${f1(r.p.tile)} · клавиша ${f1(r.p.keyW)}×${r.p.keyH}`));
+  };
+  document.getElementById('cgo').onclick = go;
+  go();
+})();
+
+// ---------- controls ----------
+// ?hide=now,after — hide sections (used for section screenshots)
+const hide = new URLSearchParams(location.search).get('hide');
+if (hide) for (const id of hide.split(',')) { const n = document.getElementById(id); if (n) n.remove(); }
+document.getElementById('zoom').onchange = e => document.documentElement.style.setProperty('--zoom', e.target.value);
+document.getElementById('ghost').onchange = e => document.querySelectorAll('.strip.ghost, .strip').forEach(s => s.style.outline = e.target.checked ? '' : 'none');
+</script>
+</body>
+</html>

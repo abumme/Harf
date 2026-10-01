@@ -28,8 +28,9 @@ object LaunchLanguages {
             listOf("q", "e", "r", "t", "y", "u", "i", "o", "p"),
             listOf("a", "s", "d", "f", "g", "h", "j", "k", "l"),
             listOf("sh", "ch", "ng", "z", "x", "v", "b", "n", "m"),
-            listOf("oʻ", "gʻ"),
         ),
+        // oʻ gʻ sit in the action row between enter and delete, keeping the letter rows at nine wide keys.
+        actionRowKeys = listOf("oʻ", "gʻ"),
     )
 
     val uzCyrl = LanguageConfig(
