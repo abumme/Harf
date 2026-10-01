@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="referrer" content="no-referrer">
+        <title>Harf</title>
+    </head>
+    <body style="font-family: system-ui, sans-serif; text-align: center; padding-top: 3em">
+        <p>You can close this window and return to Harf.</p>
+        <script>
+            // Google's redirect for the popup sign-in (BrowserGoogleSignInWindow): hand the fragment to the game over
+            // the same-origin channel, which works even when the link to the opener didn't survive Google's pages.
+            var response = location.hash.replace(/^#/, "") || location.search.replace(/^\?/, "");
+            // Out of the address bar and history: the fragment holds the ID token.
+            history.replaceState(null, "", location.pathname);
+            if (response) {
+                try {
+                    var channel = new BroadcastChannel("harf-google-signin");
+                    channel.postMessage(response);
+                    channel.close();
+                } catch (e) {}
+            }
+            window.close();
+        </script>
+    </body>
+</html>

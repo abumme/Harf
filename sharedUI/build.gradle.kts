@@ -116,6 +116,11 @@ kotlin {
             implementation(npm("@js-joda/timezone", libs.versions.js.joda.timezone.get()))
         }
 
+        // Google sign-in's popup and callback channel (BrowserGoogleSignInWindow), one implementation for js and wasmJs.
+        webMain.dependencies {
+            implementation(libs.kotlinx.browser)
+        }
+
 
     }
 

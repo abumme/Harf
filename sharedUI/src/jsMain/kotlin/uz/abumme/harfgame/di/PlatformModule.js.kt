@@ -6,6 +6,7 @@ import org.koin.dsl.module
 import uz.abumme.harfgame.BuildConfig
 import uz.abumme.harfgame.billing.NoOpPurchaseController
 import uz.abumme.harfgame.billing.PurchaseController
+import uz.abumme.harfgame.data.auth.BrowserGoogleSignInWindow
 import uz.abumme.harfgame.data.auth.NoOpOAuthClient
 import uz.abumme.harfgame.data.auth.OAuthClient
 import uz.abumme.harfgame.data.auth.WebGoogleOAuthClient
@@ -27,7 +28,7 @@ actual val platformModule: Module = module {
     single<PurchaseController> { NoOpPurchaseController }
     single<OAuthClient> {
         val googleClientId = BuildConfig.GOOGLE_SERVER_CLIENT_ID
-        if (googleClientId.isNotBlank()) WebGoogleOAuthClient(googleClientId)
+        if (googleClientId.isNotBlank()) WebGoogleOAuthClient(googleClientId, BrowserGoogleSignInWindow())
         else NoOpOAuthClient(isGoogleSupported = true)
     }
     single<GamesServices> { NoOpGamesServices() }
