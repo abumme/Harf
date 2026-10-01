@@ -7,6 +7,7 @@ import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.yield
+import uz.abumme.harfgame.data.auth.GoogleImplicitFlow
 import uz.abumme.harfgame.data.auth.GoogleSignInWindow
 import uz.abumme.harfgame.data.auth.OAuthResult
 import uz.abumme.harfgame.data.auth.WebGoogleOAuthClient
@@ -118,7 +119,7 @@ class WebGoogleOAuthClientTest {
     fun a_popup_closed_without_an_answer_stops_waiting_eventually() = runTest {
         val window = FakeGoogleSignInWindow()
         val result = async { WebGoogleOAuthClient("client-1", window).signInWithGoogle() }
-        advanceTimeBy(WebGoogleOAuthClient.RESPONSE_TIMEOUT - 1.seconds)
+        advanceTimeBy(GoogleImplicitFlow.RESPONSE_TIMEOUT - 1.seconds)
         assertTrue(result.isActive, "a slow sign-in (second factor, new account) still completes")
 
         advanceTimeBy(2.seconds)
@@ -128,9 +129,9 @@ class WebGoogleOAuthClientTest {
 
     @Test
     fun the_name_claim_is_optional_and_never_throws() {
-        assertEquals("Ada", WebGoogleOAuthClient.nameClaim(idToken("""{"name":" Ada "}""")))
-        assertNull(WebGoogleOAuthClient.nameClaim(idToken("""{"name":""}""")))
-        assertNull(WebGoogleOAuthClient.nameClaim("not-a-jwt"))
-        assertNull(WebGoogleOAuthClient.nameClaim("a.!!!.c"))
+        assertEquals("Ada", GoogleImplicitFlow.nameClaim(idToken("""{"name":" Ada "}""")))
+        assertNull(GoogleImplicitFlow.nameClaim(idToken("""{"name":""}""")))
+        assertNull(GoogleImplicitFlow.nameClaim("not-a-jwt"))
+        assertNull(GoogleImplicitFlow.nameClaim("a.!!!.c"))
     }
 }
