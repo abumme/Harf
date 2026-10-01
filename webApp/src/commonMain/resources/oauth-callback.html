@@ -9,19 +9,27 @@
     <body style="font-family: system-ui, sans-serif; text-align: center; padding-top: 3em">
         <p>You can close this window and return to Harf.</p>
         <script>
-            // Google's redirect for the popup sign-in (BrowserGoogleSignInWindow): hand the fragment to the game over
-            // the same-origin channel, which works even when the link to the opener didn't survive Google's pages.
+            // Google's redirect for Google sign-in (GoogleImplicitFlow). The response is the fragment (#id_token=…).
             var response = location.hash.replace(/^#/, "") || location.search.replace(/^\?/, "");
             // Out of the address bar and history: the fragment holds the ID token.
             history.replaceState(null, "", location.pathname);
-            if (response) {
-                try {
-                    var channel = new BroadcastChannel("harf-google-signin");
-                    channel.postMessage(response);
-                    channel.close();
-                } catch (e) {}
+            var state = new URLSearchParams(response).get("state") || "";
+            // The desktop app (JvmGoogleOAuthClient) listens on 127.0.0.1; its port is in the state. Only ever there.
+            var desktop = /^desktop-(\d{1,5})-[0-9a-f]+$/.exec(state);
+            if (desktop) {
+                location.replace("http://127.0.0.1:" + desktop[1] + "/callback?" + response);
+            } else {
+                // The browser game (BrowserGoogleSignInWindow) opened this as a popup: hand the response over the
+                // same-origin channel, which works even when the link to the opener didn't survive Google's pages.
+                if (response) {
+                    try {
+                        var channel = new BroadcastChannel("harf-google-signin");
+                        channel.postMessage(response);
+                        channel.close();
+                    } catch (e) {}
+                }
+                window.close();
             }
-            window.close();
         </script>
     </body>
 </html>
