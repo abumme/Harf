@@ -262,7 +262,7 @@ fun GameScreen(languageId: String, epochDay: Long? = null, onBack: () -> Unit = 
     // game input. A typed char maps to a single-grapheme key of the current language; multi-char
     // graphemes (Uzbek sh/ch/oʻ/gʻ/ng) have no single physical key and stay on-screen only.
     val focusRequester = remember { FocusRequester() }
-    val keyLookup = remember(config) { (config.keyboard.flatten() + config.actionRowKeys).associateBy { it.lowercase() } }
+    val keyLookup = remember(config) { KeyboardShape.of(config).keys.associateBy { it.lowercase() } }
     LaunchedEffect(script) { runCatching { focusRequester.requestFocus() } }
 
     val switchScript: (String) -> Unit = { targetScript ->

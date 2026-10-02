@@ -14,6 +14,7 @@ import androidx.compose.ui.test.runDesktopComposeUiTest
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
+import uz.abumme.harfgame.feature.game.KeyboardShape
 import uz.abumme.harfgame.feature.game.KeyboardView
 import uz.abumme.harfgame.lang.LanguageConfig
 import uz.abumme.harfgame.lang.LaunchLanguages
@@ -87,7 +88,7 @@ class KeyboardViewTest {
                 Box(Modifier.width(width)) { KeyboardView(LaunchLanguages.uzCyrl, emptyMap(), {}, {}, {}) }
             }
         }
-        val labels = LaunchLanguages.uzCyrl.keyboard.flatten().map { it.uppercase() } + listOf("ENTER", "⌫")
+        val labels = KeyboardShape.of(LaunchLanguages.uzCyrl).letterRows.flatten().map { it.uppercase() } + listOf("ENTER", "⌫")
         fun rowsByTop(): Map<String, Int> {
             val tops = labels.map { bounds(it).top.value }.distinct().sorted()
             return labels.associateWith { label -> tops.indexOfFirst { abs(it - bounds(label).top.value) < 0.5f } }
