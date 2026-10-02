@@ -26,6 +26,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +38,9 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.EntitlementGate
 import uz.abumme.harfgame.billing.EntitlementRepository
+import uz.abumme.harfgame.data.archive.ArchiveHistoryManager
+import uz.abumme.harfgame.data.auth.SessionStore
+import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.feature.daily.DailyPuzzleProvider
 import uz.abumme.harfgame.theme.LocalHarfColors
 import uz.abumme.harfgame.theme.harfSerif
@@ -56,16 +60,26 @@ fun ArchiveScreen(
 ) {
     val entitlementsRepo = koinInject<EntitlementRepository>()
     val provider = koinInject<DailyPuzzleProvider>()
+    val archiveHistory = koinInject<ArchiveHistoryManager>()
+    val resultLog = koinInject<ResultLog>()
+    val sessionStore = koinInject<SessionStore>()
     val entitlements by entitlementsRepo.entitlements.collectAsState()
     val isOwner = EntitlementGate.lifetimeExtrasUnlocked(entitlements)
     val colors = LocalHarfColors.current
 
-    var selectedLang by remember { mutableStateOf(LANGUAGES.first().first) }
+    // Saveable: coming back from an archived game keeps the language the player was browsing.
+    var selectedLang by rememberSaveable { mutableStateOf(LANGUAGES.first().first) }
     var availableDays by remember { mutableStateOf<List<Long>>(emptyList()) }
+    var results by remember { mutableStateOf<Map<Long, ArchiveDayBrowser.DayResult>>(emptyMap()) }
 
     LaunchedEffect(selectedLang, isOwner) {
         if (isOwner) {
             availableDays = ArchiveDayBrowser.availableDays(provider, selectedLang).reversed()
+            val owner = sessionStore.get().userId.orEmpty()
+            results = ArchiveDayBrowser.results(selectedLang, archiveHistory.history(owner), resultLog.all())
+            // Then upload offline playthroughs and pull other devices' ones (best-effort; rows refresh when it lands).
+            runCatching { archiveHistory.sync(owner) }
+            results = ArchiveDayBrowser.results(selectedLang, archiveHistory.history(owner), resultLog.all())
         }
     }
 
@@ -121,7 +135,7 @@ fun ArchiveScreen(
                 }
                 Spacer(Modifier.height(12.dp))
                 OutlinedButton(onClick = onBack, modifier = Modifier.width(220.dp)) {
-                    Text("Back")
+                    Text(stringResource(Res.string.action_back))
                 }
             }
         } else {
@@ -156,7 +170,18 @@ fun ArchiveScreen(
                             onClick = { onOpenPuzzle(selectedLang, day) },
                             modifier = Modifier.fillMaxWidth(0.85f),
                         ) {
-                            Text(stringResource(Res.string.archive_day_label, day))
+                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(ArchiveDayBrowser.dateLabel(day), color = colors.ink)
+                                val result = results[day]
+                                Text(
+                                    when {
+                                        result == null -> stringResource(Res.string.archive_not_played)
+                                        result.won -> stringResource(Res.string.result_solved, result.attempts, 6)
+                                        else -> stringResource(Res.string.result_out_of_tries)
+                                    },
+                                    color = if (result == null) colors.muted else colors.ink,
+                                )
+                            }
                         }
                     }
                 }

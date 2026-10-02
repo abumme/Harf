@@ -87,7 +87,7 @@
     <string name="archive_locked_desc">Harf Founder Edition bilan o'tgan barcha so'zlarni qayta o'ynang.</string>
     <string name="archive_unlock_action">Founderni ochish</string>
     <string name="archive_empty">Hali o'tgan so'zlar mavjud emas.</string>
-    <string name="archive_day_label">%1$d-kun</string>
+    <string name="archive_not_played">O'ynalmagan</string>
     <string name="archive_replay">Qayta o'ynash</string>
     <string name="archive_completed">Tugatilgan</string>
 

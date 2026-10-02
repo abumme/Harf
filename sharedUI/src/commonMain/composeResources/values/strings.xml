@@ -87,7 +87,7 @@
     <string name="archive_locked_desc">Revisit and replay every past puzzle with Harf Founder Edition.</string>
     <string name="archive_unlock_action">Unlock Founder</string>
     <string name="archive_empty">No past puzzles available yet.</string>
-    <string name="archive_day_label">Day %1$d</string>
+    <string name="archive_not_played">Not played</string>
     <string name="archive_replay">Replay</string>
     <string name="archive_completed">Completed</string>
 

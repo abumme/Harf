@@ -87,7 +87,7 @@
     <string name="archive_locked_desc">Переигрывайте любые прошлые слова с изданием Harf Founder.</string>
     <string name="archive_unlock_action">Открыть Founder</string>
     <string name="archive_empty">Прошлые слова пока недоступны.</string>
-    <string name="archive_day_label">День %1$d</string>
+    <string name="archive_not_played">Не сыграно</string>
     <string name="archive_replay">Переиграть</string>
     <string name="archive_completed">Пройдено</string>
 
