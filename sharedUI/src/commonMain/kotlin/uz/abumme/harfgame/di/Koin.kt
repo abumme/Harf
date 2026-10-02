@@ -16,10 +16,12 @@ import uz.abumme.harfgame.data.archive.ArchiveRoundStore
 import uz.abumme.harfgame.data.auth.SessionStore
 import uz.abumme.harfgame.data.network.KtorArchiveService
 import uz.abumme.harfgame.data.network.KtorAuthService
+import uz.abumme.harfgame.data.network.KtorEntitlementService
 import uz.abumme.harfgame.data.network.KtorSuggestionService
 import uz.abumme.harfgame.data.network.KtorSyncService
 import uz.abumme.harfgame.data.service.ArchiveService
 import uz.abumme.harfgame.data.service.AuthService
+import uz.abumme.harfgame.data.service.EntitlementService
 import uz.abumme.harfgame.data.service.SuggestionService
 import uz.abumme.harfgame.data.service.SyncService
 import uz.abumme.harfgame.data.stats.PendingUploadStore
@@ -54,7 +56,8 @@ val appModule: Module = module {
     }
     single { StyleChoiceLog(get()) }
     single { StyleExperimentController(get(), get()) }
-    single { EntitlementRepository(get(), get()) } // PurchaseController from platformModule
+    // PurchaseController from platformModule; the server's view covers platforms without a store.
+    single { EntitlementRepository(get(), get(), accountEntitlements = get()) }
     single { SessionStore(get()) }
     single {
         HttpClient {
@@ -72,6 +75,9 @@ val appModule: Module = module {
     }
     single<ArchiveService> {
         KtorArchiveService(get(), baseUrl = BuildConfig.API_BASE_URL, sessionStore = get(), authService = get())
+    }
+    single<EntitlementService> {
+        KtorEntitlementService(get(), baseUrl = BuildConfig.API_BASE_URL, sessionStore = get(), authService = get())
     }
     single {
         ArchiveHistoryManager(

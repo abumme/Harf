@@ -45,11 +45,11 @@ import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.EntitlementGate
 import uz.abumme.harfgame.billing.EntitlementRepository
-import uz.abumme.harfgame.billing.PurchaseController
 import uz.abumme.harfgame.settings.AppSettings
 import uz.abumme.harfgame.theme.GhostButton
 import uz.abumme.harfgame.theme.HarfPalettes
 import uz.abumme.harfgame.theme.LocalHarfColors
+import uz.abumme.harfgame.theme.LocalHarfPaletteId
 import uz.abumme.harfgame.theme.LocalHarfShapes
 import uz.abumme.harfgame.theme.PrimaryButton
 import uz.abumme.harfgame.theme.harfSerif
@@ -71,9 +71,9 @@ fun HomeScreen(
 ) {
     val settings = koinInject<AppSettings>()
     val entitlements = koinInject<EntitlementRepository>()
-    val controller = koinInject<PurchaseController>()
-    val paletteId by settings.paletteId.collectAsState()
     val ents by entitlements.entitlements.collectAsState()
+    // What the board actually wears — App draws an unowned choice as the free palette.
+    val paletteId = LocalHarfPaletteId.current
     val colors = LocalHarfColors.current
 
     BoxWithConstraints(
@@ -149,7 +149,7 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally),
         ) {
             for (palette in HarfPalettes.all) {
-                val unlocked = EntitlementGate.canApplyTheme(palette.id, ents, controller.isAvailable)
+                val unlocked = EntitlementGate.canApplyTheme(palette.id, ents)
                 EditionSwatch(
                     palette = palette,
                     selected = palette.id == paletteId,

@@ -21,6 +21,8 @@ roborazzi = "1.74.0"
 kotlinx-datetime = "0.8.0"
 # npm, for js/wasmJs. 2.23.0 is the last release whose peer range admits the @js-joda/core 3.x kotlinx-datetime uses.
 js-joda-timezone = "2.23.0"
+# Browser APIs (window, BroadcastChannel) shared by the js and wasmJs targets in webMain; the version Compose brings.
+kotlinx-browser = "0.5.0"
 purchases-kmp = "3.9.0"
 lucene = "9.12.3"
 duckdb = "1.5.5.1"
@@ -74,6 +76,7 @@ googleid = { module = "com.google.android.libraries.identity.googleid:googleid",
 play-services-games-v2 = { module = "com.google.android.gms:play-services-games-v2", version.ref = "play-services-games" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version.ref = "kotlinx-browser" }
 lucene-analysis-common = { module = "org.apache.lucene:lucene-analysis-common", version.ref = "lucene" }
 duckdb-jdbc = { module = "org.duckdb:duckdb_jdbc", version.ref = "duckdb" }
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }

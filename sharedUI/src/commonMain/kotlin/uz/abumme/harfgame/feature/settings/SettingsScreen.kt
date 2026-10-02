@@ -45,7 +45,6 @@ import uz.abumme.harfgame.data.auth.OAuthResult
 import uz.abumme.harfgame.data.auth.SessionStore
 import uz.abumme.harfgame.data.stats.SyncManager
 import uz.abumme.harfgame.feature.cellstyles.StyleExperimentController
-import uz.abumme.harfgame.feature.cellstyles.StylePreview
 import uz.abumme.harfgame.theme.DangerButton
 import uz.abumme.harfgame.theme.GhostButton
 import uz.abumme.harfgame.theme.LocalHarfColors
@@ -97,30 +96,7 @@ fun SettingsScreen(onBack: () -> Unit = {}, onPaywall: () -> Unit = {}, onCustom
 
         // Appearance — mark style
         SettingsSection(stringResource(Res.string.settings_mark_style)) {
-            for (id in HarfMarkStyleId.entries) {
-                val selected = id == active
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { scope.launch { controller.setFromSettings(id) } }
-                        .border(
-                            width = if (selected) 2.dp else 1.dp,
-                            color = if (selected) colors.accent else colors.rule,
-                            shape = LocalHarfShapes.current.swatch,
-                        )
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    StylePreview(id)
-                    Text(
-                        id.name,
-                        color = colors.ink,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                        fontSize = 15.sp,
-                    )
-                }
-            }
+            MarkStyleSection(active, onSelect = { id -> scope.launch { controller.setFromSettings(id) } })
         }
 
         // Support / purchases

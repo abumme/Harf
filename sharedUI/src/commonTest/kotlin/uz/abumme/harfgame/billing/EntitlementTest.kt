@@ -49,14 +49,21 @@ class EntitlementTest {
     }
 
     @Test
-    fun gate_free_and_owned_only_when_purchases_available() {
+    fun gate_free_and_owned_themes_only() {
         val ents = Entitlements(ownedThemes = setOf("theme_dusk"))
-        // purchases available: free palette + owned theme apply, unowned does not
-        assertTrue(EntitlementGate.canApplyTheme(EntitlementGate.FREE_PALETTE, ents, purchasesAvailable = true))
-        assertTrue(EntitlementGate.canApplyTheme("dusk", ents, purchasesAvailable = true))
-        assertFalse(EntitlementGate.canApplyTheme("aurora", ents, purchasesAvailable = true))
-        // purchases unavailable: nothing is locked (can't sell it)
-        assertTrue(EntitlementGate.canApplyTheme("aurora", ents, purchasesAvailable = false))
+        assertTrue(EntitlementGate.canApplyTheme(EntitlementGate.FREE_PALETTE, ents))
+        assertTrue(EntitlementGate.canApplyTheme("dusk", ents))
+        // Unowned stays locked even where the store is unavailable (web, desktop): no store is no free pass.
+        assertFalse(EntitlementGate.canApplyTheme("aurora", ents))
+        assertFalse(EntitlementGate.canApplyTheme("dusk", Entitlements()))
+    }
+
+    @Test
+    fun unowned_choice_draws_as_the_free_palette() {
+        val ents = Entitlements(ownedThemes = setOf("theme_dusk"))
+        assertEquals("dusk", EntitlementGate.paletteToApply("dusk", ents))
+        assertEquals(EntitlementGate.FREE_PALETTE, EntitlementGate.paletteToApply("aurora", ents))
+        assertEquals(EntitlementGate.FREE_PALETTE, EntitlementGate.paletteToApply(EntitlementGate.FREE_PALETTE, Entitlements()))
     }
 
     @Test

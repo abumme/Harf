@@ -8,27 +8,13 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
-import kotlinx.coroutines.flow.StateFlow
-import androidx.compose.runtime.collectAsState
-import uz.abumme.harfgame.settings.AppSettings
 
 /**
- * Applies the active Harf palette app-wide: provides [LocalHarfColors] tokens and a
- * Material color scheme mapped from them. The active palette comes from [AppSettings]
- * and updates reactively; on first launch it is the default palette.
+ * Applies a Harf palette app-wide: provides [LocalHarfColors] tokens and a Material color scheme
+ * mapped from them. The app passes the chosen palette after the entitlement check (see `App`);
+ * previews pass one directly.
  */
-@Composable
-fun HarfTheme(
-    settings: AppSettings,
-    content: @Composable () -> Unit,
-) {
-    val paletteId by settings.paletteId.collectAsState()
-    HarfTheme(paletteId = paletteId, content = content)
-}
-
-/** Palette-id overload — handy for previews without DI. */
 @Composable
 fun HarfTheme(
     paletteId: String = HarfPalettes.Newsprint.id,
@@ -62,6 +48,7 @@ fun HarfTheme(
     )
     CompositionLocalProvider(
         LocalHarfColors provides colors,
+        LocalHarfPaletteId provides paletteId,
         LocalHarfShapes provides HarfShapes,
     ) {
         MaterialTheme(colorScheme = scheme, typography = harfTypography(), shapes = materialShapes) {

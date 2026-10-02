@@ -12,6 +12,8 @@
 
 ## 3. Enter/Delete relocation (system-keyboard layout, "B")
 
+> Superseded by change `consistent-game-layout`: enter/delete now live in a dedicated action row for every language (no inline placement, no width-dependent fallback). Tasks 3.1–3.3 describe the layout this change replaced; 4.2 is covered by that change's golden re-record.
+
 - [x] 3.1 In `KeyboardView`, append the delete key to the top letter row and the enter key to the last letter row (trailing ends), removing the standalone `ActionCap` row; verify Latin and Cyrillic layouts render with actions inline and both actions fire.
 - [x] 3.2 Add the overflow fallback: when appending an action to a row would exceed the available width (measure against `maxWidth`/`maxKeys`), keep a separate action row for that layout; verify the 12-key Uzbek-Cyrillic keyboard does not clip on a narrow phone width.
 - [x] 3.3 Style the inline action keys (wider than a letter key, no used-state mark); verify they are visually distinct and the letter keys keep their sizing.

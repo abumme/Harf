@@ -18,7 +18,12 @@ class CrossPlatformAuthTest {
         assertEquals(OAuthResult.NotConfigured, blankWeb.signInWithGoogle())
         assertEquals(OAuthResult.NotConfigured, blankWeb.signInWithApple())
 
-        val configuredWeb = WebGoogleOAuthClient("test-google-client-id")
+        // A client id without the browser's popup (a build that can't open one) offers nothing either.
+        val noWindow = WebGoogleOAuthClient("test-google-client-id")
+        assertFalse(noWindow.isGoogleSupported)
+        assertEquals(OAuthResult.NotConfigured, noWindow.signInWithGoogle())
+
+        val configuredWeb = WebGoogleOAuthClient("test-google-client-id", FakeGoogleSignInWindow())
         assertTrue(configuredWeb.isGoogleSupported)
         assertFalse(configuredWeb.isAppleSupported)
     }

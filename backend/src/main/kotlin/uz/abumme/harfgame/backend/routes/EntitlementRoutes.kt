@@ -22,6 +22,14 @@ fun Route.entitlementRoutes(entitlementService: EntitlementServerService) {
                 return@get
             }
             val entitlements = entitlementService.getEntitlements(userId)
+            if (entitlements == null) {
+                // The store could not be asked: say so, so the client keeps what it last verified.
+                call.respond(
+                    HttpStatusCode.ServiceUnavailable,
+                    ApiErrorResponse("entitlements_unavailable", "Purchases could not be checked right now"),
+                )
+                return@get
+            }
             call.respond(HttpStatusCode.OK, entitlements)
         }
     }

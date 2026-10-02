@@ -2,15 +2,18 @@ package uz.abumme.harfgame
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import uz.abumme.harfgame.billing.EntitlementGate
 import uz.abumme.harfgame.billing.EntitlementRepository
 import uz.abumme.harfgame.data.auth.SessionStore
 import uz.abumme.harfgame.data.stats.ResultLog
@@ -23,7 +26,7 @@ import uz.abumme.harfgame.settings.AppSettings
 import uz.abumme.harfgame.theme.HarfTheme
 
 /**
- * App root: applies the Harf theme (active palette from settings) and hosts the
+ * App root: applies the Harf theme (the chosen palette, if the account may use it) and hosts the
  * navigation graph. [onThemeChanged] lets platform wrappers sync system-bar style;
  * Harf editions are light, so it reports `isDark = false`.
  */
@@ -50,11 +53,18 @@ fun App(onThemeChanged: @Composable (isDark: Boolean) -> Unit = {}) {
     }
     LaunchedEffect(Unit) {
         // Keep the store identity in step with the Harf account: sign-in, link, switch, sign-out.
+        // collectLatest: a new account cancels a still-pending check for the previous one.
         sessionStore.sessionFlow.filterNotNull().map { it.userId }.distinctUntilChanged()
-            .collect { entitlements.bindAccount(it) }
+            .collectLatest { entitlements.bindAccount(it) }
     }
     var onboarded by remember { mutableStateOf(settings.isOnboarded()) }
-    HarfTheme(settings) {
+    val chosenPalette by settings.paletteId.collectAsState()
+    val ents by entitlements.entitlements.collectAsState()
+    val accountKnown by entitlements.accountKnown.collectAsState()
+    // A palette the account doesn't own (picked before themes were gated on this platform, or refunded)
+    // draws as the free one. The choice itself stays saved, so it comes back if the purchase does.
+    val palette = if (accountKnown) EntitlementGate.paletteToApply(chosenPalette, ents) else chosenPalette
+    HarfTheme(paletteId = palette) {
         MarkStyleHost {
             if (!onboarded) {
                 OnboardingIntro(onDone = {
