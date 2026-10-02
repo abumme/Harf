@@ -13,8 +13,12 @@ data class KeyboardShape(val letterRows: List<List<String>>, val actionRowKeys: 
     /** Width of the widest row in letter-key units; the action row is two action keys plus its graphemes. */
     val maxUnits: Int get() = maxOf(letterRows.maxOf { it.size }, 2 * GameLayout.ACTION_UNITS + actionRowKeys.size)
 
+    /** Every grapheme key: the letter rows flattened, then the action-row keys. */
+    val keys: List<String> get() = letterRows.flatten() + actionRowKeys
+
     companion object {
-        fun of(config: LanguageConfig) = KeyboardShape(config.keyboard, config.actionRowKeys)
+        /** The layout registered for [config]'s language in [KeyboardLayouts]; a language without one fails fast. */
+        fun of(config: LanguageConfig): KeyboardShape = KeyboardLayouts.all.getValue(config.id)
     }
 }
 
