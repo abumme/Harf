@@ -52,7 +52,7 @@ import uz.abumme.harfgame.theme.LocalHarfShapes
 import uz.abumme.harfgame.theme.ScreenTopBar
 import uz.abumme.harfgame.theme.marks.HarfMarkStyleId
 
-/** Public legal document URLs. Update these to the hosted locations before release. */
+/** Public legal document URLs, hosted on the lazydevs.uz landing site. */
 private object LegalLinks {
     const val PRIVACY = "https://lazydevs.uz/harf/privacy"
     const val OFFER = "https://lazydevs.uz/harf/offer"
