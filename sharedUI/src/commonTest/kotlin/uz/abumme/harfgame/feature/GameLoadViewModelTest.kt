@@ -101,4 +101,23 @@ class GameLoadViewModelTest {
         // The board's VM is keyed by generation, so the converted round is not shadowed by the first visit's VM.
         assertNotEquals(first.generation, back.generation)
     }
+
+    @Test
+    fun reloadLoadsTheSelectedScriptAgainAsANewRound() = runTest {
+        var calls = 0
+        val vm = GameLoadViewModel { s -> calls++; loaded(s) }
+        vm.select("en")
+        val first = vm.loaded.value!!
+        vm.reload()
+        assertEquals(2, calls, "an archive replay builds a fresh round")
+        assertEquals("en", vm.selected.value)
+        assertNotEquals(first.generation, vm.loaded.value!!.generation, "a new generation, so a new game VM")
+    }
+
+    @Test
+    fun aRoundThatFailsToLoadLeavesTheSkeletonInsteadOfCrashing() = runTest {
+        val vm = GameLoadViewModel { error("day not in this pack") }
+        vm.select("en")
+        assertNull(vm.loaded.value, "nothing is published, so the page stays a skeleton with its back control")
+    }
 }

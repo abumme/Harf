@@ -32,8 +32,9 @@ object Home
 @Serializable
 object Archive
 
+/** A game round: today's daily when [epochDay] is null, otherwise that archived day (Founder archive). */
 @Serializable
-data class Game(val languageId: String)
+data class Game(val languageId: String, val epochDay: Long? = null)
 
 @Serializable
 object Stats
@@ -104,15 +105,16 @@ fun AppNavHost() {
             ArchiveScreen(
                 onBack = dropUnlessResumed(entry, back),
                 onOpenPuzzle = { languageId, epochDay ->
-                    // Navigation to historical puzzle
-                    entry.ifResumed { navController.navigate(Game(languageId)) }
+                    entry.ifResumed { navController.navigate(Game(languageId, epochDay)) }
                 },
                 onPaywall = dropUnlessResumed(entry) { navController.navigate(Paywall) },
             )
         }
         screen<Game> { entry ->
+            val route = entry.toRoute<Game>()
             GameScreen(
-                languageId = entry.toRoute<Game>().languageId,
+                languageId = route.languageId,
+                epochDay = route.epochDay,
                 onBack = dropUnlessResumed(entry, back),
                 onPaywall = dropUnlessResumed(entry) { navController.navigate(Paywall) },
             )

@@ -2,6 +2,7 @@ package uz.abumme.harfgame.feature.game
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -44,6 +45,24 @@ internal class GameLoadViewModel(private val load: suspend (script: String) -> L
         _selected.value = script
         job?.cancel()
         val round = ++generation
-        job = viewModelScope.launch { _loaded.value = load(script).copy(generation = round) }
+        job = viewModelScope.launch {
+            // A round that cannot be resolved (e.g. an archive day a newer pack no longer covers) leaves the
+            // page's skeleton with its back control instead of crashing the app.
+            val next = try {
+                load(script)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                return@launch
+            }
+            _loaded.value = next.copy(generation = round)
+        }
+    }
+
+    /** Loads the selected script's round again, e.g. a fresh board when an archive day is replayed. */
+    fun reload() {
+        val script = _selected.value ?: return
+        _selected.value = null
+        select(script)
     }
 }

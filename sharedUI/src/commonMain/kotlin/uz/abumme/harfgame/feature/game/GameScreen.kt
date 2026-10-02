@@ -65,6 +65,7 @@ import harf_game.sharedui.generated.resources.Res
 import harf_game.sharedui.generated.resources.action_copy
 import harf_game.sharedui.generated.resources.action_back
 import harf_game.sharedui.generated.resources.action_got_it
+import harf_game.sharedui.generated.resources.archive_replay
 import harf_game.sharedui.generated.resources.action_share
 import harf_game.sharedui.generated.resources.game_hard_mode
 import harf_game.sharedui.generated.resources.game_suggest_word
@@ -82,15 +83,26 @@ import harf_game.sharedui.generated.resources.result_solved
 import harf_game.sharedui.generated.resources.settings_support_harf
 import harf_game.sharedui.generated.resources.suggest_failed
 import harf_game.sharedui.generated.resources.suggest_sent
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 import uz.abumme.harfgame.billing.PurchaseController
+import uz.abumme.harfgame.data.archive.ArchiveHistoryManager
+import uz.abumme.harfgame.data.archive.ArchiveRoundStore
+import uz.abumme.harfgame.data.archive.ArchiveRowDto
+import uz.abumme.harfgame.data.archive.ArchiveRunDto
+import uz.abumme.harfgame.data.auth.SessionStore
+import uz.abumme.harfgame.data.stats.InProgressRound
 import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.data.stats.RoundStore
+import uz.abumme.harfgame.data.sync.RoundKind
 import uz.abumme.harfgame.engine.Mark
 import uz.abumme.harfgame.engine.WordPackRepository
+import uz.abumme.harfgame.feature.daily.DailyPuzzle
 import uz.abumme.harfgame.feature.daily.DailyPuzzleProvider
 import uz.abumme.harfgame.feature.onboarding.MarkLegend
 import uz.abumme.harfgame.feature.result.ShareGrid
@@ -101,10 +113,15 @@ import uz.abumme.harfgame.settings.AppSettings
 import uz.abumme.harfgame.theme.HarfColors
 import uz.abumme.harfgame.theme.LocalHarfColors
 import uz.abumme.harfgame.theme.marks.LocalMarkStyle
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
+/** The archive keeps one in-progress playthrough per day; a finished one is recorded in history under its own run id. */
+private const val ARCHIVE_RUN = "current"
+
+/** Today's daily round, or the archived [epochDay]'s round (its own puzzle, round slot and history, never the result log). */
 @Composable
-fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Unit = {}) {
+fun GameScreen(languageId: String, epochDay: Long? = null, onBack: () -> Unit = {}, onPaywall: () -> Unit = {}) {
     val provider = koinInject<DailyPuzzleProvider>()
     val packs = koinInject<WordPackRepository>()
     val registry = koinInject<LanguageRegistry>()
@@ -112,14 +129,28 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
     val roundStore = koinInject<RoundStore>()
     val syncManager = koinInject<uz.abumme.harfgame.data.stats.SyncManager>()
     val gamesServices = koinInject<uz.abumme.harfgame.games.GamesServices>()
+    val archiveRounds = koinInject<ArchiveRoundStore>()
+    val archiveHistory = koinInject<ArchiveHistoryManager>()
+    val sessionStore = koinInject<SessionStore>()
     val scope = rememberCoroutineScope()
+
+    val owner: suspend () -> String = { sessionStore.get().userId.orEmpty() }
+    val puzzleFor: suspend (String) -> DailyPuzzle = { s ->
+        if (epochDay == null) provider.daily(s) else provider.historical(s, epochDay)
+    }
+    val loadRound: suspend (String, Long) -> InProgressRound? = { s, day ->
+        if (epochDay == null) roundStore.load(s, day) else archiveRounds.load(owner(), s, day, ARCHIVE_RUN)
+    }
+    val saveRound: suspend (InProgressRound) -> Unit = { round ->
+        if (epochDay == null) roundStore.save(round) else archiveRounds.save(owner(), ARCHIVE_RUN, round)
+    }
 
     // The round lives in the Game entry, outside composition: a return from the paywall finds it ready, and an
     // Uzbek script switch keeps the current board until the other script's round is ready.
     val loader = viewModel {
         GameLoadViewModel { s ->
-            val puzzle = provider.daily(s)
-            Loaded(puzzle, registry.config(s)!!, packs.load(s), roundStore.load(s, puzzle.epochDay))
+            val puzzle = puzzleFor(s)
+            Loaded(puzzle, registry.config(s)!!, packs.load(s), loadRound(s, puzzle.epochDay))
         }.also { it.select(languageId) }
     }
     val loaded by loader.loaded.collectAsState()
@@ -137,8 +168,34 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
     // Keyed by the round, not the script: switching there and back must build the VM from the converted round
     // instead of reusing the stale one from the first visit. A paywall round trip keeps the same round, so the same VM.
     val vm = viewModel(key = "$script#${data.generation}") {
-        GameViewModel(puzzle, pack, restore) { record ->
-            scope.launch {
+        lateinit var round: GameViewModel
+        round = GameViewModel(
+            puzzle, pack, restore,
+            roundKind = if (epochDay == null) RoundKind.OFFICIAL else RoundKind.ARCHIVE,
+        ) { record ->
+            // On the VM's scope, not the screen's: the VM outlives a recreated Activity, whose composition scope is
+            // cancelled by then; NonCancellable so leaving right after the last guess still records the round.
+            if (epochDay != null) {
+                val rows = round.snapshot().rows
+                round.viewModelScope.launch(NonCancellable) {
+                    // Archive play stays out of the result log, stats, streaks and achievements.
+                    runCatching {
+                        archiveHistory.record(
+                            owner(),
+                            ArchiveRunDto(
+                                runId = archiveHistory.generateReplayRunId(),
+                                language = record.language,
+                                puzzleDay = record.puzzleDay,
+                                won = record.won,
+                                attempts = record.attempts,
+                                hardMode = record.hardMode,
+                                rows = rows.map { ArchiveRowDto(it.graphemes, it.marks) },
+                                completedAt = Clock.System.now(),
+                            ),
+                        )
+                    }
+                }
+            } else round.viewModelScope.launch(NonCancellable) {
                 resultLog.record(record)
                 // B11: keep the finished round persisted so reopening today shows the result,
                 // not a blank editable board. The snapshot is saved by the effect below.
@@ -149,6 +206,7 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
                 )
             }
         }
+        round
     }
     val state by vm.state.collectAsState()
     // Set while a script switch is converting the round: input then would be lost with the board it was typed on.
@@ -227,8 +285,8 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
 
     // persist the round as it changes — including the finished state, so today's result is
     // restored on relaunch (a stale prior-day round is ignored by RoundStore.load's day check).
-    LaunchedEffect(script, state.submitted.size, state.current.size, state.status) {
-        roundStore.save(vm.snapshot())
+    LaunchedEffect(script, state.submitted.size, state.current.size, state.status, state.hardMode) {
+        saveRound(vm.snapshot())
     }
 
     // Physical-keyboard support (desktop, tablets, Play Games on PC): map hardware keys to the same
@@ -307,14 +365,14 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
             val currentSnapshot = vm.snapshot()
             scope.launch {
                 try {
-                    roundStore.save(currentSnapshot)
-                    val targetPuzzle = provider.daily(targetScript)
+                    saveRound(currentSnapshot)
+                    val targetPuzzle = puzzleFor(targetScript)
                     val converted = uz.abumme.harfgame.lang.UzbekScriptConverter.convertRound(
                         round = currentSnapshot,
                         targetScript = targetScript,
                         targetAnswer = targetPuzzle.answer,
                     )
-                    roundStore.save(converted)
+                    saveRound(converted)
                     loader.select(targetScript)
                 } catch (e: Exception) {
                     switching = false // the switch did not happen; keep playing this board
@@ -372,7 +430,18 @@ fun GameScreen(languageId: String, onBack: () -> Unit = {}, onPaywall: () -> Uni
                 onEnter = { act(GameAction.Submit) },
             )
         } else {
-            ResultView(state, config.displayName, puzzle.epochDay, onPaywall)
+            ResultView(
+                state, config.displayName, puzzle.epochDay, onPaywall,
+                // A finished archive day can be played again; its recorded playthrough stays in history.
+                onReplay = if (epochDay == null) null else {
+                    {
+                        scope.launch {
+                            archiveRounds.clear(owner(), script, puzzle.epochDay, ARCHIVE_RUN)
+                            loader.reload()
+                        }
+                    }
+                },
+            )
         }
     }
     // Board sized to fully fit whatever space it is given; capped at 64.dp so the board grows to
@@ -678,7 +747,13 @@ private fun ActionCap(label: String, c: HarfColors, height: Dp, onClick: () -> U
 }
 
 @Composable
-private fun ResultView(state: GameState, languageDisplay: String, puzzleNumber: Long, onPaywall: () -> Unit = {}) {
+private fun ResultView(
+    state: GameState,
+    languageDisplay: String,
+    puzzleNumber: Long,
+    onPaywall: () -> Unit = {},
+    onReplay: (() -> Unit)? = null,
+) {
     val c = LocalHarfColors.current
     val settings = koinInject<AppSettings>()
     val sharer = koinInject<Sharer>()
@@ -706,6 +781,7 @@ private fun ResultView(state: GameState, languageDisplay: String, puzzleNumber: 
         )
         Button(onClick = { scope.launch { sharer.share(shareText) } }) { Text(stringResource(Res.string.action_share)) }
         OutlinedButton(onClick = { sharer.copy(shareText) }) { Text(stringResource(Res.string.action_copy)) }
+        onReplay?.let { OutlinedButton(onClick = it) { Text(stringResource(Res.string.archive_replay)) } }
         // Only when the store is configured (real RevenueCat key); blank key hides the support link.
         if (purchases.isAvailable) {
             TextButton(onClick = onPaywall) { Text(stringResource(Res.string.settings_support_harf), color = c.muted) }
