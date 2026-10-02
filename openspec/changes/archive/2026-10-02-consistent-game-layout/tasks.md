@@ -25,5 +25,5 @@
 ## 6. Verification
 
 - [x] 6.1 Compile JVM → Android → Wasm/JS (`:sharedUI:compileKotlinJvm`, `:androidApp:assembleDebug`, `:webApp:wasmJsBrowserDevelopmentWebpack`) and run `./gradlew :sharedUI:jvmTest :sharedData:allTests`; verify all pass.
-- [ ] 6.2 Extend `BoardScreenshotTest` with phone frames (360×640, 393×852, 412×915 × uz-latn, uz-cyrl, en) and a landscape frame, re-record goldens from the CI `roborazzi-goldens` artifact, review the diff and commit; verify `verifyRoborazziJvm` passes on CI.
+- [x] 6.2 Extend `BoardScreenshotTest` with phone frames (360×640, 393×852, 412×915 × uz-latn, uz-cyrl, en) and a landscape frame, re-record goldens from the CI `roborazzi-goldens` artifact, review the diff and commit; verify `verifyRoborazziJvm` passes on CI.
 - [ ] 6.3 Mark `improve-game-screen` tasks 3.1–3.3 as superseded by this change (note in its tasks.md); verify on two Android phones of different diagonals that the keyboard structure is identical and the board is at least 40 dp tiles on both.
