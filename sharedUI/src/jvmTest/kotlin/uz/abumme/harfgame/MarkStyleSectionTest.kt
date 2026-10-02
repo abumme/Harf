@@ -2,8 +2,14 @@ package uz.abumme.harfgame
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -15,6 +21,7 @@ import uz.abumme.harfgame.theme.HarfTheme
 import uz.abumme.harfgame.theme.marks.HarfMarkStyleId
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 /** Settings' mark-style section: the three style rows plus the legend, so the choice is explained in place. */
@@ -45,5 +52,23 @@ class MarkStyleSectionTest {
         }
         onNodeWithText(HarfMarkStyleId.Fill.name).performClick()
         assertEquals(HarfMarkStyleId.Fill, selected)
+    }
+
+    @Test
+    fun legend_redraws_in_the_newly_picked_style() = runDesktopComposeUiTest {
+        var active by mutableStateOf(HarfMarkStyleId.Scribble)
+        setContent {
+            HarfTheme(paletteId = "newsprint") {
+                Box(Modifier.width(360.dp)) { MarkStyleSection(active = active, onSelect = { active = it }) }
+            }
+        }
+        val scribble = onNodeWithTag("mark-legend").pixels()
+        onNodeWithText(HarfMarkStyleId.Fill.name).performClick()
+        waitForIdle()
+        assertNotEquals(scribble, onNodeWithTag("mark-legend").pixels(), "legend still drawn in the old style")
+    }
+
+    private fun SemanticsNodeInteraction.pixels() = captureToImage().toPixelMap().let { m ->
+        (0 until m.height).flatMap { y -> (0 until m.width).map { x -> m[x, y] } }
     }
 }

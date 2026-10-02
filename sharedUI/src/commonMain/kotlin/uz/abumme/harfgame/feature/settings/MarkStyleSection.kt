@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -20,6 +21,8 @@ import uz.abumme.harfgame.feature.onboarding.MarkLegend
 import uz.abumme.harfgame.theme.LocalHarfColors
 import uz.abumme.harfgame.theme.LocalHarfShapes
 import uz.abumme.harfgame.theme.marks.HarfMarkStyleId
+import uz.abumme.harfgame.theme.marks.LocalMarkStyle
+import uz.abumme.harfgame.theme.marks.markStyleFor
 
 /**
  * The mark-style picker with the legend under it, so the choice is explained where it is made: the legend
@@ -53,7 +56,10 @@ fun MarkStyleSection(active: HarfMarkStyleId, onSelect: (HarfMarkStyleId) -> Uni
                 )
             }
         }
-        // The legend moved here from the game screen (see change consistent-game-layout).
-        MarkLegend(Modifier.testTag("mark-legend").padding(top = 4.dp, start = 4.dp))
+        // The legend moved here from the game screen (see change consistent-game-layout). It draws in
+        // [active] itself, so it follows a pick even before the app-wide style catches up.
+        CompositionLocalProvider(LocalMarkStyle provides markStyleFor(active)) {
+            MarkLegend(Modifier.testTag("mark-legend").padding(top = 4.dp, start = 4.dp))
+        }
     }
 }
