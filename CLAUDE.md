@@ -72,7 +72,7 @@ Screenshot tests (`*ScreenshotTest`, `SemanticsDumpTest`) use Roborazzi on Compo
 - `Scorer` — two-pass Wordle scoring (`CORRECT`/`PRESENT`/`ABSENT`) at grapheme granularity with the duplicate-count rule.
 - `WordPack` / `WordPackRepository` — loads bundled offline vocab from Compose resources; O(1) guess-membership via a Set; answers ⊆ guesses. A fetched server pack is adopted only if `WordPackIntegrity` (`:sharedData`) accepts it.
 
-**Languages** (`lang/`, in `:sharedData`). `LanguageRegistry` maps language id → `LanguageConfig` (graphemes, normalization rules) → `Tokenizer`. Uzbek is special: it has paired Latin/Cyrillic scripts, and script switching starts a new round.
+**Languages** (`lang/`, in `:sharedData`). `LanguageRegistry` maps language id → `LanguageConfig` (graphemes, normalization rules) → `Tokenizer`. Uzbek is special: it has paired Latin/Cyrillic scripts, and script switching starts a new round. On-screen keyboard layouts are app-only data in `:sharedUI` (`feature/game/KeyboardLayouts.kt`), keyed by language id, and never part of `LanguageConfig`.
 
 **Daily puzzle** (`feature/daily/DailyPuzzleProvider`). Deterministic word per (language, local day): `schedule[day - anchorEpochDay]` of the published calendar — the cached server pack, else the build's calendar snapshot (`composeResources/files/<lang>_calendar.json`, absent until the first release refresh), else the generated baseline. Rolls over at local midnight in each language's fixed timezone (`PuzzleDays` in `:sharedData`, shared with the server's calendar and the panel). A language without a cached pack waits up to 2 s for its first sync (`FirstPackSync`).
 
