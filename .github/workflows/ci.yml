@@ -197,13 +197,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           # Inputs of the backend image. Keep in step with backend/Dockerfile and .dockerignore.
+          # Test sources never reach the image (installDist/kobwebExport build main sources only).
           BACKEND_PATHS: >-
             backend sharedData adminWeb gradle gradlew build.gradle.kts settings.gradle.kts gradle.properties
             .dockerignore .github/workflows/ci.yml .github/scripts/deploy-backend.sh
-          # Inputs of the browser build.
+            :(exclude)backend/src/test :(exclude,glob)sharedData/src/*Test/** :(exclude,glob)adminWeb/src/*Test/**
+          # Inputs of the browser build. Test sources and screenshot goldens are not part of it.
           WEB_PATHS: >-
             webApp sharedUI sharedData gradle gradlew build.gradle.kts settings.gradle.kts gradle.properties
             .github/workflows/ci.yml .github/scripts/deploy-web.sh
+            :(exclude,glob)sharedUI/src/*Test/** :(exclude,glob)sharedData/src/*Test/** :(exclude,glob)webApp/src/*Test/**
+            :(exclude)sharedUI/roborazzi
         run: |
           backend=true
           web=true
