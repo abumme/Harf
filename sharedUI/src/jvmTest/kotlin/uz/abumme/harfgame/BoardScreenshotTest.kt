@@ -76,6 +76,14 @@ class BoardScreenshotTest {
         ),
         current = listOf("s", "t"),
     )
+    private val ru = state(
+        "ru",
+        listOf(
+            listOf("к", "н", "и", "г", "а") to listOf(ABSENT, PRESENT, ABSENT, ABSENT, CORRECT),
+            listOf("т", "о", "в", "а", "р") to listOf(CORRECT, ABSENT, ABSENT, PRESENT, ABSENT),
+        ),
+        current = listOf("т", "у"),
+    )
 
     private fun frame(name: String, width: Int, height: Int, config: LanguageConfig, state: GameState, strip: StripMessage? = null) =
         runDesktopComposeUiTest {
@@ -115,11 +123,28 @@ class BoardScreenshotTest {
         onRoot().captureRoboImage("roborazzi/game_board_uz_latn.png")
     }
 
+    /** Action-row graphemes carry used-state marks like any letter key; ENTER and ⌫ never do. */
+    @Test
+    fun keyboard_action_row_marks() {
+        val marks = mapOf("oʻ" to CORRECT, "gʻ" to PRESENT, "sh" to ABSENT)
+        for (width in listOf(360, 412)) runDesktopComposeUiTest {
+            setContent {
+                HarfTheme(paletteId = "newsprint") {
+                    Box(Modifier.width(width.dp).background(LocalHarfColors.current.paper).padding(4.dp)) {
+                        KeyboardView(LaunchLanguages.uzLatn, marks, {}, {}, {})
+                    }
+                }
+            }
+            onRoot().captureRoboImage("roborazzi/keyboard_${width}_uz_latn_marks.png")
+        }
+    }
+
     @Test
     fun game_360x640() {
         frame("game_360x640_uz_latn", 360, 640, LaunchLanguages.uzLatn, uzLatn, StripMessage.UnknownWord("chaxyz"))
         frame("game_360x640_uz_cyrl", 360, 640, LaunchLanguages.uzCyrl, uzCyrl)
         frame("game_360x640_en", 360, 640, LaunchLanguages.en, en)
+        frame("game_360x640_ru", 360, 640, LaunchLanguages.ru, ru)
     }
 
     @Test
@@ -137,6 +162,7 @@ class BoardScreenshotTest {
         frame("game_412x915_uz_latn", 412, 915, LaunchLanguages.uzLatn, uzLatn)
         frame("game_412x915_uz_cyrl", 412, 915, LaunchLanguages.uzCyrl, uzCyrl)
         frame("game_412x915_en", 412, 915, LaunchLanguages.en, en)
+        frame("game_412x915_ru", 412, 915, LaunchLanguages.ru, ru)
     }
 
     @Test
