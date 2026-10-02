@@ -4,7 +4,8 @@ import kotlinx.serialization.Serializable
 
 /**
  * Data-defined configuration for one language/script. Adding or adjusting a language
- * is a data change, not code: the tokenizer, keyboard, and packs all read this.
+ * is a data change, not code: the tokenizer and packs read this. The app keeps the
+ * on-screen keyboard layout itself, keyed by [id].
  */
 @Serializable
 data class LanguageConfig(
@@ -19,13 +20,6 @@ data class LanguageConfig(
     val replacements: Map<String, String> = emptyMap(),
     /** Whether to fold apostrophe variants to the canonical tutuq (Uzbek Latin). */
     val normalizeApostrophe: Boolean = false,
-    /** On-screen keyboard: the letter rows of grapheme keys (digraphs are first-class keys). The UI appends one action row. */
-    val keyboard: List<List<String>>,
-    /**
-     * Graphemes hosted in the action row, between the enter and delete keys (Uzbek Latin's `oʻ` `gʻ`), so every
-     * language has the same number of rows. Never repeats a letter-row key; empty for most languages.
-     */
-    val actionRowKeys: List<String> = emptyList(),
     val minLength: Int = 4,
     val maxLength: Int = 7,
 ) {

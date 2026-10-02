@@ -5,8 +5,7 @@ package uz.abumme.harfgame.lang
  * excluded (content-side), Uzbek 1995 with U+02BB apostrophe, Russian ё=е,
  * Kazakh restricted to native-word alphabet, board length 4–7.
  *
- * Keyboard layouts and the Kazakh/Uzbek-Cyrillic inventories are first-pass and
- * flagged for native review.
+ * The Kazakh/Uzbek-Cyrillic inventories are first-pass and flagged for native review.
  */
 object LaunchLanguages {
 
@@ -24,13 +23,6 @@ object LaunchLanguages {
             "ustunga" to listOf("u", "s", "t", "u", "n", "g", "a"),
         ),
         normalizeApostrophe = true,
-        keyboard = listOf(
-            listOf("q", "e", "r", "t", "y", "u", "i", "o", "p"),
-            listOf("a", "s", "d", "f", "g", "h", "j", "k", "l"),
-            listOf("sh", "ch", "ng", "z", "x", "v", "b", "n", "m"),
-        ),
-        // oʻ gʻ sit in the action row between enter and delete, keeping the letter rows at nine wide keys.
-        actionRowKeys = listOf("oʻ", "gʻ"),
     )
 
     val uzCyrl = LanguageConfig(
@@ -41,11 +33,6 @@ object LaunchLanguages {
             "а", "б", "в", "г", "ғ", "д", "е", "ё", "ж", "з", "и", "й",
             "к", "қ", "л", "м", "н", "о", "п", "р", "с", "т", "у", "ў",
             "ф", "х", "ҳ", "ц", "ч", "ш", "ъ", "ь", "э", "ю", "я",
-        ),
-        keyboard = listOf(
-            listOf("й", "ц", "у", "к", "е", "н", "г", "ш", "ў", "з", "х", "ъ"),
-            listOf("ф", "қ", "в", "а", "п", "р", "о", "л", "д", "ж", "э", "ё"),
-            listOf("я", "ч", "с", "м", "и", "т", "ь", "б", "ю", "ғ", "ҳ"),
         ),
     )
 
@@ -59,11 +46,6 @@ object LaunchLanguages {
             "ш", "щ", "ъ", "ы", "ь", "э", "ю", "я",
         ),
         replacements = mapOf("ё" to "е"), // ё plays as е (universal RU-clone convention)
-        keyboard = listOf(
-            listOf("й", "ц", "у", "к", "е", "н", "г", "ш", "щ", "з", "х", "ъ"),
-            listOf("ф", "ы", "в", "а", "п", "р", "о", "л", "д", "ж", "э"),
-            listOf("я", "ч", "с", "м", "и", "т", "ь", "б", "ю"),
-        ),
     )
 
     val en = LanguageConfig(
@@ -71,11 +53,6 @@ object LaunchLanguages {
         displayName = "English",
         scriptLabel = "Latin",
         graphemes = ('a'..'z').map { it.toString() },
-        keyboard = listOf(
-            listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p"),
-            listOf("a", "s", "d", "f", "g", "h", "j", "k", "l"),
-            listOf("z", "x", "c", "v", "b", "n", "m"),
-        ),
     )
 
     val kk = LanguageConfig(
@@ -87,11 +64,6 @@ object LaunchLanguages {
             "а", "ә", "б", "г", "ғ", "д", "е", "ж", "з", "и", "й", "к",
             "қ", "л", "м", "н", "ң", "о", "ө", "п", "р", "с", "т", "у",
             "ұ", "ү", "х", "һ", "ы", "і", "ш",
-        ),
-        keyboard = listOf(
-            listOf("а", "ә", "б", "г", "ғ", "д", "е", "ж", "з", "и", "й"),
-            listOf("к", "қ", "л", "м", "н", "ң", "о", "ө", "п", "р", "с"),
-            listOf("т", "у", "ұ", "ү", "х", "һ", "ы", "і", "ш"),
         ),
     )
 
