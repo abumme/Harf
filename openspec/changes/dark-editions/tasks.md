@@ -21,4 +21,4 @@ Visual authority: §06 "Dark editions" of `docs/ui-review/before-after.html` (da
 
 - [x] 4.1 Add a theme-mode control (system/light/dark) in Settings (or Home); verify selection applies live.
 - [x] 4.2 Compile-check JVM → Android → Wasm/JS; run `./gradlew :sharedUI:jvmTest`.
-- [ ] 4.3 Record dark-variant screenshot goldens from CI; verify `verifyRoborazziJvm` passes for light and dark.
+- [x] 4.3 Record dark-variant screenshot goldens from CI; verify `verifyRoborazziJvm` passes for light and dark.
