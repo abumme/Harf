@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onRoot
@@ -27,8 +28,12 @@ import uz.abumme.harfgame.feature.game.KeyboardView
 import uz.abumme.harfgame.feature.game.StripMessage
 import uz.abumme.harfgame.lang.LanguageConfig
 import uz.abumme.harfgame.lang.LaunchLanguages
+import uz.abumme.harfgame.theme.HarfPalettes
 import uz.abumme.harfgame.theme.HarfTheme
 import uz.abumme.harfgame.theme.LocalHarfColors
+import uz.abumme.harfgame.theme.ThemeMode
+import uz.abumme.harfgame.theme.marks.FillMarkStyle
+import uz.abumme.harfgame.theme.marks.LocalMarkStyle
 import kotlin.test.Test
 
 /**
@@ -85,10 +90,18 @@ class BoardScreenshotTest {
         current = listOf("т", "у"),
     )
 
-    private fun frame(name: String, width: Int, height: Int, config: LanguageConfig, state: GameState, strip: StripMessage? = null) =
+    private fun frame(
+        name: String,
+        width: Int,
+        height: Int,
+        config: LanguageConfig,
+        state: GameState,
+        strip: StripMessage? = null,
+        mode: ThemeMode = ThemeMode.Light,
+    ) =
         runDesktopComposeUiTest {
             setContent {
-                HarfTheme(paletteId = "newsprint") {
+                HarfTheme(paletteId = "newsprint", mode = mode) {
                     Box(Modifier.size(width.dp, height.dp)) {
                         GameContent(
                             state = state,
@@ -168,5 +181,31 @@ class BoardScreenshotTest {
     @Test
     fun game_landscape_915x412() {
         frame("game_915x412_uz_latn", 915, 412, LaunchLanguages.uzLatn, uzLatn)
+    }
+
+    @Test
+    fun game_393x852_dark() {
+        frame("game_393x852_ru_dark", 393, 852, LaunchLanguages.ru, ru, mode = ThemeMode.Dark)
+    }
+
+    /** Every edition's dark ground in Fill, the style whose solid marks put a letter on the fill. */
+    @Test
+    fun board_and_keyboard_dark_fill() {
+        for (palette in HarfPalettes.all) runDesktopComposeUiTest {
+            setContent {
+                HarfTheme(paletteId = palette.id, mode = ThemeMode.Dark) {
+                    CompositionLocalProvider(LocalMarkStyle provides FillMarkStyle) {
+                        Column(
+                            modifier = Modifier.width(360.dp).background(LocalHarfColors.current.paper).padding(16.dp),
+                            verticalArrangement = Arrangement.spacedBy(16.dp),
+                        ) {
+                            BoardView(ru)
+                            KeyboardView(LaunchLanguages.ru, ru.keyStates, {}, {}, {})
+                        }
+                    }
+                }
+            }
+            onRoot().captureRoboImage("roborazzi/game_board_${palette.id}_dark_fill.png")
+        }
     }
 }

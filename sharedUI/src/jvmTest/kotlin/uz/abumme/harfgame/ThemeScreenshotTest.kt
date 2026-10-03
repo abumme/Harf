@@ -25,6 +25,7 @@ import uz.abumme.harfgame.theme.HarfColors
 import uz.abumme.harfgame.theme.HarfPalettes
 import uz.abumme.harfgame.theme.HarfTheme
 import uz.abumme.harfgame.theme.LocalHarfColors
+import uz.abumme.harfgame.theme.ThemeMode
 import uz.abumme.harfgame.theme.harfSerif
 import kotlin.test.Test
 
@@ -39,6 +40,18 @@ class ThemeScreenshotTest {
                     HarfTheme(paletteId = palette.id) { PaletteSample() }
                 }
                 onRoot().captureRoboImage("roborazzi/palette_${palette.id}.png")
+            }
+        }
+    }
+
+    @Test
+    fun each_palette_renders_dark() {
+        for (palette in HarfPalettes.all) {
+            runDesktopComposeUiTest {
+                setContent {
+                    HarfTheme(paletteId = palette.id, mode = ThemeMode.Dark) { PaletteSample() }
+                }
+                onRoot().captureRoboImage("roborazzi/palette_${palette.id}_dark.png")
             }
         }
     }
@@ -57,8 +70,8 @@ private fun PaletteSample() {
     ) {
         Text("Harf.", color = c.ink, fontFamily = harfSerif(), fontSize = 48.sp, fontWeight = FontWeight.Bold)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Cell("S", c.correct, c); Cell("H", c.present, c); Cell("A", c.absent, c)
-            Cell("H", c.correct, c); Cell("R", c.present, c)
+            Cell("S", c.correct, c.onCorrect); Cell("H", c.present, c.onPresent); Cell("A", c.absent, c.onAbsent)
+            Cell("H", c.correct, c.onCorrect); Cell("R", c.present, c.onPresent)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             for (k in listOf("Q", "E", "R", "T", "Y")) Key(k, c)
@@ -67,11 +80,11 @@ private fun PaletteSample() {
 }
 
 @Composable
-private fun Cell(letter: String, fill: Color, c: HarfColors) {
+private fun Cell(letter: String, fill: Color, on: Color) {
     Box(
         modifier = Modifier.size(46.dp).clip(RoundedCornerShape(4.dp)).background(fill),
         contentAlignment = Alignment.Center,
-    ) { Text(letter, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp) }
+    ) { Text(letter, color = on, fontWeight = FontWeight.Bold, fontSize = 20.sp) }
 }
 
 @Composable
