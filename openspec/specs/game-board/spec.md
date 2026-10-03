@@ -97,3 +97,22 @@ Once a round is loaded, it SHALL stay loaded for as long as the game destination
 #### Scenario: Switching Uzbek script keeps the board until ready
 - **WHEN** the player switches between Latin and Cyrillic during an Uzbek game
 - **THEN** the board does not disappear while the other script's round is loading. The other script's board replaces it once ready.
+
+### Requirement: Active input cell indicator
+While the round is playing, the board SHALL mark the cell that will receive the next entered grapheme — the first empty cell of the in-progress row — so the player can see where input lands. The indicator SHALL be shown only for the active cell and only while the game status is playing.
+
+#### Scenario: Next empty cell is marked during play
+- **WHEN** the round is playing and the in-progress row has one or more empty cells
+- **THEN** the first empty cell of that row SHALL be visually distinguished from the other empty cells
+
+#### Scenario: Indicator tracks input
+- **WHEN** the player enters or deletes a grapheme in the in-progress row
+- **THEN** the active-cell indicator SHALL move to the new first-empty cell
+
+#### Scenario: No indicator when the round is over
+- **WHEN** the game status is won or lost
+- **THEN** no active-cell indicator SHALL be shown
+
+#### Scenario: No indicator on a full row
+- **WHEN** the in-progress row is completely filled (awaiting submit)
+- **THEN** no active-cell indicator SHALL be shown

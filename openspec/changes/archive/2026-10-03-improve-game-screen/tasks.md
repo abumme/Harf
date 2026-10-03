@@ -21,4 +21,4 @@
 ## 4. Verification
 
 - [x] 4.1 Compile-check JVM then Android/Wasm; run `./gradlew :sharedUI:jvmTest` and confirm existing game tests pass.
-- [ ] 4.2 Re-record screenshot goldens from the CI `roborazzi-goldens` artifact (board + keyboard shifted) and commit them; verify `verifyRoborazziJvm` passes on CI.
+- [x] 4.2 Re-record screenshot goldens from the CI `roborazzi-goldens` artifact (board + keyboard shifted) and commit them; verify `verifyRoborazziJvm` passes on CI.
