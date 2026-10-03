@@ -11,13 +11,13 @@ Visual authority: §03 of `docs/ui-review/before-after.html` (row radius 11.dp, 
 
 ## 2. Rows with date + result
 
-- [ ] 2.1 Render each archive row as a date + result row (won `N/6`, lost `X/6`, "не сыграно") from the result log, using the 11.dp row shape and status badges from the mockup; verify a played and an unplayed day render distinctly.
-- [ ] 2.2 Localize the back control: add `action_back` (RU `Назад`, EN `Back`, UZ `Orqaga`), replace `Text("Back")`; adopt the shared `ScreenTopBar` with an accessible back name. Verify no literal English in RU/UZ builds.
+- [x] 2.1 Render each archive row as a date + result row (won `N/6`, lost `X/6`, "не сыграно") from the result log, using the 11.dp row shape and status badges from the mockup; verify a played and an unplayed day render distinctly.
+- [x] 2.2 Localize the back control: add `action_back` (RU `Назад`, EN `Back`, UZ `Orqaga`), replace `Text("Back")`; adopt the shared `ScreenTopBar` with an accessible back name. Verify no literal English in RU/UZ builds.
 
 ## 3. Verification
 
 - [x] 3.1 Compile-check JVM → Android → Wasm/JS.
-- [ ] 3.2 Manual: as a Founder owner open several past days across languages and confirm each shows its own word; re-record Archive goldens from CI.
+- [x] 3.2 Manual: as a Founder owner open several past days across languages and confirm each shows its own word; re-record Archive goldens from CI. — 2026-10-03, emulator (API 36, debug build with the Test Store key, Founder bought through the Test Store): each day solved with its published calendar word, and today's word scored as a miss first: uz 30.09 `bulut` 1/6, uz 28.09 `qalam` 1/6, en 29.09 `eagle` 2/6 (after `light`), ru 29.09 `ветер` 2/6 (after `масло`), kk 30.09 `жылан` 2/6 (after `бақша`); rows then show the green `N/6` badge. No Archive goldens exist (no Archive screenshot test), so there were none to re-record.
 
 ## 4. Results (2026-10-01)
 
