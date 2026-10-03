@@ -1,5 +1,8 @@
 package uz.abumme.harfgame.feature.archive
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,7 +22,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -30,6 +32,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -43,7 +49,8 @@ import uz.abumme.harfgame.data.auth.SessionStore
 import uz.abumme.harfgame.data.stats.ResultLog
 import uz.abumme.harfgame.feature.daily.DailyPuzzleProvider
 import uz.abumme.harfgame.theme.LocalHarfColors
-import uz.abumme.harfgame.theme.harfSerif
+import uz.abumme.harfgame.theme.LocalHarfShapes
+import uz.abumme.harfgame.theme.ScreenTopBar
 
 private val LANGUAGES = listOf(
     "uz-latn" to "Oʻzbekcha",
@@ -90,23 +97,11 @@ fun ArchiveScreen(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TextButton(onClick = onBack) {
-                Text("←", fontSize = 24.sp, color = colors.ink)
-            }
-            Text(
-                stringResource(Res.string.archive_title),
-                fontFamily = harfSerif(),
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = colors.ink,
-            )
-            Spacer(Modifier.width(48.dp))
-        }
+        ScreenTopBar(
+            title = stringResource(Res.string.archive_title),
+            backLabel = stringResource(Res.string.action_back),
+            onBack = onBack,
+        )
 
         Spacer(Modifier.height(16.dp))
 
@@ -163,29 +158,57 @@ fun ArchiveScreen(
                 LazyColumn(
                     modifier = Modifier.weight(1f).fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     items(availableDays) { day ->
-                        OutlinedButton(
-                            onClick = { onOpenPuzzle(selectedLang, day) },
-                            modifier = Modifier.fillMaxWidth(0.85f),
-                        ) {
-                            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(ArchiveDayBrowser.dateLabel(day), color = colors.ink)
-                                val result = results[day]
-                                Text(
-                                    when {
-                                        result == null -> stringResource(Res.string.archive_not_played)
-                                        result.won -> stringResource(Res.string.result_solved, result.attempts, 6)
-                                        else -> stringResource(Res.string.result_out_of_tries)
-                                    },
-                                    color = if (result == null) colors.muted else colors.ink,
-                                )
-                            }
-                        }
+                        ArchiveDayRow(day, results[day], onClick = { onOpenPuzzle(selectedLang, day) })
                     }
                 }
             }
         }
+    }
+}
+
+/**
+ * One past day: its date and a status badge — solved `N/6`, lost `X/6`, or not played — in the
+ * mockup's row shape. The badge reads out the full result, since "X/6" means nothing spoken.
+ */
+@Composable
+internal fun ArchiveDayRow(day: Long, result: ArchiveDayBrowser.DayResult?, onClick: () -> Unit) {
+    val c = LocalHarfColors.current
+    val shapes = LocalHarfShapes.current
+    val status = when {
+        result == null -> stringResource(Res.string.archive_not_played)
+        result.won -> stringResource(Res.string.result_solved, result.attempts, 6)
+        else -> stringResource(Res.string.result_out_of_tries)
+    }
+    val won = result?.won == true
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shapes.row)
+            .background(c.card)
+            .border(1.dp, c.rule, shapes.row)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 13.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(ArchiveDayBrowser.dateLabel(day), Modifier.weight(1f), color = c.ink, fontWeight = FontWeight.SemiBold)
+        Text(
+            when {
+                result == null -> status
+                won -> "${result.attempts}/6"
+                else -> "X/6"
+            },
+            modifier = Modifier
+                .clip(shapes.pill)
+                .background(if (won) lerp(c.card, c.success, 0.14f) else c.paper2)
+                .padding(horizontal = 8.dp, vertical = 3.dp)
+                .clearAndSetSemantics { contentDescription = status },
+            color = if (won) c.success else c.muted,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+        )
+        if (result == null) Text("›", Modifier.clearAndSetSemantics {}, color = c.muted)
     }
 }
