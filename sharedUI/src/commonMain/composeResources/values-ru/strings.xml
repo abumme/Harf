@@ -17,6 +17,10 @@
 
     <string name="settings_title">Настройки</string>
     <string name="settings_mark_style">Стиль меток</string>
+    <string name="settings_appearance">Оформление</string>
+    <string name="theme_mode_system">Система</string>
+    <string name="theme_mode_light">Светлая</string>
+    <string name="theme_mode_dark">Тёмная</string>
     <string name="settings_founder">★ Founder</string>
     <string name="settings_support_harf">Поддержать Harf</string>
     <string name="settings_support_harf_themes">Поддержать Harf / темы</string>

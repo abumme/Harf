@@ -45,11 +45,14 @@ import uz.abumme.harfgame.data.auth.OAuthResult
 import uz.abumme.harfgame.data.auth.SessionStore
 import uz.abumme.harfgame.data.stats.SyncManager
 import uz.abumme.harfgame.feature.cellstyles.StyleExperimentController
+import uz.abumme.harfgame.settings.AppSettings
 import uz.abumme.harfgame.theme.DangerButton
 import uz.abumme.harfgame.theme.GhostButton
 import uz.abumme.harfgame.theme.LocalHarfColors
 import uz.abumme.harfgame.theme.LocalHarfShapes
 import uz.abumme.harfgame.theme.ScreenTopBar
+import uz.abumme.harfgame.theme.SegmentedSwitch
+import uz.abumme.harfgame.theme.ThemeMode
 import uz.abumme.harfgame.theme.marks.HarfMarkStyleId
 
 /** Public legal document URLs. Update these to the hosted locations before release. */
@@ -61,6 +64,7 @@ private object LegalLinks {
 @Composable
 fun SettingsScreen(onBack: () -> Unit = {}, onPaywall: () -> Unit = {}, onCustomerCenter: () -> Unit = {}) {
     val controller = koinInject<StyleExperimentController>()
+    val settings = koinInject<AppSettings>()
     val purchases = koinInject<PurchaseController>()
     val entitlements = koinInject<EntitlementRepository>()
     val sessionStore = koinInject<SessionStore>()
@@ -69,6 +73,7 @@ fun SettingsScreen(onBack: () -> Unit = {}, onPaywall: () -> Unit = {}, onCustom
     val gamesServices = koinInject<uz.abumme.harfgame.games.GamesServices>()
     val scope = rememberCoroutineScope()
     val active by controller.activeStyle.collectAsState()
+    val themeMode by settings.themeMode.collectAsState()
     val ents by entitlements.entitlements.collectAsState()
     val session by sessionStore.sessionFlow.collectAsState(initial = null)
     val colors = LocalHarfColors.current
@@ -93,6 +98,19 @@ fun SettingsScreen(onBack: () -> Unit = {}, onPaywall: () -> Unit = {}, onCustom
             backLabel = stringResource(Res.string.action_back),
             onBack = onBack,
         )
+
+        // Appearance — light/dark ground; App re-themes as soon as the choice is saved
+        SettingsSection(stringResource(Res.string.settings_appearance)) {
+            SegmentedSwitch(
+                options = listOf(
+                    ThemeMode.System.name to stringResource(Res.string.theme_mode_system),
+                    ThemeMode.Light.name to stringResource(Res.string.theme_mode_light),
+                    ThemeMode.Dark.name to stringResource(Res.string.theme_mode_dark),
+                ),
+                selectedKey = themeMode.name,
+                onSelect = { settings.setThemeMode(ThemeMode.valueOf(it)) },
+            )
+        }
 
         // Appearance — mark style
         SettingsSection(stringResource(Res.string.settings_mark_style)) {

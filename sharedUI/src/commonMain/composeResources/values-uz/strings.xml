@@ -17,6 +17,10 @@
 
     <string name="settings_title">Sozlamalar</string>
     <string name="settings_mark_style">Belgi uslubi</string>
+    <string name="settings_appearance">Ko'rinish</string>
+    <string name="theme_mode_system">Tizim</string>
+    <string name="theme_mode_light">Yorug'</string>
+    <string name="theme_mode_dark">Qorong'i</string>
     <string name="settings_founder">★ Founder</string>
     <string name="settings_support_harf">Harf'ni qo'llab-quvvatlash</string>
     <string name="settings_support_harf_themes">Harf'ni qo'llab-quvvatlash / mavzular</string>
