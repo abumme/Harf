@@ -24,4 +24,4 @@
   - Over this change's commit range (`<first commit>^..HEAD`), the backend is reported changed, which is expected once.
   - After a throwaway working-tree edit to `KeyboardLayouts.kt` only (swap two keys), `git diff --quiet HEAD -- <BACKEND_PATHS>` exits 0 (backend=false) and `git diff --quiet HEAD -- <WEB_PATHS>` exits 1 (web=true).
   - After `git checkout -- <file>`, the working tree is clean.
-- [ ] 4.3 Verify that `git status --short sharedUI/roborazzi` is empty after a local `:sharedUI:verifyRoborazziJvm`. When the user asks to push, verify that CI's backend tests, `:sharedUI:jvmTest` and `verifyRoborazziJvm` pass with no golden re-recorded.
+- [x] 4.3 Verify that `git status --short sharedUI/roborazzi` is empty after a local `:sharedUI:verifyRoborazziJvm`. When the user asks to push, verify that CI's backend tests, `:sharedUI:jvmTest` and `verifyRoborazziJvm` pass with no golden re-recorded.
