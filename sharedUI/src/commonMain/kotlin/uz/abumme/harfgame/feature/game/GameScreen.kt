@@ -472,7 +472,10 @@ private fun GameSkeleton(onBack: () -> Unit) {
  */
 private fun glyphHalo(mark: Mark?, letterColor: Color, colors: HarfColors, blurPx: Float): TextStyle {
     if (mark == null) return TextStyle.Default
-    val halo = if (letterColor.luminance() < 0.5f) colors.paper else colors.ink
+    // paper and ink swap brightness on the dark ground, so pick the halo by luminance, not by role
+    val (darkTone, lightTone) =
+        if (colors.ink.luminance() < colors.paper.luminance()) colors.ink to colors.paper else colors.paper to colors.ink
+    val halo = if (letterColor.luminance() < 0.5f) lightTone else darkTone
     return TextStyle(shadow = Shadow(color = halo, blurRadius = blurPx))
 }
 
