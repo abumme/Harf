@@ -40,12 +40,58 @@ data class HarfColors(
 /** How feedback marks are drawn; the shape channel that keeps states colorblind-safe. */
 enum class HarfMarkStyle { Scribble, Fill, Outline }
 
-/** A named palette (edition) = an id, a display name, and its color roles. */
+/** A named palette (edition) = an id, a display name, and its color roles on a light and a dark ground. */
 @Immutable
 data class HarfPalette(
     val id: String,
     val displayName: String,
     val colors: HarfColors,
+    val dark: HarfColors,
+)
+
+// Dark editions share one recipe: a near-black ground faintly tinted toward the edition's hue,
+// lighter steps for cards and variant surfaces, light ink, and the edition's accent/feedback
+// hues lifted to read on dark. Not an inversion: which hue means correct/present and the mark
+// shapes stay the same. Filled marks are light, so a letter over them takes the ground color;
+// the absent fill stays recessive (mid-grey), so the light ink reads over it.
+val dark_absent = Color(0xcc7A818A)
+val dark_danger = Color(0xFFE0656A)
+val dark_success = Color(0xFF63B981)
+
+private fun darkColors(
+    paper: Color,
+    paper2: Color,
+    card: Color,
+    ink: Color,
+    muted: Color,
+    rule: Color,
+    accent: Color,
+    correct: Color,
+    present: Color,
+    key: Color,
+    keyDigraph: Color,
+    keyAbsent: Color,
+) = HarfColors(
+    paper = paper,
+    paper2 = paper2,
+    card = card,
+    ink = ink,
+    muted = muted,
+    rule = rule,
+    accent = accent,
+    correct = correct,
+    present = present,
+    absent = dark_absent,
+    key = key,
+    keyDigraph = keyDigraph,
+    keyAbsent = keyAbsent,
+    danger = dark_danger,
+    onDanger = paper,
+    success = dark_success,
+    onSuccess = paper,
+    onCorrect = paper,
+    onPresent = paper,
+    onAbsent = ink,
 )
 
 // Newsprint
@@ -142,6 +188,20 @@ object HarfPalettes {
             keyDigraph = newsprint_keyDigraph,
             keyAbsent = newsprint_keyAbsent,
         ),
+        darkColors(
+            paper = Color(0xFF0F1216),
+            paper2 = Color(0xFF1D2229),
+            card = Color(0xFF171B21),
+            ink = Color(0xFFE9ECF1),
+            muted = Color(0xFF8A94A0),
+            rule = Color(0xFF2A313A),
+            accent = Color(0xFF6FA3D6),
+            correct = Color(0xFF6FA3D6),
+            present = Color(0xFFE0656A),
+            key = Color(0xFF232A33),
+            keyDigraph = Color(0xFF23303F),
+            keyAbsent = Color(0xFF191E24),
+        ),
     )
     val Press = HarfPalette(
         "press", "Press Red",
@@ -160,6 +220,20 @@ object HarfPalettes {
             keyDigraph = press_keyDigraph,
             keyAbsent = press_keyAbsent,
         ),
+        darkColors(
+            paper = Color(0xFF0F1216),
+            paper2 = Color(0xFF1D2229),
+            card = Color(0xFF171B21),
+            ink = Color(0xFFE9ECF1),
+            muted = Color(0xFF8A94A0),
+            rule = Color(0xFF2A313A),
+            accent = Color(0xFFE0656A),
+            correct = Color(0xFFE0656A),
+            present = Color(0xFF6FA3D6),
+            key = Color(0xFF232A33),
+            keyDigraph = Color(0xFF322A2E),
+            keyAbsent = Color(0xFF191E24),
+        ),
     )
     val Ink = HarfPalette(
         "ink", "Ink",
@@ -177,6 +251,20 @@ object HarfPalettes {
             key = ink_key,
             keyDigraph = ink_keyDigraph,
             keyAbsent = ink_keyAbsent,
+        ),
+        darkColors(
+            paper = Color(0xFF101214),
+            paper2 = Color(0xFF1E2124),
+            card = Color(0xFF181A1D),
+            ink = Color(0xFFE8EAEC),
+            muted = Color(0xFF8D939A),
+            rule = Color(0xFF2C3035),
+            accent = Color(0xFFD5DADF),
+            correct = Color(0xFFC9CED4),
+            present = Color(0xFF74AEDB),
+            key = Color(0xFF24282C),
+            keyDigraph = Color(0xFF272B30),
+            keyAbsent = Color(0xFF1A1D20),
         ),
     )
     val Blueprint = HarfPalette(
@@ -197,6 +285,20 @@ object HarfPalettes {
             keyDigraph = blueprint_keyDigraph,
             keyAbsent = blueprint_keyAbsent,
         ),
+        darkColors(
+            paper = Color(0xFF0D1520),
+            paper2 = Color(0xFF1C2839),
+            card = Color(0xFF142030),
+            ink = Color(0xFFE3ECF5),
+            muted = Color(0xFF8798AB),
+            rule = Color(0xFF263447),
+            accent = Color(0xFF5FA8E0),
+            correct = Color(0xFF5FA8E0),
+            present = Color(0xFFE0656A),
+            key = Color(0xFF1D2A3B),
+            keyDigraph = Color(0xFF1E3249),
+            keyAbsent = Color(0xFF152030),
+        ),
     )
     val Schoolbook = HarfPalette(
         "schoolbook",
@@ -215,6 +317,20 @@ object HarfPalettes {
             key = schoolbook_key,
             keyDigraph = schoolbook_keyDigraph,
             keyAbsent = schoolbook_keyAbsent,
+        ),
+        darkColors(
+            paper = Color(0xFF10130F),
+            paper2 = Color(0xFF1F241C),
+            card = Color(0xFF171B15),
+            ink = Color(0xFFE7EBE2),
+            muted = Color(0xFF8E9585),
+            rule = Color(0xFF2C3328),
+            accent = Color(0xFF82B56F),
+            correct = Color(0xFF82B56F),
+            present = Color(0xFFE39A55),
+            key = Color(0xFF242A20),
+            keyDigraph = Color(0xFF27311F),
+            keyAbsent = Color(0xFF1A1E17),
         ),
     )
 
