@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Navigation transitions are visually continuous
-Every destination SHALL be drawn as an opaque page in the active edition's paper color, covering the whole window including the system-bar and safe-area strips. During a navigation transition, a page SHALL never show another page's content through it. On Android and iOS, forward and back navigation SHALL animate as a short horizontal slide with the page underneath moving at a reduced rate. Back by button and back by gesture SHALL use the same motion, and the gesture SHALL follow the finger. On desktop and web, navigation SHALL switch destinations instantly with no transition animation.
+Every destination SHALL be drawn as an opaque page in the active edition's paper color, covering the whole window including the system-bar and safe-area strips. During a navigation transition, a page SHALL never show another page's content through it. On Android and iOS, forward and back navigation SHALL animate as a short horizontal slide with the page underneath moving at a reduced rate. Back by gesture SHALL use the same geometry as back by button and SHALL move in the direction of the swipe, following the finger. On desktop and web, navigation SHALL switch destinations instantly with no transition animation.
 
 #### Scenario: Pages do not show through each other
 - **WHEN** the user navigates from one destination to another, forward or back, on any platform
@@ -17,7 +17,7 @@ Every destination SHALL be drawn as an opaque page in the active edition's paper
 
 #### Scenario: Back gesture matches the back button
 - **WHEN** the user goes back with the system back gesture (Android predictive back or iOS edge swipe) instead of the in-app back button
-- **THEN** the pages move in the same direction and geometry as the button's back transition, and the top page tracks the gesture's progress
+- **THEN** the pages move with the same geometry as the button's back transition, in the direction of the swipe (from the left edge the top page moves right, as with the button; from the right edge it moves left), and the top page tracks the gesture's progress
 
 #### Scenario: Desktop and web switch instantly
 - **WHEN** the user navigates between destinations on desktop or in a browser

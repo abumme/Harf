@@ -72,7 +72,9 @@ The order follows the design: fix opacity and input first (it removes the visibl
 
 ## 5. Integration
 
-- [ ] 5.1 Run `./gradlew :sharedUI:jvmTest` and `:sharedUI:verifyRoborazziJvm`, and push to a branch so CI runs the canonical goldens. Verify CI is green. If a golden changed, review the diff and take it from the `roborazzi-goldens` artifact per CLAUDE.md.
+- [x] 5.1 Run `./gradlew :sharedUI:jvmTest` and `:sharedUI:verifyRoborazziJvm`, and push to a branch so CI runs the canonical goldens. Verify CI is green. If a golden changed, review the diff and take it from the `roborazzi-goldens` artifact per CLAUDE.md.
+  - Local, 2026-10-03 (macOS): 197 tests, 183 pass. The 14 failures are all Roborazzi golden diffs across every screen (stats, paywall, onboarding, themes, game), the expected local font/locale drift; local verify is advisory.
+  - The change is on `main` (merged in `bdcd098`, CI green). CI run 37045571244 on `0788b2a` (2026-10-02) is green: `Client tests and builds` ran `:sharedUI:verifyRoborazziJvm` (every sharedUI test plus the goldens) and skipped the re-record step. The change's commits (`9c83491`, `0d9f773`, `c49fec6`, `c4c57bc`) touch no golden, so nothing to take from `roborazzi-goldens`.
 - [ ] 5.2 Run `openspec validate smooth-screen-transitions --strict` and walk every scenario in the three delta specs on Android and iOS release-like builds (plus the desktop/web instant-switch scenario). Verify each scenario passes and note any that do not.
   - Android, 2026-10-01, Pixel 4a 5G (Android 14, gesture navigation), release build. All pass:
     - slide with quarter parallax forward and back (frames captured at 10× animator scale), opaque pages, paper-colored system-bar strips;
@@ -84,6 +86,13 @@ The order follows the design: fix opacity and input first (it removes the visibl
     - Uzbek Lotin "kitob" → Кирилл "қалам" → Lotin shows both rows (no stale VM).
   - Not reproducible on this device: Android 14 runs in-app predictive back only with `android:enableOnBackInvokedCallback="true"`, which the manifest does not set, so the right-edge predictive scenario (6.1) needs Android 16+.
   - iOS, 2026-10-01, simulator (iOS 27), Release build: transitions checked by eye and look smoother. The scenarios were not walked one by one, so iOS stays open.
+  - 2026-10-03: `openspec validate smooth-screen-transitions --strict` passes.
+  - Android 16, 2026-10-03, emulator (API 36, gesture navigation), release build (R8, signed with the debug key), Home → Stats, edge swipe held mid-way with `input motionevent`. Pass:
+    - right edge (6.1): Stats moves left with the finger (about 1/3 and 3/5 of the width at 31 % and 59 % finger travel), Home opaque underneath; cancel restores Stats; release settles on Home without a snap;
+    - left edge: Stats moves right, the same way as the back button.
+  - Desktop, 2026-10-03 (`:desktopApp:hotRun`, screen recorded at 75 fps): Home → Stats and Stats → Home switch from one frame to the next, with no in-between frame. Stats draws its header one frame before its numbers (data load, not a transition). Pass.
+  - Web, 2026-10-03 (`:webApp:jsBrowserDevelopmentRun`, Chromium, every painted frame via CDP screencast): Home → Stats and back switch in one frame, no slide. Pass.
+  - iOS still open, 2026-10-03: the iPhone 13 is offline and the simulator has no tap automation on this Mac, so the iOS scenarios are still not walked one by one.
 
 ## 6. Review follow-ups (found by the adversarial review of the implementation)
 
