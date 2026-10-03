@@ -24,16 +24,18 @@ import uz.abumme.harfgame.engine.WordPackRepository
 import uz.abumme.harfgame.navigation.AppNavHost
 import uz.abumme.harfgame.settings.AppSettings
 import uz.abumme.harfgame.theme.HarfTheme
+import uz.abumme.harfgame.theme.isDark
 
 /**
- * App root: applies the Harf theme (the chosen palette, if the account may use it) and hosts the
- * navigation graph. [onThemeChanged] lets platform wrappers sync system-bar style;
- * Harf editions are light, so it reports `isDark = false`.
+ * App root: applies the Harf theme (the chosen palette, if the account may use it, on the ground the
+ * saved theme mode resolves to) and hosts the navigation graph. [onThemeChanged] lets platform
+ * wrappers sync system-bar style to the resolved ground.
  */
 @Composable
 fun App(onThemeChanged: @Composable (isDark: Boolean) -> Unit = {}) {
-    onThemeChanged(false)
     val settings = koinInject<AppSettings>()
+    val themeMode by settings.themeMode.collectAsState()
+    onThemeChanged(themeMode.isDark())
     val entitlements = koinInject<EntitlementRepository>()
     val syncManager = koinInject<SyncManager>()
     val sessionStore = koinInject<SessionStore>()
@@ -64,7 +66,7 @@ fun App(onThemeChanged: @Composable (isDark: Boolean) -> Unit = {}) {
     // A palette the account doesn't own (picked before themes were gated on this platform, or refunded)
     // draws as the free one. The choice itself stays saved, so it comes back if the purchase does.
     val palette = if (accountKnown) EntitlementGate.paletteToApply(chosenPalette, ents) else chosenPalette
-    HarfTheme(paletteId = palette) {
+    HarfTheme(paletteId = palette, mode = themeMode) {
         MarkStyleHost {
             if (!onboarded) {
                 OnboardingIntro(onDone = {

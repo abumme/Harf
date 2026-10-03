@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import uz.abumme.harfgame.theme.ThemeMode
 
 /**
  * Typed wrapper over [KSafe] for durable user preferences. Persistence is provided
@@ -20,6 +21,7 @@ class AppSettings(
 ) {
 
     private val _paletteId = MutableStateFlow(DEFAULT_PALETTE)
+    private val _themeMode = MutableStateFlow(ThemeMode.System)
 
     init {
         // Seed off-main: the singleton is first resolved during composition, so a
@@ -28,6 +30,8 @@ class AppSettings(
         seedScope.launch {
             val stored = ksafe.getDirect(KEY_PALETTE, DEFAULT_PALETTE)
             _paletteId.compareAndSet(DEFAULT_PALETTE, stored)
+            val mode = ksafe.getDirect(KEY_THEME_MODE, ThemeMode.System.name)
+            _themeMode.compareAndSet(ThemeMode.System, ThemeMode.entries.firstOrNull { it.name == mode } ?: ThemeMode.System)
         }
     }
 
@@ -37,6 +41,14 @@ class AppSettings(
     fun setPaletteId(id: String) {
         _paletteId.value = id
         ksafe.putDirect(KEY_PALETTE, id)
+    }
+
+    /** Light/dark choice, observable and persisted; [ThemeMode.System] (the default) follows the platform. */
+    val themeMode: StateFlow<ThemeMode> = _themeMode.asStateFlow()
+
+    fun setThemeMode(mode: ThemeMode) {
+        _themeMode.value = mode
+        ksafe.putDirect(KEY_THEME_MODE, mode.name)
     }
 
     /** Whether the user has completed first-run onboarding. */
@@ -66,6 +78,7 @@ class AppSettings(
     companion object {
         const val DEFAULT_PALETTE = "newsprint"
         private const val KEY_PALETTE = "app.paletteId"
+        private const val KEY_THEME_MODE = "app.themeMode"
         private const val KEY_ONBOARDED = "app.onboarded"
         private const val KEY_ENT_LIFETIME = "ent.lifetime"
         private const val KEY_ENT_THEMES = "ent.themes"
