@@ -22,5 +22,5 @@ the reviewer takes through Settings, and a device run has to pass before the arc
 
 ## 3. Verification
 
-- [ ] 3.1 Add a screenshot test for the screen (owned and empty states) and take the goldens from CI, per the project's golden rules; verify `verifyRoborazziJvm` is green on CI. — Test written (`ManagePurchasesScreenshotTest`, owned + empty); the goldens must come from the CI runner, so this stays open until that run.
-- [ ] 3.2 Run the round trip on a device: buy on the paywall, open Manage purchases, restore, and confirm what is listed matches `EntitlementGate` — the two screens must never disagree.
+- [x] 3.1 Add a screenshot test for the screen (owned and empty states) and take the goldens from CI, per the project's golden rules; verify `verifyRoborazziJvm` is green on CI. — `ManagePurchasesScreenshotTest` (owned + empty), goldens in `0ac855f`; `verifyRoborazziJvm` green on CI run 37045571244 (`0788b2a`, main).
+- [x] 3.2 Run the round trip on a device: buy on the paywall, open Manage purchases, restore, and confirm what is listed matches `EntitlementGate` — the two screens must never disagree.
