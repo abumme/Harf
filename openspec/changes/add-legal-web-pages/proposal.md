@@ -1,17 +1,19 @@
 ## Why
 
-The Android/iOS app links out to `https://lazydevs.uz/harf/privacy` and `https://lazydevs.uz/harf/offer` from Settings (`SettingsScreen.kt:74-77`, commented *"Update these to the hosted locations before release"*), and Google Play requires a **public, reachable Privacy Policy URL on the store listing**. Today those URLs 404 — the legal text exists only as source markdown in `docs/legal/` (`privacy-{en,ru,uz}.md`, `offer-{en,ru,uz}.md`). Without a hosted page the app has dead legal links and the Play submission is blocked.
+The Android/iOS app links out to `https://lazydevs.uz/harf/privacy` and `https://lazydevs.uz/harf/offer` from Settings (`SettingsScreen.kt`, `LegalLinks`), and Google Play requires a **public, reachable Privacy Policy URL on the store listing**. The legal text is authored as source markdown in `docs/legal/` (`privacy-{en,ru,uz,kk,tr}.md`, `offer-{en,ru,uz,kk,tr}.md`); without a hosted page the app has dead legal links and the Play submission is blocked.
+
+The `lazydevs.uz` apex is a separate Angular (SSG) landing site, so the pages are hosted there rather than as static files in this repo. (An earlier draft of this change put `docs/legal/privacy.html` / `offer.html` in this repo; that approach was dropped once the pages moved to the landing site.)
 
 ## What Changes
 
-- Add two self-contained static HTML pages under `docs/legal/`:
-  - `privacy.html` — Privacy Policy, served at `lazydevs.uz/harf/privacy`
-  - `offer.html` — Public Offer (terms), served at `lazydevs.uz/harf/offer`
-- Each page embeds all three locales (uz / ru / en) with an in-page **language toggle** (default locale detected from `navigator.language`, fallback `ru`), so one URL serves every listing language the app supports.
-- Pages follow the existing project doc style (`docs/07-play-flow.html`): PT Serif + Golos Text, `--paper #fbfcfe`, `--accent #1c3f63`, double-rule header, Moon Cat mark.
-- Fill the legal placeholders (`{{ФИО}}`, `{{КОНТАКТНЫЙ_EMAIL}}`, `{{URL_ПОЛИТИКИ_КОНФИДЕНЦИАЛЬНОСТИ}}`, `{{URL_ОФЕРТЫ}}`, `{{ДАТА_РЕДАКЦИИ}}`) with the real operator name, contact email, canonical URLs, and revision date — in both the HTML pages and the source `.md` files, so they stay in sync.
-- Wire hosting so the two canonical URLs resolve: the `lazydevs.uz` apex is served by the separate landing site (`D:\Sources\landing`), so this change specifies the required route (`/harf/privacy` → `privacy.html`, `/harf/offer` → `offer.html`) as an explicit handoff. The HTML deliverables live in this repo; the routing edit lands in the landing repo.
-- Confirm the in-app `LegalLinks.PRIVACY` / `LegalLinks.OFFER` constants match the final canonical URLs.
+- Host the Privacy Policy and Public Offer on the `lazydevs.uz` landing site:
+  - `/harf/privacy` — Privacy Policy
+  - `/harf/offer` — Public Offer (terms)
+- Each page carries **all five locales (uz / ru / en / kk / tr)** behind an in-page **language toggle**, so one URL serves every listing language. The language buttons shown are those the document actually exists in.
+- **Default language:** on a direct visit the page defaults to the browser language (`navigator.language`, first two letters) when it is one of uz/ru/en/kk/tr, otherwise `ru`. This is applied on the client after hydration, so the prerendered/SSR markup stays stable (it is rendered in `ru`). When the visitor reaches a legal page by navigating within the site, the page opens in the language they are already reading the site in (an explicit on-site language choice wins).
+- The rendered text mirrors the source markdown in `docs/legal/` word for word (same clause numbering), at the current revisions — Privacy Policy `2026-09-17`, Public Offer `2026-09-14` — with concrete operator name, contact email, canonical URLs, and per-document revision dates (no template placeholders).
+- Pages are rendered with the landing site's own design system (no separate standalone HTML is kept in this repo).
+- The in-app `LegalLinks.PRIVACY` / `LegalLinks.OFFER` constants already equal the canonical URLs; only the stale KDoc above them is updated.
 
 ## Capabilities
 
@@ -23,8 +25,8 @@ The Android/iOS app links out to `https://lazydevs.uz/harf/privacy` and `https:/
 
 ## Impact
 
-- **New files:** `docs/legal/privacy.html`, `docs/legal/offer.html`.
-- **Edited:** `docs/legal/*.md` (placeholders filled); possibly `sharedUI/.../feature/settings/SettingsScreen.kt` (only if canonical URLs change).
-- **External / other repo:** `lazydevs.uz` landing site must add the `/harf/privacy` and `/harf/offer` routes (Caddy/nginx/Angular). Tracked here as a handoff task, not edited by this change.
+- **New files (this repo):** none — the hosted pages live in the `lazydevs.uz` landing repo.
+- **Edited (this repo):** `sharedUI/.../feature/settings/SettingsScreen.kt` (KDoc only; the URL constants are unchanged). `docs/legal/*.md` already carry the real identifiers and current revisions.
+- **External / other repo:** the `lazydevs.uz` landing site renders the two documents from its `src/app/pages/legal/` data (content, per-document dates, language toggle, default-language rule). The `/harf/privacy` and `/harf/offer` routes already exist there.
 - **Store-side:** unblocks the "host privacy policy URL" item already noted in the `harf-play-release` change (`tasks.md` 4.2).
 - **No app runtime, backend, or dependency changes.**
